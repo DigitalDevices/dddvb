@@ -59,7 +59,7 @@ static const char * const dnames[] = {
 };
 
 #ifdef CONFIG_DVB_DYNAMIC_MINORS
-#define MAX_DVB_MINORS		256
+#define MAX_DVB_MINORS		400
 #define DVB_MAX_IDS		MAX_DVB_MINORS
 #else
 #define DVB_MAX_IDS		4
