@@ -41,7 +41,7 @@
 #define ERRCTRL1_DVBS1 0x76
 #define ERRCTRL1_DVBS2 0x67
 
-#define STOP_DEMOD 1
+#define STOP_DEMOD 0
 
 static unsigned int verbose;
 module_param(verbose, int, 0644);
