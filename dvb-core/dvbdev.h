@@ -95,6 +95,8 @@ struct dvb_adapter {
 	struct dvb_device *mfe_dvbdev;	/* frontend device in use */
 	struct mutex mfe_lock;		/* access lock for thread creation */
 
+	int num_reserved;
+
 #if defined(CONFIG_MEDIA_CONTROLLER_DVB)
 	struct media_device *mdev;
 	struct media_entity *conn;
@@ -181,7 +183,7 @@ struct dvb_device {
  */
 int dvb_register_adapter(struct dvb_adapter *adap, const char *name,
 			 struct module *module, struct device *device,
-			 short *adapter_nums);
+			 short *adapter_nums, int num_reserved);
 
 /**
  * dvb_unregister_adapter - Unregisters a DVB adapter

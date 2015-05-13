@@ -1564,7 +1564,8 @@ static int dvb_register_adapters(struct ddb *dev)
 		adap = port->dvb[0].adap;
 		ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
 					   port->dev->dev,
-					   adapter_nr);
+					   adapter_nr,
+					   dev->link[0].info->type == DDB_MOD ? 4 : 1);
 		if (ret < 0)
 			return ret;
 		port->dvb[0].adap_registered = 1;
@@ -1584,7 +1585,8 @@ static int dvb_register_adapters(struct ddb *dev)
 			ret = dvb_register_adapter(adap, "DDBridge",
 						   THIS_MODULE,
 						   port->dev->dev,
-						   adapter_nr);
+						   adapter_nr,
+						   1);
 			if (ret < 0)
 				return ret;
 			port->dvb[0].adap_registered = 1;
@@ -1597,7 +1599,8 @@ static int dvb_register_adapters(struct ddb *dev)
 			ret = dvb_register_adapter(adap, "DDBridge",
 						   THIS_MODULE,
 						   port->dev->dev,
-						   adapter_nr);
+						   adapter_nr,
+						   1);
 			if (ret < 0)
 				return ret;
 			port->dvb[1].adap_registered = 1;
@@ -1609,7 +1612,8 @@ static int dvb_register_adapters(struct ddb *dev)
 			ret = dvb_register_adapter(adap, "DDBridge",
 						   THIS_MODULE,
 						   port->dev->dev,
-						   adapter_nr);
+						   adapter_nr,
+						   1);
 			if (ret < 0)
 				return ret;
 			port->dvb[0].adap_registered = 1;
@@ -1621,7 +1625,8 @@ static int dvb_register_adapters(struct ddb *dev)
 			ret = dvb_register_adapter(adap, "DDBridge",
 						   THIS_MODULE,
 						   port->dev->dev,
-						   adapter_nr);
+						   adapter_nr,
+						   1);
 			if (ret < 0)
 				return ret;
 			port->dvb[0].adap_registered = 1;
