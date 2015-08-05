@@ -1,0 +1,89 @@
+OctopusNet
+----------
+
+Hardware:
+
+- SoC Atmel SAM9G45 400MHz ARM 926
+  64 MB DRAM
+  256 MB NAND flash
+
+- FPGA Lattice ECP3 17
+  data flash
+
+- 5 port switch Marvell 88E6175R
+
+
+The FPGA is connected to the memory bus of the G45 and maps control registers into the memory space
+of the G45. This is mainly to control the data flow on the FPGA. Only minimal data can be transferred
+(e.g. single sections). Transport streams cannot be transferred to the G45 this way!
+The FPGA can receive up to 8 TS from up to 4 Duo-Flex cards. You can also can alternatively connect
+CI modules to port 2 and 3 (TAP 3 and 4).
+
+The FPGA is also connected to one of the ports of the gigabit switch.
+There are up to 12 channels. Each channel can select one input TS, which is then passed through
+a PID filter (8192 bit array) and sent to the switch as a UDP/RTP stream.
+
+The G45 is connected to another port of the switch (but only with 100 MBit)
+
+
+Booting:
+
+The G45 does not boot from the NAND flash but from the dataflash connected to the FPGA. The G45
+does not support error correction for the boot sector and NAND with zero error boot pages
+is no longer easily available.
+Newer Atmel SoCs support 4-bit error correction in boot ROM but not the G45.
+
+So, the G45 boot looks like this:
+
+- Run a minimal boot rom mapped by the FPGA.
+- Boot rom loads a modified bootstrap via SPI (provided via FPGA ports) from the dataflash.
+- Bootstrap loads u-boot via SPI from dataflash.
+- u-boot boots Linux ...
+
+If you remove jumper XX, boot rom is disabled and the G45 will boot from NAND flash like this:
+
+- Internal G45 boot rom bootstrap from NAND flash.
+- Bootstrap boots u-boot from NAND flash
+- u-boot boots Linux ...
+
+This is just a fall-back since page 0 can contain errors which cannot be corrected by the G45 boot ROM
+and the bootstrap code which loads u-boot also does not contain error correction.
+
+
+
+- SPI dataflash
+
+0x000000 - 0x003fff FPGA config data
+0x004000 - 0x005fff G45 bootstrap
+0x010000 - 0x0affff FPGA bitstream
+0x0b0000 - 0x15ffff G45 u-boot
+0x160000 - 0x1fefff FPGA golden image
+0x1ff000 - 0x1fffff FPGA jump to golden image
+
+
+- NAND flash 256MB, block size 128K (0x20000)
+
+0x00000000 - 0x0001ffff G45 bootstrap (fallback bootstrap if SPI corrupted, pull jumper to use)
+0x00020000 - 0x0007ffff G45 u-boot (fallback u-boot if SPI corrupted)
+0x00080000 - 0x0009ffff spare (e.g. for bigger u-boot)
+0x000a0000 - 0x000bffff G45 u-boot environment
+0x000c0000 - 0x000dffff G45 u-boot redundant environment
+0x000e0000 - 0x000fffff spare
+0x00100000 - 0x01ffffff G45 Linux recovery
+0x02000000 - 0x0fffffff Linux UBI
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

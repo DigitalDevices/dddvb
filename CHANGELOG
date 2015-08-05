@@ -1,0 +1,189 @@
+0.9.19c 2015.07.20
+- MAX S8:
+  do not turn on diseqc and tuners on init
+  of to save power
+  turn off tuners when not used
+- support new Octopus CI in flashprog
+
+0.9.19b 2015.06.15
+- fix version number
+- option "old_quattro=1" for old MAX S8 input numbering
+  new is "VL VH HL HH", old is "VL HL VH HH"
+- set drive strength in mxl5xx to 1 to fix problems with
+  8th demod
+
+0.9.19 2015.06.14
+- lock flash access
+- support serial numbers for newer cards
+
+0.9.18 2015.05.05
+- support GT links
+- fixes for mxl5xx tuning
+  (prevent simultaneous tuning inside 100ms)
+- allow dynamic fmode change
+
+0.9.18 (beta) 2015.01.24
+- initial support of GT links
+- fixes for mxl5xx tuning
+
+0.9.17 2015.01.10
+- support input modes for MAX S8 4/8
+	ddbridge parameter fmode:
+	fmode = 0  : demod 0 & 4 on input 0, demod 1 & 5 on input 1, etc.
+	             input for each frontend can be changed with ioctl DTV_INPUT
+	fmode = 1  : connect all lines to QUAD LNB
+	fmode = 2  : connect to QUATTRO LNB: input 0=V,L, 1=H,L, 2=V,H, 3=H,H
+	fmode = 3  : all demods on input 0
+	             send JESS or SCR commands from application
+
+- preparations for support of GT links
+
+0.9.16 2014.12.19
+- support MAX S8 4/8 production card
+
+0.9.15a 2014.07.29
+- last minute fixes
+
+0.9.15 2014.06.24
+- support MAX S8 4/8 prototype
+
+0.9.14b 2014.04.24
+- fix fe read lockup in cxd2843
+
+0.9.14a 2014.04.23
+- fix Cine S2 V7 PCIe ID
+
+0.9.14 2014.04.20
+- support for CineCT V7 with C2
+- initial support for STV0910/STV6111/LNBH25
+- more coding style cleanups
+- API changes for modulator
+
+0.9.13 2014.03.25
+- support for CineCT V7
+
+0.9.12 2014.02.17
+- support for SNR in XO2 and LED connected to XO2
+
+0.9.11 2014.02.04
+
+- kernel style cleanups
+- attr alloc fixes for modulator card
+
+0.9.10 2013.10.09 
+
+- Bugfixes CXD2843
+  support slice id
+
+0.9.9 2013.08.14
+
+- support for CXD2843 DVB-C/T/C2/T2 demod
+
+0.9.7 2013.04.15
+
+- Octopus Net complete
+
+- changes for 3.8 kernels
+
+
+0.9.6 2012.09.26
+
+- basic Octopus Net support
+
+
+0.9.5 2012.08.05
+
+- cleanup
+
+0.9.4 2012.07.11
+
+- support for new modulator bitstream 1.1
+
+0.9.3 2012.06.13
+
+- add hwid, remap attributes
+
+0.9.2 2012.06.08
+
+- fix cxd2099 address writing optmization
+
+- add setting of TS output gap size through sysfs 
+  gap_size = (gap_value*2)+4
+  bit rate = 72 Mbps * 188 / gap_size
+
+0.9.1 2012.05.01
+
+- support for reworked DVB-C modulator
+
+- support for multiple channels
+
+- move some funktions from tasklets back into 
+  interrupt in those cases where it is more efficient
+
+
+0.9.0 2012.03.05
+
+- initial support of DVB-C modulator card
+
+- rework of redirect mechanism to support modulator
+
+
+0.8.5 2012.01.30
+
+- init DMA_BUFFER_CONTROL before starting input/output
+  in case it was not stopped properly before reboot
+  (can only happen on cards on PCIe extensions without reset line)
+
+
+0.8.4 2012.01.04
+
+- support for reading bridge serial number
+
+- test code for proper start/stop of redirected streams
+
+
+0.8.3 2011.12.18 
+
+- add support for EEProms on 0x50
+
+- make flashprog safer to use for end users
+
+- lost of kernel coding style adjustments
+
+
+0.8.2 2011.10.14 
+
+- added some documentation in docs/
+
+0.8.1 2011.10.13 
+
+- signal strength and SNR for STV0367/TDA18212 combo
+
+- serial number support via sysfs
+
+
+0.8 2011.07.30
+
+- Support for DVB-C/T cards with stv0367 demod and TDA18212 tuner 
+ 
+- loopback TS for testing
+
+- support of octopus cards with fan, led and temperature sensors
+  via attributes.
+
+- redirect of TS to CI and back
+
+
+0.7 2011.06.14
+
+- Add IDs for new cards in ddbridge driver
+
+- Change dvb adapter allocation for ddbridge driver
+  Configurable with module parameter adapter_alloc:
+  
+  0 = one adapter per io (old behavior)
+  1 = one per tab with io present (tab connected to something)
+  2 = one per tab regardless of something connected or not
+  3 = one adapter for all devices of one card
+
+

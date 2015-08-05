@@ -1,0 +1,31 @@
+The caX device associated with a CI device behaves just like any other 
+caX interface. You usually use it through a library like libdvben50221 
+which is part of the dvb-apps package available at linuxtv.org.
+
+But contrary to other hardware where the CI module is physically placed
+in the data path between the the demod and PCIe bridge, in the Digital
+Devices cards the CI module is separate hardware.
+So, you have to feed data to the CI module by writing to the secX
+(in later kernel ci0) device and read it back from the same secX device.
+The advantage is that the CI module can be used with any data coming from
+any frontend or file. The disadvantage is that the user application has to
+write/read the data to/from the module by itself. 
+
+The sample application apps/cit.c shows how to pipe a stream through
+the CI interface. In its ouput it will show discontinuities. Those should 
+only occur at the start of the program (due to old packets inside the CI 
+interface hardware and the CI module itself) and when a CI module is
+inserted or removed.
+
+Since some users have problems using standard software which cannot use 
+the CI interface in this way, there is now the redirect feature which allows 
+you to tell the driver to automatically pass the data coming from one 
+demod through a CI before offering it through the normal demux/dvr interface.
+But note that this is a kludge to support old software until they can
+use the new interface.
+See docs/redirect for more info.
+
+
+
+
+

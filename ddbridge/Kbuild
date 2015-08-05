@@ -1,0 +1,8 @@
+EXTRA_CFLAGS += -DCONFIG_DVB_CXD2843 -DCONFIG_DVB_LNBP21 -DCONFIG_DVB_STV090x -DCONFIG_DVB_STV6110x -DCONFIG_DVB_DRXK -DCONFIG_DVB_STV0910 -DCONFIG_DVB_STV6111 -DCONFIG_DVB_LNBH25 -DCONFIG_DVB_MXL5XX
+
+obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o 
+obj-$(CONFIG_DVB_OCTONET) += octonet.o 
+
+EXTRA_CFLAGS += -Idrivers/media/dvb/frontends -Idrivers/media/dvb-frontends
+EXTRA_CFLAGS += -Idrivers/media/common/tuners 
+NOSTDINC_FLAGS += -I$(SUBDIRS)/frontends -I$(SUBDIRS)/include -I$(SUBDIRS)/dvb-core 

@@ -1,0 +1,7 @@
+The module parameter adapter_alloc lets you choose how adapter names are allocated.
+
+0 = one adapter per io if modules are present
+1 = one adapter for each tab on which a module was detected
+2 = one per tab even if no modules were detected
+3 = one adapter for all devices of one card
+

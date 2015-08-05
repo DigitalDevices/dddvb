@@ -1,0 +1,104 @@
+Multicast
+---------
+
+Multicast setup supports 2 file formats.
+1) Simple variant for the avarage home user
+2) More parameters for the expert.
+
+The file is in csv (comma seperated values) format, which can be created with any plain text editor or imported/exported
+to/from Microsoft Office Excel or OpenOffice Scalc. With Excel or Scalc care for character set (should be UTF-8) and
+column formats is required. First line is contain then column headers.
+
+Standard parameters
+-------------------
+
+TITLE: Stream Title
+
+REQUEST: SAT>IP tune request string without the pid parameter. Exact format depends on frontend (DVB-S,DVB-T ..)
+use "-" to stream another program from the previous full entry (tuner sharing)
+
+PIDS: Pid list. Must start with a P, the values separated with a colon. "Pall" streams the whole transponder.
+(The P is there to ensure Excel or Scalc don't do some fancy format detection, like time conversion)
+
+LANPORTS: Empty or a list with colon separated lan ports starting with L, "Lall" = all ports.
+If empty, the stream will only be activated when subscribed with an IGMPv3 request. It will also
+only be active on the lan ports through which an IGMPv3 request for the stream has benn received.
+(For details how IGMPv3 works look up the relevant RFCs.)
+If not empty the stream will be preactived on the listed lan ports (and permanently using bandwidth!).
+It still can be subscribed with IGMPv3 on the other ports.
+
+
+TITLE,REQUEST,PIDS,LANPORTS
+"Das Erste","?freq=346&msys=dvbc&sr=6900&mtype=256qam","P0:100:101:104:102:103:106",""
+"Bayerisches FS Nord","-","P0:500:201:204:202:203:206",""
+"hr-fernsehen","-","P0:300:301:304:302:303",""
+"SWR Fernsehen BW","-","P0:800:801:804:802:803:806",""
+"WDR Köln","-","P0:600:601:604:602:603",""
+"ZDF","?freq=370&msys=dvbc&sr=6900&mtype=256qam","P0:100:110:130:120:121:122:125",""
+"ZDF HD","-","P0:6100:6110:6130:6120:6121:6122:6123",""
+"zdf neo","-","P0:650:660:680:670:671:672:675",""
+"zdf kultur","-","P0:1100:1110:1130:1120:1121:1122:1125",""
+"ZDFInfo","-","P0:600:610:630:620:621:622:625",""
+"KiKA","-","P0:300:310:330:320:321:325","L3:4:5"
+"3sat","-","P0:200:210:230:220:221:222:225",""
+
+
+Expert parameters:
+------------------
+
+PROTO: Protocol, must be "RTP" or "UDP". If you don't know what this means use "RTP".
+
+IP: Multicast IP address, recommended range 239.5.0.0 - 239.126.255.255, see notes below 
+about selecting a multicast IP address.
+
+PORT: Destination port. If you don't know what this means set it to 6670
+
+TTL: Time to live used in the IP headers. If you don't know what this means set it to 5.
+
+
+TITLE,REQUEST,PIDS,PROTO,IP,PORT,TTL,LANPORTS
+"Das Erste","?freq=346&msys=dvbc&sr=6900&mtype=256qam","P0:100:101:104:102:103:106","UDP","239.7.7.100",1234,7,""
+"Bayerisches FS Nord","-","P0:500:201:204:202:203:206","UDP","239.7.7.101",1234,7,""
+"hr-fernsehen","-","P0:300:301:304:302:303","UDP","239.7.7.102",1234,7,""
+"SWR Fernsehen BW","-","P0:800:801:804:802:803:806","UDP","239.7.7.103",1234,7,""
+"WDR Köln","-","P0:600:601:604:602:603","UDP","239.7.7.104",1234,7,""
+"ZDF","?freq=370&msys=dvbc&sr=6900&mtype=256qam","P0:100:110:130:120:121:122:125","UDP","239.7.8.100",1234,7,""
+"ZDF HD","-","P0:6100:6110:6130:6120:6121:6122:6123","UDP","239.7.8.101",1234,7,""
+"zdf neo","-","P0:650:660:680:670:671:672:675","UDP","239.7.8.102",1234,7,""
+"zdf kultur","-","P0:1100:1110:1130:1120:1121:1122:1125","UDP","239.7.8.103",1234,7,""
+"ZDFInfo","-","P0:600:610:630:620:621:622:625","UDP","239.7.8.104",1234,7,""
+"KiKA","-","P0:300:310:330:320:321:325","UDP","239.7.8.105",1234,7,"L3:4:5"
+"3sat","-","P0:200:210:230:220:221:222:225","UDP","239.7.8.106",1234,7,""
+
+
+Selecting a multicast IP address.
+---------------------------------
+
+It is obvious that there should be no conflicts with other services (like UPnP, Windows network ...)
+which also use Multicast for communication and advertisments.
+
+For media streaming usually an IP in the range 239.0.0.0 - 239.255.255.255 is used and
+will usually only conflict with other media sources. But this is not the whole truth!
+
+The complete IP multicast range is 224.0.0.0 - 255.255.255.254,  that is 536870911 different values.
+But there are only 8388608 different Ethernet MAC addresses allocated for IPv4 multicast. That
+means a lot of collisions. For example, 239.0.0.22 uses the same MAC address as 224.0.0.22 (IGMP).
+This means that 239.0.0.22 can't be blocked in an Ethernet switch without breaking IGMP.
+An IP from the range 239.5.0.0 - 239.126.255.255 does not collide with most documented
+services, and should be safe to use in most situations and the benefit from IGMPv3 
+snooping Ethernet switches.
+
+Multicast and WLAN
+------------------
+
+As there is no real support for it (due to encryption) Multicast over WLAN will not work very well.
+Therefor it should be avoided to send a out a multicast stream on a lan port there a WLAN router
+is connected (at least when the WLAN router is configured as LAN-WLAN bridge).
+
+As long there are free streams on the OctopusNet a RTSP player (including WLAN connected players)
+can request any service from a configured multicast source.
+For exmaple RTSP://<onetip>/stream=2?pids=0,300,310,330,320,321,325 will request KIKA
+as single cast stream from the above example. This is possible even if the entry for KIKA
+is removed from the multicast setup.
+(the above sample has no free streams left, but it should be clear what is meant)
+

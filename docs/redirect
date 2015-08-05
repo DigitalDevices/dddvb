@@ -1,0 +1,30 @@
+NOTE: This is an unsupported hack so that legacy software works
+      with the hardware!
+      To properly pass data through a CI CAM you should read
+      the TS from a dvr device and write it to a ci device
+      in user space!
+
+Redirection of TS streams through CI modules is now supported 
+through /sys/class/ddbridge/ddbridge0/redirect.
+It only works with cards based on the ddbridge PCIe bridge, not
+with nGene based cards.
+
+It is set up in such a way that you can write "AB CD" to
+a "redirect" attribute and data from input B of card A is then piped through
+port D (meaning TAB (D+1) which uses output D and input 2*D for CI io)
+of card C and then shows up in the demux device belonging to
+input B (input (B&1) of TAB (B/2+1)) of card A.
+
+E.g.:
+
+echo "00 01" > /sys/class/ddbridge/ddbridge0/redirect
+
+will pipe input 0 of card 0 through CI at port 1 (TAB 2) of card 0.
+
+Redirection should only be done right after loading the driver 
+(or booting if the driver is built-in) and before using the
+devices in any way.
+
+adapter_alloc=3 is rcommended when using redirect
+The ci device will then show up in the same adapter directory and most
+software will then assume it belongs to the frontend in the same directory.

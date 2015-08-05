@@ -1,0 +1,9 @@
+- NAND flash
+
+0x00000000 - 0x0025ffff U-boot
+0x00260000 - 0x0027ffff ENV
+0x00300000 - 0x00ffffff Linux image
+
+0x01000000 - 0x01ffffff Linux recovery
+0x02000000 - 0x1fffffff Linux UBI
+

@@ -1,0 +1,29 @@
+
+Modulator channels will automatically be enabled if you redirect data 
+from a demodulator to it. 
+E.g._:
+
+first demod on bridge 0 TAB1, modulator on bridge 1.
+
+echo "00 10" > /sys/class/ddbridge/ddbridge0/redirect
+
+Currently it is fixed to QAM256. Controls will be added later.
+Rate control is experimental and PCR correction also not
+implemented yet. So, depending on the reception device
+there can be disturbances in playback.
+
+It is now also possible to chain redirects.
+E.g., demod and modulator as above, CI on bridge 0 TAB 2:
+
+echo "00 01" > /sys/class/ddbridge/ddbridge0/redirect
+echo "02 10" > /sys/class/ddbridge/ddbridge0/redirect
+
+The stream is also still available at the demux device 
+belonging to the demod devices.
+
+Now write and start an application (not provided) that 
+talks to the CI to decrypt the desired services.
+For testing one can use a standard application that
+supports decryption. Additionally to seeing the
+decoded service on the PC it will then also be streamed
+into cable by the modulator.
