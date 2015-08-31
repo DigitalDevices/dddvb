@@ -371,7 +371,6 @@ struct ddb_lnb {
 	u32                    voltage[4];
 	u32                    voltages;
 	u32                    fmode;
-	u32                    setmode;
 };
 
 struct ddb_link {
@@ -706,6 +705,6 @@ void ddbridge_mod_rate_handler(unsigned long data);
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.19"
+#define DDBRIDGE_VERSION "0.9.20"
 
 #endif
