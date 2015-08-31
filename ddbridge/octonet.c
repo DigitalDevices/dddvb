@@ -233,7 +233,7 @@ static __init int init_octonet(void)
 	int res;
 
 	pr_info("Digital Devices OctopusNet driver " DDBRIDGE_VERSION
-		", Copyright (C) 2010-14 Digital Devices GmbH\n");
+		", Copyright (C) 2010-15 Digital Devices GmbH\n");
 	res = ddb_class_create();
 	if (res)
 		return res;
