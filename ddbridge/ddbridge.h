@@ -382,13 +382,13 @@ struct ddb_link {
 	struct mutex           flash_mutex;
 	struct ddb_lnb         lnb;
 	struct tasklet_struct  tasklet;
+	struct ddb_ids         ids;
 };
 
 struct ddb {
 	struct pci_dev        *pdev;
 	struct platform_device *pfdev;
 	struct device         *dev;
-	struct ddb_ids         ids;
 	
 	int                    msi;
 	struct workqueue_struct *wq;

@@ -3661,10 +3661,10 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		struct ddb_id ddbid;
 
-		ddbid.vendor = dev->ids.vendor;
-		ddbid.device = dev->ids.device;
-		ddbid.subvendor = dev->ids.subvendor;
-		ddbid.subdevice = dev->ids.subdevice;
+		ddbid.vendor = dev->link[0].ids.vendor;
+		ddbid.device = dev->link[0].ids.device;
+		ddbid.subvendor = dev->link[0].ids.subvendor;
+		ddbid.subdevice = dev->link[0].ids.subdevice;
 		ddbid.hw = ddbreadl(dev, 0);
 		ddbid.regmap = ddbreadl(dev, 4);
 		if (copy_to_user(parg, &ddbid, sizeof(ddbid)))
@@ -4165,7 +4165,7 @@ static ssize_t version_show(struct device *device,
 	struct ddb *dev = dev_get_drvdata(device);
 
 	return sprintf(buf, "%08x %08x\n",
-		       dev->ids.hwid, dev->ids.regmapid);
+		       dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 }
 
 static ssize_t hwid_show(struct device *device,
@@ -4173,7 +4173,7 @@ static ssize_t hwid_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 
-	return sprintf(buf, "0x%08X\n", dev->ids.hwid);
+	return sprintf(buf, "0x%08X\n", dev->link[0].ids.hwid);
 }
 
 static ssize_t regmap_show(struct device *device,
@@ -4181,7 +4181,7 @@ static ssize_t regmap_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 
-	return sprintf(buf, "0x%08X\n", dev->ids.regmapid);
+	return sprintf(buf, "0x%08X\n", dev->link[0].ids.regmapid);
 }
 
 static ssize_t vlan_show(struct device *device,
@@ -4218,6 +4218,15 @@ static ssize_t fmode_show(struct device *device,
 	return sprintf(buf, "%u\n", dev->link[num].lnb.fmode);
 }
 
+static ssize_t devid_show(struct device *device,
+			  struct device_attribute *attr, char *buf)
+{
+	int num = attr->attr.name[5] - 0x30;
+	struct ddb *dev = dev_get_drvdata(device);
+	
+	return sprintf(buf, "%08x\n", dev->link[num].ids.devid);
+}
+
 static ssize_t fmode_store(struct device *device, struct device_attribute *attr,
 			  const char *buf, size_t count)
 {
@@ -4247,6 +4256,10 @@ static struct device_attribute ddb_attrs[] = {
 	__ATTR(fmode1, 0664, fmode_show, fmode_store),
 	__ATTR(fmode2, 0664, fmode_show, fmode_store),
 	__ATTR(fmode3, 0664, fmode_show, fmode_store),
+	__ATTR_MRO(devid0, devid_show),
+	__ATTR_MRO(devid1, devid_show),
+	__ATTR_MRO(devid2, devid_show),
+	__ATTR_MRO(devid3, devid_show),
 	__ATTR_RO(hwid),
 	__ATTR_RO(regmap),
 #if 0
@@ -4536,6 +4549,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 			id);
 		return -1;
 	}
+	link->ids.devid = id;
 	
 	ddbwritel(dev, 1, 0x1a0);
 

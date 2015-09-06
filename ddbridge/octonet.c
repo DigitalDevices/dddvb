@@ -156,28 +156,28 @@ static int __init octonet_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	dev->ids.hwid = ddbreadl(dev, 0);
-	dev->ids.regmapid = ddbreadl(dev, 4);
-	dev->ids.devid = ddbreadl(dev, 8);
-	dev->ids.mac = ddbreadl(dev, 12);
+	dev->link[0].ids.hwid = ddbreadl(dev, 0);
+	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
+	dev->link[0].ids.devid = ddbreadl(dev, 8);
+	dev->link[0].ids.mac = ddbreadl(dev, 12);
 
-	dev->ids.vendor = dev->ids.devid & 0xffff;
-	dev->ids.device = dev->ids.devid >> 16;
-	dev->ids.subvendor = dev->ids.devid & 0xffff;
-	dev->ids.subdevice = dev->ids.devid >> 16;
+	dev->link[0].ids.vendor = dev->link[0].ids.devid & 0xffff;
+	dev->link[0].ids.device = dev->link[0].ids.devid >> 16;
+	dev->link[0].ids.subvendor = dev->link[0].ids.devid & 0xffff;
+	dev->link[0].ids.subdevice = dev->link[0].ids.devid >> 16;
 
 	dev->link[0].dev = dev;
-	if (dev->ids.devid == 0x0300dd01)
+	if (dev->link[0].ids.devid == 0x0300dd01)
 		dev->link[0].info = &ddb_octonet;
-	else if (dev->ids.devid == 0x0301dd01)
+	else if (dev->link[0].ids.devid == 0x0301dd01)
 		dev->link[0].info = &ddb_octonet_jse;
-	else if (dev->ids.devid == 0x0307dd01)
+	else if (dev->link[0].ids.devid == 0x0307dd01)
 		dev->link[0].info = &ddb_octonet_gtl;
 	else
 		dev->link[0].info = &ddb_octonet_tbd;
 		
-	pr_info("HW  %08x REGMAP %08x\n", dev->ids.hwid, dev->ids.regmapid);
-	pr_info("MAC %08x DEVID  %08x\n", dev->ids.mac, dev->ids.devid);
+	pr_info("HW  %08x REGMAP %08x\n", dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
+	pr_info("MAC %08x DEVID  %08x\n", dev->link[0].ids.mac, dev->link[0].ids.devid);
 
 	ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);

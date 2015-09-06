@@ -112,10 +112,10 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->dev = &pdev->dev;
 	pci_set_drvdata(pdev, dev);
 
-	dev->ids.vendor = id->vendor;
-	dev->ids.device = id->device;
-	dev->ids.subvendor = id->subvendor;
-	dev->ids.subdevice = id->subdevice;
+	dev->link[0].ids.vendor = id->vendor;
+	dev->link[0].ids.device = id->device;
+	dev->link[0].ids.subvendor = id->subvendor;
+	dev->link[0].ids.subdevice = id->subdevice;
 
 	dev->link[0].dev = dev;
 	dev->link[0].info = (struct ddb_info *) id->driver_data;
@@ -136,11 +136,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		goto fail;
 	}
 
-	dev->ids.hwid = ddbreadl(dev, 0);
-	dev->ids.regmapid = ddbreadl(dev, 4);
+	dev->link[0].ids.hwid = ddbreadl(dev, 0);
+	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
 	pr_info("DDBridge: HW %08x REGMAP %08x\n",
-		dev->ids.hwid, dev->ids.regmapid);
+		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 
 	if (dev->link[0].info->ns_num) {
 		int i;
