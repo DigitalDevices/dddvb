@@ -113,20 +113,27 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 
 	ddbwritel(dev, (adr << 9) | cmd, i2c->regs + I2C_COMMAND);
 	stat = wait_for_completion_timeout(&i2c->completion, HZ);
+	val = ddbreadl(dev, i2c->regs + I2C_COMMAND);
 	if (stat == 0) {
 		pr_err("DDBridge I2C timeout, card %d, port %d, link %u\n",
 		       dev->nr, i2c->nr, i2c->link);
-#ifdef CONFIG_PCI_MSI
-		{ /* MSI debugging*/
+#if 1
+		{ 
 			u32 istat = ddbreadl(dev, INTERRUPT_STATUS);
-
+			
 			dev_err(dev->dev, "DDBridge IRS %08x\n", istat);
-			ddbwritel(dev, istat, INTERRUPT_ACK);
+			if (istat & 1) {
+				ddbwritel(dev, istat & 1, INTERRUPT_ACK);
+			} else {
+				u32 mon = ddbreadl(dev, i2c->regs + I2C_MONITOR);
+
+				dev_err(dev->dev, "I2C cmd=%08x mon=%08x\n",
+					val, mon);
+			}
 		}
 #endif
 		return -EIO;
 	}
-	val = ddbreadl(dev, i2c->regs + I2C_COMMAND);
 	if (val & 0x70000)
 		return -EIO;
 	return 0;
