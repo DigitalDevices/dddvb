@@ -357,7 +357,8 @@ static struct ddb_info ddb_v7 = {
 	.regmap   = &octopus_map,
 	.port_num = 4,
 	.i2c_mask = 0x0f,
-	.board_control = 2,
+	.board_control   = 2,
+	.board_control_2 = 4,
 };
 
 static struct ddb_info ddb_ctv7 = {
@@ -366,7 +367,8 @@ static struct ddb_info ddb_ctv7 = {
 	.regmap   = &octopus_map,
 	.port_num = 4,
 	.i2c_mask = 0x0f,
-	.board_control = 3,
+	.board_control   = 3,
+	.board_control_2 = 4,
 };
 
 static struct ddb_info ddb_satixS2v3 = {
@@ -399,7 +401,8 @@ static struct ddb_info ddb_ci_s2_pro = {
 	.regmap   = &octopus_map,
 	.port_num = 4,
 	.i2c_mask = 0x01,
-	.board_control = 3,
+	.board_control   = 2,
+	.board_control_2 = 4,
 };
 
 static struct ddb_info ddb_dvbct = {
@@ -419,6 +422,17 @@ static struct ddb_info ddb_s2_48 = {
 	.port_num = 4,
 	.i2c_mask = 0x01,
 	.board_control = 1,
+};
+
+static struct ddb_info ddb_ct_8 = {
+	.type     = DDB_OCTOPUS_MAX_CT,
+	.name     = "Digital Devices MAX CT8",
+	.regmap   = &octopus_map,
+	.port_num = 4,
+	.i2c_mask = 0x0f,
+	.board_control   = 0x0ff,
+	.board_control_2 = 0xf00,
+	.serial   = 1,
 };
 
 static struct ddb_info ddb_mod = {
@@ -467,6 +481,7 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0006, DDVID, 0x0032, ddb_ctv7),
 	DDB_ID(DDVID, 0x0006, DDVID, 0x0033, ddb_ctv7),
 	DDB_ID(DDVID, 0x0007, DDVID, 0x0023, ddb_s2_48),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0034, ddb_ct_8),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0040, ddb_ci),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0041, ddb_cis),
 	DDB_ID(DDVID, 0x0012, DDVID, 0x0042, ddb_ci),

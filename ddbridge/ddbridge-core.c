@@ -1008,6 +1008,7 @@ static int demod_attach_cxd2843(struct ddb_input *input, int par)
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_frontend *fe;
 
+	printk("attach cxd par = %d\n", par);
 	if (par)
 		fe = dvb->fe = dvb_attach(cxd2843_attach, i2c,
 					  (input->nr & 1) ?
@@ -1855,7 +1856,8 @@ static int dvb_input_attach(struct ddb_input *input)
 	struct ddb_port *port = input->port;
 	struct dvb_adapter *adap = dvb->adap;
 	struct dvb_demux *dvbdemux = &dvb->demux;
-
+	int par = 0;
+	
 	dvb->attached = 0x01;
 
 	ret = my_dvb_dmx_ts_card_init(dvbdemux, "SW demux",
@@ -1928,18 +1930,15 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
-	case DDB_TUNER_DVBCT2_SONY:
-	case DDB_TUNER_DVBC2T2_SONY:
-	case DDB_TUNER_ISDBT_SONY:
-		if (demod_attach_cxd2843(input, 0) < 0)
-			return -ENODEV;
-		if (tuner_attach_tda18212dd(input) < 0)
-			return -ENODEV;
-		break;
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
-		if (demod_attach_cxd2843(input, 1) < 0)
+		if (!input->port->dev->link[input->port->lnr].info->serial) 
+			par = 1;
+	case DDB_TUNER_DVBCT2_SONY:
+	case DDB_TUNER_DVBC2T2_SONY:
+	case DDB_TUNER_ISDBT_SONY:
+		if (demod_attach_cxd2843(input, par) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
@@ -3040,6 +3039,7 @@ static void ddb_ports_init(struct ddb *dev)
 				ddb_output_init(port, i, i + 8);
 				break;
 			case DDB_OCTOPUS_MAX:
+			case DDB_OCTOPUS_MAX_CT:
 				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * p);
 				ddb_input_init(port, 2 * i + 1, 1, 2 * i + 1, 2 * p + 1);
 				break;
@@ -4508,6 +4508,35 @@ static struct ddb_info octopus_max_gtl = {
 };
 
 
+static struct ddb_regset octopus_maxct_gtl_i2c = {
+	.base = 0x80,
+	.num  = 0x04,
+	.size = 0x20,
+};
+
+static struct ddb_regset octopus_maxct_gtl_i2c_buf = {
+	.base = 0x1000,
+	.num  = 0x04,
+	.size = 0x200,
+};
+
+static struct ddb_regmap octopus_maxct_gtl_map = {
+	.i2c = &octopus_maxct_gtl_i2c,
+	.i2c_buf = &octopus_maxct_gtl_i2c_buf,
+};
+
+static struct ddb_info octopus_ct_gtl = {
+	.type     = DDB_OCTOPUS_MAX_CT,
+	.name     = "Digital Devices Octopus MAX CT GTL",
+	.regmap   = &octopus_maxct_gtl_map,
+	.port_num = 4,
+	.i2c_mask = 0x0f,
+	.board_control = 0xff,
+	.board_control_2 = 0xf00,
+	.serial   = 1,
+};
+
+
 static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 {
 	struct ddb_link *link = &dev->link[l];
@@ -4541,9 +4570,14 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	link->regs = regs;
 	
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
-	if (id == 0x0007dd01) 
+	switch (id) {
+	case 0x0007dd01:
 		link->info = &octopus_max_gtl;
-	else {
+		break;
+	case 0x0008dd01:
+		link->info = &octopus_ct_gtl;
+		break;
+	default:
 		pr_info("DDBridge: Detected GT link but found invalid ID %08x. "
 			"You might have to update (flash) the add-on card first.",
 			id);
@@ -4565,7 +4599,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	
 	tasklet_init(&link->tasklet, link_tasklet, (unsigned long) link);
 	ddbwritel(dev, 0xffffffff, DDB_LINK_TAG(l) | INTERRUPT_ACK);
-	ddbwritel(dev, 1, DDB_LINK_TAG(l) | INTERRUPT_ENABLE);
+	ddbwritel(dev, 0xf, DDB_LINK_TAG(l) | INTERRUPT_ENABLE);
 
 	return 0;
 }
@@ -4595,9 +4629,9 @@ static int ddb_init_boards(struct ddb *dev)
 		if (info->board_control) {
 			ddbwritel(dev, 0, DDB_LINK_TAG(l) | BOARD_CONTROL);
 			msleep(100);
-			ddbwritel(dev, 4, DDB_LINK_TAG(l) | BOARD_CONTROL);
+			ddbwritel(dev, info->board_control_2, DDB_LINK_TAG(l) | BOARD_CONTROL);
 			usleep_range(2000, 3000);
-			ddbwritel(dev, 4 | info->board_control,
+			ddbwritel(dev, info->board_control_2 | info->board_control,
 				  DDB_LINK_TAG(l) | BOARD_CONTROL);
 			usleep_range(2000, 3000);
 		}

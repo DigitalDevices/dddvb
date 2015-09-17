@@ -147,6 +147,7 @@ struct ddb_info {
 #define DDB_MOD          3
 #define DDB_OCTONET      4
 #define DDB_OCTOPUS_MAX  5
+#define DDB_OCTOPUS_MAX_CT  6
 	char *name;
 	u32   i2c_mask;
 	u8    port_num;
@@ -154,10 +155,12 @@ struct ddb_info {
 	u8    fan_num;
 	u8    temp_num;
 	u8    temp_bus;
-	u8    board_control;
+	u32   board_control;
+	u32   board_control_2;
 	u8    ns_num;
 	u8    mdio_num;
-	u8    con_clock;
+	u8    con_clock; /* use a continuous clock */
+	u8    serial;    /* override to serial transfer */
 	struct ddb_regmap *regmap;
 };
 
@@ -287,13 +290,13 @@ struct ddb_port {
 #define DDB_CI_EXTERNAL_XO2      12
 #define DDB_CI_EXTERNAL_XO2_B    13
 
-#define DDB_TUNER_XO2            16
-#define DDB_TUNER_DVBS_STV0910   16
-#define DDB_TUNER_DVBCT2_SONY    17
-#define DDB_TUNER_ISDBT_SONY     18
-#define DDB_TUNER_DVBC2T2_SONY   19
-#define DDB_TUNER_ATSC_ST        20
-#define DDB_TUNER_DVBC2T2_ST     21
+#define DDB_TUNER_XO2            32
+#define DDB_TUNER_DVBS_STV0910   (DDB_TUNER_XO2 + 0)
+#define DDB_TUNER_DVBCT2_SONY    (DDB_TUNER_XO2 + 1)
+#define DDB_TUNER_ISDBT_SONY     (DDB_TUNER_XO2 + 2)
+#define DDB_TUNER_DVBC2T2_SONY   (DDB_TUNER_XO2 + 3)
+#define DDB_TUNER_ATSC_ST        (DDB_TUNER_XO2 + 4)
+#define DDB_TUNER_DVBC2T2_ST     (DDB_TUNER_XO2 + 5)
 
 	struct ddb_input      *input[2];
 	struct ddb_output     *output;
