@@ -102,7 +102,7 @@ static int ns_set_pids(struct dvbnss *nss)
 	struct ddb *dev = input->port->dev;
 	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
 
-	if (dev->ids.devid == 0x0301dd01) {
+	if (dev->link[0].ids.devid == 0x0301dd01) {
 		u32 sys = 0;
 		int pid, j = 1;
 
@@ -134,7 +134,7 @@ static int ns_set_pid(struct dvbnss *nss, u16 pid)
 	u32 off = STREAM_PIDS(dns->nr);
 
 #if 1
-	if (dev->ids.devid == 0x0301dd01) {
+	if (dev->link[0].ids.devid == 0x0301dd01) {
 		if (pid & 0x2000) {
 			if (pid & 0x8000)
 				memset(nss->pids, 0xff, 0x400);

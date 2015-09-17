@@ -1292,6 +1292,8 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 			break;
 		msleep(20);
 	}
+	if (c == 10)
+		pr_info("lnb_command lnb = %08x  cmd = %08x\n", lnb, cmd);
 	return 0;
 }
 
@@ -1542,14 +1544,15 @@ static int mxl_fw_read(void *priv, u8 *buf, u32 len)
 	return ddbridge_flashread(dev, link->nr, buf, 0xc0000, len);
 }
 
-static int lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fmode)
+static int lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm)
 {
 	u32 l = link->nr;
 
-	if (link->lnb.setmode == fmode)
+	if (link->lnb.fmode == fm)
 		return 0;
-	if (fmode == 2 || fmode == 1) {
-		mutex_lock(&link->lnb.lock);
+	pr_info("Set fmode link %u = %u\n", l, fm);
+	mutex_lock(&link->lnb.lock);
+	if (fm == 2 || fm == 1) {
 		lnb_set_tone(dev, l, 0, SEC_TONE_OFF);
 		if (old_quattro) {
 			lnb_set_tone(dev, l, 1, SEC_TONE_OFF);
@@ -1559,9 +1562,9 @@ static int lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fmode)
 			lnb_set_tone(dev, l, 2, SEC_TONE_OFF);
 		}
 		lnb_set_tone(dev, l, 3, SEC_TONE_ON);
-		mutex_unlock(&link->lnb.lock);
 	}
-	link->lnb.setmode = fmode;
+	link->lnb.fmode = fm;
+	mutex_unlock(&link->lnb.lock);
 	return 0;
 }
 
@@ -1584,12 +1587,10 @@ static int fe_attach_mxl5xx(struct ddb_input *input)
 	struct mxl5xx_cfg cfg;
 	int demod, tuner;
 
-	link->lnb.fmode = fmode;
-
 	cfg = mxl5xx;
 	cfg.fw_priv = link;
 	if (dev->link[0].info->type == DDB_OCTONET)
-		cfg.ts_clk = 69;
+		;//cfg.ts_clk = 69;
 
 	demod = input->nr;
 	tuner = demod & 3;
@@ -3660,10 +3661,10 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	{
 		struct ddb_id ddbid;
 
-		ddbid.vendor = dev->ids.vendor;
-		ddbid.device = dev->ids.device;
-		ddbid.subvendor = dev->ids.subvendor;
-		ddbid.subdevice = dev->ids.subdevice;
+		ddbid.vendor = dev->link[0].ids.vendor;
+		ddbid.device = dev->link[0].ids.device;
+		ddbid.subvendor = dev->link[0].ids.subvendor;
+		ddbid.subdevice = dev->link[0].ids.subdevice;
 		ddbid.hw = ddbreadl(dev, 0);
 		ddbid.regmap = ddbreadl(dev, 4);
 		if (copy_to_user(parg, &ddbid, sizeof(ddbid)))
@@ -4164,7 +4165,7 @@ static ssize_t version_show(struct device *device,
 	struct ddb *dev = dev_get_drvdata(device);
 
 	return sprintf(buf, "%08x %08x\n",
-		       dev->ids.hwid, dev->ids.regmapid);
+		       dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 }
 
 static ssize_t hwid_show(struct device *device,
@@ -4172,7 +4173,7 @@ static ssize_t hwid_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 
-	return sprintf(buf, "0x%08X\n", dev->ids.hwid);
+	return sprintf(buf, "0x%08X\n", dev->link[0].ids.hwid);
 }
 
 static ssize_t regmap_show(struct device *device,
@@ -4180,7 +4181,7 @@ static ssize_t regmap_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 
-	return sprintf(buf, "0x%08X\n", dev->ids.regmapid);
+	return sprintf(buf, "0x%08X\n", dev->link[0].ids.regmapid);
 }
 
 static ssize_t vlan_show(struct device *device,
@@ -4217,6 +4218,15 @@ static ssize_t fmode_show(struct device *device,
 	return sprintf(buf, "%u\n", dev->link[num].lnb.fmode);
 }
 
+static ssize_t devid_show(struct device *device,
+			  struct device_attribute *attr, char *buf)
+{
+	int num = attr->attr.name[5] - 0x30;
+	struct ddb *dev = dev_get_drvdata(device);
+	
+	return sprintf(buf, "%08x\n", dev->link[num].ids.devid);
+}
+
 static ssize_t fmode_store(struct device *device, struct device_attribute *attr,
 			  const char *buf, size_t count)
 {
@@ -4228,8 +4238,7 @@ static ssize_t fmode_store(struct device *device, struct device_attribute *attr,
 		return -EINVAL;
 	if (val > 3)
 		return -EINVAL;
-	dev->link[num].lnb.fmode = val;
-	lnb_init_fmode(dev, &dev->link[num], fmode);
+	lnb_init_fmode(dev, &dev->link[num], val);
 	return count;
 }
 
@@ -4247,6 +4256,10 @@ static struct device_attribute ddb_attrs[] = {
 	__ATTR(fmode1, 0664, fmode_show, fmode_store),
 	__ATTR(fmode2, 0664, fmode_show, fmode_store),
 	__ATTR(fmode3, 0664, fmode_show, fmode_store),
+	__ATTR_MRO(devid0, devid_show),
+	__ATTR_MRO(devid1, devid_show),
+	__ATTR_MRO(devid2, devid_show),
+	__ATTR_MRO(devid3, devid_show),
 	__ATTR_RO(hwid),
 	__ATTR_RO(regmap),
 #if 0
@@ -4421,7 +4434,11 @@ static void ddb_device_destroy(struct ddb *dev)
 
 static void gtl_link_handler(unsigned long priv)
 {
-	printk("GT link change\n");
+	struct ddb *dev = (struct ddb *) priv;
+	u32 regs = dev->link[0].info->regmap->gtl->base;
+	
+	printk("GT link change: %u\n",
+	       (1 & ddbreadl(dev, regs)));
 }
 
 static void link_tasklet(unsigned long data)
@@ -4502,6 +4519,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	
 	spin_lock_init(&link->lock);
 	mutex_init(&link->lnb.lock);
+	link->lnb.fmode = 0xffffffff;
 	mutex_init(&link->flash_mutex);
 
 	if (!(1 & ddbreadl(dev, regs))) {
@@ -4531,6 +4549,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 			id);
 		return -1;
 	}
+	link->ids.devid = id;
 	
 	ddbwritel(dev, 1, 0x1a0);
 

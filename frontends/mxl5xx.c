@@ -585,7 +585,7 @@ static int sleep(struct dvb_frontend *fe)
 			if (p->tuner_in_use == state->tuner)
 				break;
 		}
-		if (p == &state->base->mxls)
+		if (&p->mxl == &state->base->mxls)
 			enable_tuner(state, state->tuner, 0);
 		mutex_unlock(&state->base->tune_lock);
 	}

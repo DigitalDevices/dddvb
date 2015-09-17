@@ -61,6 +61,7 @@ struct ddflash {
 	uint32_t type;
 	uint32_t version;
 
+	uint32_t flash_type;
 	uint32_t sector_size;
 	uint32_t size;
 
@@ -88,6 +89,8 @@ enum {
 	ATMEL_AT45DB642D = 1,
 	SSTI_SST25VF016B = 2,
 	SSTI_SST25VF032B = 3,
+	SSTI_SST25VF064C = 4,
+	SPANSION_S25FL116K = 5,
 };
 
 static int flashread(int ddb, uint8_t *buf, uint32_t addr, uint32_t len)
@@ -130,6 +133,128 @@ void dump(const uint8_t *b, int l)
 		printf("\n");
 	}
 }
+
+int flashwrite_pagemode(struct ddflash *ddf, int dev, uint32_t FlashOffset,
+			uint8_t LockBits, uint32_t fw_off)
+{
+	int err = 0;
+	uint8_t cmd[260];
+	int i, j;
+	uint32_t flen, blen;
+	
+	blen = flen = lseek(dev, 0, SEEK_END) - fw_off;
+	if (blen % 0xff)
+		blen = (blen + 0xff) & 0xffffff00; 
+	printf("blen = %u, flen = %u\n", blen, flen);
+	    
+	do {
+		cmd[0] = 0x50;  // EWSR
+		err = flashio(ddf->fd, cmd, 1, NULL, 0);
+		if (err < 0)
+			break;
+		
+		cmd[0] = 0x01;  // WRSR
+		cmd[1] = 0x00;  // BPx = 0, Unlock all blocks
+		err = flashio(ddf->fd, cmd, 2, NULL, 0);
+		if (err < 0)
+			break;
+		
+		for (i = 0; i < flen; i += 4096) {
+			if ((i & 0xFFFF) == 0)
+				printf(" Erase    %08x\n", FlashOffset + i);
+			
+			cmd[0] = 0x06;  // WREN
+			err = flashio(ddf->fd, cmd, 1, NULL, 0);
+			if (err < 0)
+				break;
+			
+			cmd[0] = 0x20;  // Sector erase ( 4Kb)
+			cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
+			cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
+			cmd[3] = 0x00;
+			err = flashio(ddf->fd, cmd, 4, NULL, 0);
+			if (err < 0)
+				break;
+
+			while (1) {
+				cmd[0] = 0x05;  // RDRS
+				err = flashio(ddf->fd, cmd, 1, &cmd[0], 1);
+				if (err < 0)
+					break;
+				if ((cmd[0] & 0x01) == 0)
+					break;
+			}
+			if (err < 0)
+				break;
+			
+		}
+		if (err < 0)
+			break;
+		
+		for (j = blen - 256; j >= 0; j -= 256 ) {
+			uint32_t len = 256; 
+			ssize_t rlen;
+			
+			if (lseek(dev, j + fw_off, SEEK_SET) < 0) {
+				printf("seek error\n");
+				return -1;
+			}
+			if (flen - j < 256) {
+				len = flen - j;
+				memset(ddf->buffer, 0xff, 256);
+			}
+			rlen = read(dev, ddf->buffer, len);
+			if (rlen < 0 || rlen != len) {
+				printf("file read error %d,%d at %u\n", rlen, errno, j);
+				return -1;
+			}
+			printf ("write %u bytes at %08x\n", len, j);
+			
+			
+			if ((j & 0xFFFF) == 0)
+				printf(" Programm %08x\n", FlashOffset + j);
+			
+			cmd[0] = 0x06;  // WREN
+			err = flashio(ddf->fd, cmd, 1, NULL, 0);
+			if (err < 0)
+				break;
+			
+			cmd[0] = 0x02;  // PP
+			cmd[1] = ( (( FlashOffset + j ) >> 16) & 0xFF );
+			cmd[2] = ( (( FlashOffset + j ) >>  8) & 0xFF );
+			cmd[3] = 0x00;
+			memcpy(&cmd[4], ddf->buffer, 256);
+			err = flashio(ddf->fd, cmd, 260, NULL, 0);
+			if (err < 0)
+				break;
+			
+			while(1) {
+				cmd[0] = 0x05;  // RDRS
+				err = flashio(ddf->fd, cmd,1, &cmd[0], 1);
+				if (err < 0)
+					break;
+				if ((cmd[0] & 0x01) == 0)
+					break;
+			}
+			if (err < 0)
+				break;
+			
+		}
+		if (err < 0)
+			break;
+		
+		cmd[0] = 0x50;  // EWSR
+		err = flashio(ddf->fd, cmd, 1, NULL, 0);
+		if (err < 0)
+			break;
+		
+		cmd[0] = 0x01;  // WRSR
+		cmd[1] = LockBits;  // BPx = 0, Lock all blocks
+		err = flashio(ddf->fd, cmd, 2, NULL, 0);
+	} while(0);
+	return err;
+}
+
 
 static int flashwrite_SSTI(struct ddflash *ddf, int fs, uint32_t FlashOffset, uint32_t maxlen, uint32_t fw_off)
 {
@@ -261,7 +386,16 @@ static int flashwrite_SSTI(struct ddflash *ddf, int fs, uint32_t FlashOffset, ui
 
 static int flashwrite(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen, uint32_t fw_off)
 {
-	flashwrite_SSTI(ddf, fs, addr, maxlen, fw_off);
+	switch (ddf->flash_type) {
+        case SSTI_SST25VF016B: 
+        case SSTI_SST25VF032B: 
+		return flashwrite_SSTI(ddf, fs, addr, maxlen, fw_off);
+        case SSTI_SST25VF064C:
+		return flashwrite_pagemode(ddf, fs, addr, 0x3c, fw_off);
+	case SPANSION_S25FL116K: 
+		return flashwrite_pagemode(ddf, fs, addr, 0x1c, fw_off);
+	}
+	return -1;
 }
 
 static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen, uint32_t fw_off)
@@ -314,29 +448,41 @@ static int flash_detect(struct ddflash *ddf)
 		return r;
 	
 	if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x41) {
-		r = SSTI_SST25VF016B; 
-		//printf("Flash: SSTI  SST25VF016B 16 MBit\n");
+		ddf->flash_type = SSTI_SST25VF016B; 
+		printf("Flash: SSTI  SST25VF016B 16 MBit\n");
 		ddf->sector_size = 4096; 
 		ddf->size = 0x200000; 
 	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4A) {
-		r = SSTI_SST25VF032B; 
-		//printf("Flash: SSTI  SST25VF032B 32 MBit\n");
+		ddf->flash_type = SSTI_SST25VF032B; 
+		printf("Flash: SSTI  SST25VF032B 32 MBit\n");
 		ddf->sector_size = 4096; 
 		ddf->size = 0x400000; 
+	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4B) {
+		ddf->flash_type = SSTI_SST25VF064C; 
+		printf("Flash: SSTI  SST25VF064C 64 MBit\n");
+		ddf->sector_size = 4096; 
+		ddf->size = 0x800000; 
+	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x15) {
+		ddf->flash_type = SPANSION_S25FL116K;
+		printf("Flash: SPANSION S25FL116K 16 MBit\n");
+		ddf->sector_size = 4096; 
+		ddf->size = 0x200000; 
 	} else if (id[0] == 0x1F && id[1] == 0x28) {
-		r = ATMEL_AT45DB642D; 
-		//printf("Flash: Atmel AT45DB642D  64 MBit\n");
+		ddf->flash_type = ATMEL_AT45DB642D; 
+		printf("Flash: Atmel AT45DB642D  64 MBit\n");
 		ddf->sector_size = 1024; 
 		ddf->size = 0x800000; 
 	} else {
-		r = UNKNOWN_FLASH;
-		//printf("Unknown Flash Flash ID = %02x %02x %02x\n", id[0], id[1], id[2]);
+		printf("Unknown Flash Flash ID = %02x %02x %02x\n", id[0], id[1], id[2]);
+		return -1;
 	}
 	if (ddf->sector_size) {
 		ddf->buffer = malloc(ddf->sector_size);
-		//printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);  
+		printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);
+		if (!ddf->buffer)
+			return -1;
 	}
-	return r;
+	return 0;
 }
 
 
@@ -777,6 +923,8 @@ int main(int argc, char **argv)
 		}
 	}
 	flash = flash_detect(&ddf);
+	if (flash < 0)
+		return -1;
 	get_id(&ddf);
 
 	res = update_flash(&ddf);
