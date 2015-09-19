@@ -1008,7 +1008,6 @@ static int demod_attach_cxd2843(struct ddb_input *input, int par)
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_frontend *fe;
 
-	printk("attach cxd par = %d\n", par);
 	if (par)
 		fe = dvb->fe = dvb_attach(cxd2843_attach, i2c,
 					  (input->nr & 1) ?
