@@ -4465,15 +4465,13 @@ static void gtl_irq_handler(unsigned long priv)
 	struct ddb *dev = link->dev;
 	u32 s, off = 32 * link->nr, tag = DDB_LINK_TAG(link->nr);
 	
-	s = ddbreadl(dev, tag | INTERRUPT_STATUS);
-	//printk("gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
-	if (!s)
-		return;
-	ddbwritel(dev, s, tag | INTERRUPT_ACK);
-	LINK_IRQ_HANDLE(0);
-	LINK_IRQ_HANDLE(1);
-	LINK_IRQ_HANDLE(2);
-	LINK_IRQ_HANDLE(3);
+	while ((s = ddbreadl(dev, tag | INTERRUPT_STATUS)))  {
+		ddbwritel(dev, s, tag | INTERRUPT_ACK);
+		LINK_IRQ_HANDLE(0);
+		LINK_IRQ_HANDLE(1);
+		LINK_IRQ_HANDLE(2);
+		LINK_IRQ_HANDLE(3);
+	}
 #else
 	printk("gtlirq\n");
 	tasklet_schedule(&link->tasklet);
