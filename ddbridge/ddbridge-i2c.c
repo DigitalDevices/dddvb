@@ -122,6 +122,11 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 			u32 istat = ddbreadl(dev, INTERRUPT_STATUS);
 			
 			dev_err(dev->dev, "DDBridge IRS %08x\n", istat);
+			if (i2c->link) {
+				u32 listat = ddbreadl(dev, DDB_LINK_TAG(i2c->link) | INTERRUPT_STATUS);
+				dev_err(dev->dev, "DDBridge link %u IRS %08x\n",
+					i2c->link, listat);
+			}
 			if (istat & 1) {
 				ddbwritel(dev, istat & 1, INTERRUPT_ACK);
 			} else {
