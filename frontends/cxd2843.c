@@ -1008,6 +1008,14 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
+static void sleep(struct dvb_frontend *fe)
+{
+	struct cxd_state *state = fe->demodulator_priv;
+
+	Stop(state);
+	ShutDown(state);
+}
+
 static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 {
 	enum demod_state newDemodState = Unknown;
@@ -1892,6 +1900,7 @@ static struct dvb_frontend_ops common_ops_2843 = {
 			FE_CAN_RECOVER | FE_CAN_MUTE_TS
 	},
 	.release = release,
+	.sleep = sleep,
 	.i2c_gate_ctrl = gate_ctrl,
 	.set_frontend = set_parameters,
 
@@ -1929,6 +1938,7 @@ static struct dvb_frontend_ops common_ops_2837 = {
 			FE_CAN_RECOVER | FE_CAN_MUTE_TS
 	},
 	.release = release,
+	.sleep = sleep,
 	.i2c_gate_ctrl = gate_ctrl,
 	.set_frontend = set_parameters,
 
@@ -1964,6 +1974,7 @@ static struct dvb_frontend_ops common_ops_2838 = {
 			FE_CAN_RECOVER | FE_CAN_MUTE_TS
 	},
 	.release = release,
+	.sleep = sleep,
 	.i2c_gate_ctrl = gate_ctrl,
 	.set_frontend = set_parameters,
 
