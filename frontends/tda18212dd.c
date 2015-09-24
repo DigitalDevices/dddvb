@@ -777,6 +777,10 @@ static int sleep(struct dvb_frontend *fe)
 	struct tda_state *state = fe->tuner_priv;
 
 	Standby(state);
+	write_reg(state, THERMO_2, 0x01);
+	read_reg1(state, THERMO_1);
+	write_reg(state, THERMO_2, 0x00);
+	printk("sleep: temp = %u\n", state->Regs[THERMO_1]);
 	return 0;
 }
 
