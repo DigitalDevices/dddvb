@@ -113,6 +113,8 @@ static int __exit octonet_remove(struct platform_device *pdev)
 
 	dev = platform_get_drvdata(pdev);
 
+	ddb_device_destroy(dev);
+
 	ddb_nsd_detach(dev);
 	ddb_ports_detach(dev);
 	ddb_i2c_release(dev);
@@ -122,7 +124,6 @@ static int __exit octonet_remove(struct platform_device *pdev)
 	free_irq(platform_get_irq(dev->pfdev, 0), dev);
 
 	ddb_ports_release(dev);
-	ddb_device_destroy(dev);
 	octonet_unmap(dev);
 	platform_set_drvdata(pdev, 0);
 	return 0;
