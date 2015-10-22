@@ -2166,6 +2166,12 @@ static char *xo2names[] = {
 	"", ""
 };
 
+static char *xo2types[] = {
+	"DVBS_ST", "DVBCT2_SONY",
+	"ISDBT_SONY", "DVBC2T2_SONY",
+	"ATSC_ST", "DVBC2T2_ST"
+};
+
 static void ddb_port_probe(struct ddb_port *port)
 {
 	struct ddb *dev = port->dev;
@@ -2173,9 +2179,9 @@ static void ddb_port_probe(struct ddb_port *port)
 	u8 id, type;
 
 	port->name = "NO MODULE";
+	port->type_name = "NONE";
 	port->class = DDB_PORT_NONE;
-	
-	
+
 	/* Handle missing ports and ports without I2C */
 	
 	if (port->nr == ts_loop) {
@@ -2199,6 +2205,7 @@ static void ddb_port_probe(struct ddb_port *port)
 
 	if (dev->link[l].info->type == DDB_OCTOPUS_MAX) {
 		port->name = "DUAL DVB-S2 MAX";
+		port->type_name = "MXL5XX";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_MXL5XX;
 		if (port->i2c)
@@ -2209,6 +2216,7 @@ static void ddb_port_probe(struct ddb_port *port)
 
 	if (port->nr > 1 && dev->link[l].info->type == DDB_OCTOPUS_CI) {
 		port->name = "CI internal";
+		port->type_name = "INTERNAL";
 		port->class = DDB_PORT_CI;
 		port->type = DDB_CI_INTERNAL;
 	}
@@ -2221,6 +2229,7 @@ static void ddb_port_probe(struct ddb_port *port)
 	if (port_has_cxd(port, &id)) {
 		if (id == 1) {
 			port->name = "CI";
+			port->type_name = "CXD2099";
 			port->class = DDB_PORT_CI;
 			port->type = DDB_CI_EXTERNAL_SONY;
 			ddbwritel(dev, I2C_SPEED_400,
@@ -2237,31 +2246,37 @@ static void ddb_port_probe(struct ddb_port *port)
 			port->name = "DuoFlex CI";
 			port->class = DDB_PORT_CI;
 			port->type = DDB_CI_EXTERNAL_XO2;
+			port->type_name = "CI_XO2";
 			init_xo2_ci(port);
 			return;
 		}
 		id >>= 2;
 		if (id > 5) {
 			port->name = "unknown XO2 DuoFlex";
+			port->type_name = "UNKNOWN";
 		} else {
 			port->name = xo2names[id];
 			port->class = DDB_PORT_TUNER;
 			port->type = DDB_TUNER_XO2 + id;
+			port->type_name = xo2types[id];
 			init_xo2(port);
 		}
 	} else if (port_has_cxd28xx(port, &id)) {
 		switch (id) {
 		case 0xa4:
-			port->name = "DUAL DVB-CT2 CXD2843";
+			port->name = "DUAL DVB-C2T2 CXD2843";
 			port->type = DDB_TUNER_DVBC2T2_SONY_P;
+			port->type_name = "DVBC2T2_SONY";
 			break;
 		case 0xb1:
 			port->name = "DUAL DVB-CT2 CXD2837";
 			port->type = DDB_TUNER_DVBCT2_SONY_P;
+			port->type_name = "DVBCT2_SONY";
 			break;
 		case 0xb0:
 			port->name = "DUAL ISDB-T CXD2838";
 			port->type = DDB_TUNER_ISDBT_SONY_P;
+			port->type_name = "ISDBT_SONY";
 			break;
 		default:
 			return;
@@ -2272,11 +2287,13 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->name = "DUAL DVB-S2";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DVBS_ST;
+		port->type_name = "DVBS_ST";
 		ddbwritel(dev, I2C_SPEED_100, port->i2c->regs + I2C_TIMING);
 	} else if (port_has_stv0900_aa(port, &id)) {
 		port->name = "DUAL DVB-S2";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DVBS_ST_AA;
+		port->type_name = "DVBS_ST_AA";
 		if (id == 0x51)
 			port->type = DDB_TUNER_DVBS_STV0910_P;
 		else
@@ -2286,11 +2303,13 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->name = "DUAL DVB-C/T";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DVBCT_TR;
+		port->type_name = "DVBCT_TR";
 		ddbwritel(dev, I2C_SPEED_400, port->i2c->regs + I2C_TIMING);
 	} else if (port_has_stv0367(port)) {
 		port->name = "DUAL DVB-C/T";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DVBCT_ST;
+		port->type_name = "DVBCT_ST";
 		ddbwritel(dev, I2C_SPEED_100, port->i2c->regs + I2C_TIMING);
 	} else if (port_has_encti(port)) {
 		port->name = "ENCTI";
@@ -3857,15 +3876,6 @@ static char *class_name[] = {
 	"NONE", "CI", "TUNER", "LOOP", "MOD"
 };
 
-static char *type_name[] = {
-	"NONE", "DVBS_ST", "DVBS_ST_AA", "DVBCT_TR",
-	"DVBCT_ST", "INTERNAL", "CXD2099", "DVBCT2_SONY",
-	"DVBC2T2_SONY", "ISDBT_SONY", "DVBS_ST", "MXL5XX",
-	"TYPE0C", "TYPE0D", "TYPE0E", "TYPE0F",
-	"DVBS_ST", "DVBCT2_SONY", "ISDBT_SONY", "DVBC2T2_SONY",
-	"ATSC_ST", "DVBC2T2_ST"
-};
-
 static ssize_t fan_show(struct device *device,
 			struct device_attribute *attr, char *buf)
 {
@@ -3978,7 +3988,7 @@ static ssize_t mod_show(struct device *device,
 
 	return sprintf(buf, "%s:%s\n",
 		       class_name[dev->port[num].class],
-		       type_name[dev->port[num].type]);
+		       dev->port[num].type_name);
 }
 
 static ssize_t led_show(struct device *device,
