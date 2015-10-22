@@ -1251,9 +1251,9 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 		return -ENODEV;
 	}
 	if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
-			((input->nr & 1) ? 0x09 : 0x08))) {
+			((input->nr & 1) ? 0x0d : 0x0c))) {
 		if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
-				((input->nr & 1) ? 0x0d : 0x0c))) {
+				((input->nr & 1) ? 0x09 : 0x08))) {
 			pr_err("No LNBH25 found!\n");
 			return -ENODEV;
 		}
