@@ -1008,12 +1008,13 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
-static void sleep(struct dvb_frontend *fe)
+static int sleep(struct dvb_frontend *fe)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 
 	Stop(state);
 	ShutDown(state);
+	return 0;
 }
 
 static int Start(struct cxd_state *state, u32 IntermediateFrequency)
