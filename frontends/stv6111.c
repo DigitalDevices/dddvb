@@ -306,7 +306,6 @@ static int set_params(struct dvb_frontend *fe)
 {
 	struct stv *state = fe->tuner_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	int status;
 	u32 freq, symb, cutoff;
 
 	if (p->delivery_system != SYS_DVBS && p->delivery_system != SYS_DVBS2)
@@ -321,7 +320,7 @@ static int set_params(struct dvb_frontend *fe)
 	set_lof(state, freq, cutoff);
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
-	return status;
+	return 0;
 }
 
 static int get_frequency(struct dvb_frontend *fe, u32 *frequency)
