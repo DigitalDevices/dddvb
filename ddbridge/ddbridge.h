@@ -274,6 +274,7 @@ struct ddb_port {
 #define DDB_PORT_LOOP           3
 #define DDB_PORT_MOD            4
 	char                   *name;
+	char                   *type_name;
 	u32                     type;
 #define DDB_TUNER_NONE           0
 #define DDB_TUNER_DVBS_ST        1
