@@ -392,7 +392,7 @@ static struct ddb_info ddb_cis = {
 	.name     = "Digital Devices Octopus CI single",
 	.regmap   = &octopus_map,
 	.port_num = 3,
-	.i2c_mask = 0x01,
+	.i2c_mask = 0x03,
 };
 
 static struct ddb_info ddb_ci_s2_pro = {
