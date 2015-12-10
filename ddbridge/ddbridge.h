@@ -160,7 +160,9 @@ struct ddb_info {
 	u8    ns_num;
 	u8    mdio_num;
 	u8    con_clock; /* use a continuous clock */
-	u8    serial;    /* override to serial transfer */
+	u8    ts_quirks;
+#define TS_QUIRK_SERIAL   1
+#define TS_QUIRK_REVERSED 2
 	struct ddb_regmap *regmap;
 };
 
@@ -290,6 +292,7 @@ struct ddb_port {
 #define DDB_TUNER_MXL5XX         11
 #define DDB_CI_EXTERNAL_XO2      12
 #define DDB_CI_EXTERNAL_XO2_B    13
+#define DDB_TUNER_DVBS_STV0910_PR 14
 
 #define DDB_TUNER_XO2            32
 #define DDB_TUNER_DVBS_STV0910   (DDB_TUNER_XO2 + 0)

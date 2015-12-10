@@ -63,6 +63,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 {
 	struct ddb *dev = (struct ddb *) pci_get_drvdata(pdev);
 
+	ddb_device_destroy(dev);
 	ddb_nsd_detach(dev);
 	ddb_ports_detach(dev);
 	ddb_i2c_release(dev);
@@ -70,6 +71,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	if (dev->link[0].info->ns_num)
 		ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
+
 	ddbwritel(dev, 0, MSI1_ENABLE);
 	if (dev->msi == 2)
 		free_irq(dev->pdev->irq + 1, dev);
@@ -80,7 +82,6 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 #endif
 	ddb_ports_release(dev);
 	ddb_buffers_free(dev);
-	ddb_device_destroy(dev);
 
 	ddb_unmap(dev);
 	pci_set_drvdata(pdev, 0);
@@ -359,6 +360,7 @@ static struct ddb_info ddb_v7 = {
 	.i2c_mask = 0x0f,
 	.board_control   = 2,
 	.board_control_2 = 4,
+	.ts_quirks = TS_QUIRK_REVERSED,
 };
 
 static struct ddb_info ddb_ctv7 = {
@@ -432,7 +434,7 @@ static struct ddb_info ddb_ct_8 = {
 	.i2c_mask = 0x0f,
 	.board_control   = 0x0ff,
 	.board_control_2 = 0xf00,
-	.serial   = 1,
+	.ts_quirks = TS_QUIRK_SERIAL,
 };
 
 static struct ddb_info ddb_mod = {

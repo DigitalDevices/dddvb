@@ -1223,14 +1223,7 @@ static int tuner_attach_stv6110(struct ddb_input *input, int type)
 	return 0;
 }
 
-static struct stv0910_cfg stv0910 = {
-	.adr      = 0x6c,
-	.parallel = 1,
-	.rptlvl   = 4,
-	.clk      = 30000000,
-};
-
-static struct stv0910_cfg stv0910_aa = {
+static struct stv0910_cfg stv0910_p = {
 	.adr      = 0x68,
 	.parallel = 1,
 	.rptlvl   = 4,
@@ -1241,11 +1234,16 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 {
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
+	struct stv0910_cfg cfg = stv0910_p;
 
-	dvb->fe = dvb_attach(stv0910_attach, i2c, &stv0910_aa, (input->nr & 1));
-	if (!dvb->fe)
+	if (type)
+		cfg.parallel = 2;
+	dvb->fe = dvb_attach(stv0910_attach, i2c, &cfg, (input->nr & 1));
+	if (!dvb->fe) {
+		cfg.adr = 0x6c;
 		dvb->fe = dvb_attach(stv0910_attach, i2c,
-				     &stv0910, (input->nr & 1));
+				     &cfg, (input->nr & 1));
+	}
 	if (!dvb->fe) {
 		pr_err("No STV0910 found!\n");
 		return -ENODEV;
@@ -1910,8 +1908,14 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (tuner_attach_stv6111(input, 0) < 0)
 			return -ENODEV;
 		break;
-	case DDB_TUNER_DVBS_STV0910_P:
+	case DDB_TUNER_DVBS_STV0910_PR:
 		if (demod_attach_stv0910(input, 1) < 0)
+			return -ENODEV;
+		if (tuner_attach_stv6111(input, 1) < 0)
+			return -ENODEV;
+		break;
+	case DDB_TUNER_DVBS_STV0910_P:
+		if (demod_attach_stv0910(input, 0) < 0)
 			return -ENODEV;
 		if (tuner_attach_stv6111(input, 1) < 0)
 			return -ENODEV;
@@ -1933,7 +1937,9 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
-		if (!input->port->dev->link[input->port->lnr].info->serial) 
+		if (input->port->dev->link[input->port->lnr].info->ts_quirks & TS_QUIRK_SERIAL) 
+			par = 0;
+		else
 			par = 1;
 	case DDB_TUNER_DVBCT2_SONY:
 	case DDB_TUNER_DVBC2T2_SONY:
@@ -2292,12 +2298,17 @@ static void ddb_port_probe(struct ddb_port *port)
 	} else if (port_has_stv0900_aa(port, &id)) {
 		port->name = "DUAL DVB-S2";
 		port->class = DDB_PORT_TUNER;
-		port->type = DDB_TUNER_DVBS_ST_AA;
-		port->type_name = "DVBS_ST_AA";
-		if (id == 0x51)
-			port->type = DDB_TUNER_DVBS_STV0910_P;
-		else
+		if (id == 0x51) {
+			if (port->nr == 0 &&
+			    dev->link[l].info->ts_quirks & TS_QUIRK_REVERSED)
+				port->type = DDB_TUNER_DVBS_STV0910_PR;
+			else
+				port->type = DDB_TUNER_DVBS_STV0910_P;
+			port->type_name = "DVBS_ST_0910";
+		} else {
 			port->type = DDB_TUNER_DVBS_ST_AA;
+			port->type_name = "DVBS_ST_AA";
+		}
 		ddbwritel(dev, I2C_SPEED_100, port->i2c->regs + I2C_TIMING);
 	} else if (port_has_drxks(port)) {
 		port->name = "DUAL DVB-C/T";
@@ -4541,7 +4552,7 @@ static struct ddb_info octopus_ct_gtl = {
 	.i2c_mask = 0x0f,
 	.board_control = 0xff,
 	.board_control_2 = 0xf00,
-	.serial   = 1,
+	.ts_quirks = TS_QUIRK_SERIAL,
 };
 
 

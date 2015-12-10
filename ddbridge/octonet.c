@@ -114,15 +114,15 @@ static int __exit octonet_remove(struct platform_device *pdev)
 	dev = platform_get_drvdata(pdev);
 
 	ddb_device_destroy(dev);
-
 	ddb_nsd_detach(dev);
 	ddb_ports_detach(dev);
 	ddb_i2c_release(dev);
 
-	ddbwritel(dev, 0, ETHER_CONTROL);
+	if (dev->link[0].info->ns_num)
+		ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
-	free_irq(platform_get_irq(dev->pfdev, 0), dev);
 
+	free_irq(platform_get_irq(dev->pfdev, 0), dev);
 	ddb_ports_release(dev);
 	octonet_unmap(dev);
 	platform_set_drvdata(pdev, 0);
