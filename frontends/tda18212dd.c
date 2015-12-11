@@ -447,8 +447,8 @@ static int attach_init(struct tda_state *state)
 	if (!state->m_isMaster)
 		state->m_bLTEnable = false;
 
-	pr_info("tda18212dd: ChipID %04x %s\n", state->m_ID,
-		state->m_isMaster ? "master" : "slave");
+	/*pr_info("tda18212dd: ChipID %04x %s\n", state->m_ID,
+	  state->m_isMaster ? "master" : "slave");*/
 
 	if (state->m_ID != 18212)
 		return -1;
@@ -457,7 +457,7 @@ static int attach_init(struct tda_state *state)
 	if (stat < 0)
 		return stat;
 
-	pr_info("tda18212dd: PowerState %02x\n", PowerState);
+	/*pr_info("tda18212dd: PowerState %02x\n", PowerState);*/
 
 	if (state->m_isMaster) {
 		if (PowerState & 0x02) {
@@ -487,6 +487,7 @@ static int attach_init(struct tda_state *state)
 	FinishCalibration(state);
 	Standby(state);
 
+#if 0
 	{
 		u8 RFCal_Log[12];
 
@@ -499,6 +500,7 @@ static int attach_init(struct tda_state *state)
 			RFCal_Log[8], RFCal_Log[9],
 			RFCal_Log[10], RFCal_Log[11]);
 	}
+#endif
 	return stat;
 }
 
@@ -775,6 +777,10 @@ static int sleep(struct dvb_frontend *fe)
 	struct tda_state *state = fe->tuner_priv;
 
 	Standby(state);
+	write_reg(state, THERMO_2, 0x01);
+	read_reg1(state, THERMO_1);
+	write_reg(state, THERMO_2, 0x00);
+	printk("sleep: temp = %u\n", state->Regs[THERMO_1]);
 	return 0;
 }
 

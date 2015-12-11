@@ -103,6 +103,7 @@ struct stv {
 	u16                  regoff;
 	u8                   i2crpt;
 	u8                   tscfgh;
+	u8                   tsgeneral;
 	u8                   tsspeed;
 	unsigned long        tune_time;
 
@@ -932,7 +933,7 @@ static int probe(struct stv *state)
 
 	if (id != 0x51)
 		return -EINVAL;
-	pr_info("stv0910: found STV0910 id=0x%02x\n", id);
+	/* pr_info("stv0910: found STV0910 id=0x%02x\n", id); */
 
 	 /* Configure the I2C repeater to off */
 	write_reg(state, RSTV0910_P1_I2CRPT, 0x24);
@@ -944,7 +945,7 @@ static int probe(struct stv *state)
 	write_reg(state, RSTV0910_OUTCFG,    0x00);  /* OUTCFG */
 	write_reg(state, RSTV0910_PADCFG,    0x05);  /* RF AGC Pads Dev = 05 */
 	write_reg(state, RSTV0910_SYNTCTRL,  0x02);  /* SYNTCTRL */
-	write_reg(state, RSTV0910_TSGENERAL, 0x00);  /* TSGENERAL */
+	write_reg(state, RSTV0910_TSGENERAL, state->tsgeneral);  /* TSGENERAL */
 	write_reg(state, RSTV0910_CFGEXT,    0x02);  /* CFGEXT */
 	write_reg(state, RSTV0910_GENCFG,    0x15);  /* GENCFG */
 
@@ -1359,6 +1360,7 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 		return NULL;
 
 	state->tscfgh = 0x20 | (cfg->parallel ? 0 : 0x40);
+	state->tsgeneral = (cfg->parallel == 2) ? 0x02 : 0x00;
 	state->i2crpt = 0x0A | ((cfg->rptlvl & 0x07) << 4);
 	state->tsspeed = 0x40;
 	state->nr = nr;
