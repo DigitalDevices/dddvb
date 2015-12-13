@@ -213,7 +213,7 @@ static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 					 dir ? DMA_TO_DEVICE :
 					 DMA_FROM_DEVICE);
 			kfree(dma->vbuf[i]);
-			dma->vbuf[i] = 0;
+			dma->vbuf[i] = NULL;
 		}
 	}
 }
@@ -543,7 +543,7 @@ static u32 ddb_dma_free(struct ddb_dma *dma)
 #endif
 
 static ssize_t ddb_output_write(struct ddb_output *output,
-				const u8 *buf, size_t count)
+				const __user u8 *buf, size_t count)
 {
 	struct ddb *dev = output->port->dev;
 	u32 idx, off, stat = output->dma->stat;
@@ -691,7 +691,7 @@ static u32 ddb_input_avail(struct ddb_input *input)
 	return 0;
 }
 
-static size_t ddb_input_read(struct ddb_input *input, u8 *buf, size_t count)
+static size_t ddb_input_read(struct ddb_input *input, __user u8 *buf, size_t count)
 {
 	struct ddb *dev = input->port->dev;
 	u32 left = count;
@@ -762,7 +762,7 @@ static ssize_t ts_write(struct file *file, const char *buf,
 	return (left == count) ? -EAGAIN : (count - left);
 }
 
-static ssize_t ts_read(struct file *file, char *buf,
+static ssize_t ts_read(struct file *file, __user char *buf,
 		       size_t count, loff_t *ppos)
 {
 	struct dvb_device *dvbdev = file->private_data;
@@ -1884,7 +1884,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			return ret;
 		dvb->attached = 0x21;
 	}
-	dvb->fe = dvb->fe2 = 0;
+	dvb->fe = dvb->fe2 = NULL;
 	switch (port->type) {
 	case DDB_TUNER_MXL5XX:
 		if (fe_attach_mxl5xx(input) < 0)
@@ -2753,7 +2753,7 @@ static void ddb_ports_detach(struct ddb *dev)
 			if (port->en) {
 				dvb_ca_en50221_release(port->en);
 				kfree(port->en);
-				port->en = 0;
+				port->en = NULL;
 			}
 			break;
 		case DDB_PORT_MOD:
