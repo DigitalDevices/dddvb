@@ -443,7 +443,7 @@ static int ns_start(struct dvbnss *nss)
 	if (dns->fe != input)
 		ddb_dvb_ns_input_start(dns->fe);
 	ddb_dvb_ns_input_start(input);
-	printk("ns start ns %u, fe %u link %u\n", dns->nr, dns->fe->nr, dns->fe->port->lnr);
+	/* printk("ns start ns %u, fe %u link %u\n", dns->nr, dns->fe->nr, dns->fe->port->lnr); */
 	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
 		  STREAM_CONTROL(dns->nr));
 	return 0;
