@@ -84,7 +84,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	ddb_buffers_free(dev);
 
 	ddb_unmap(dev);
-	pci_set_drvdata(pdev, 0);
+	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
 }
 
@@ -246,7 +246,7 @@ fail:
 	pr_err("fail\n");
 
 	ddb_unmap(dev);
-	pci_set_drvdata(pdev, 0);
+	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
 	return -1;
 }
