@@ -559,6 +559,7 @@ static int tune(struct dvb_frontend *fe, bool re_tune,
 	if (r)
 		return r;
 
+#if 0
 	if (*status & FE_HAS_LOCK)
 		return 0;
 
@@ -567,6 +568,7 @@ static int tune(struct dvb_frontend *fe, bool re_tune,
 	else
 		p->delivery_system = SYS_DVBS;
 	set_parameters(fe);
+#endif
 	return 0;
 }
 
