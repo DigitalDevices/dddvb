@@ -1,10 +1,10 @@
 /*
  * ddbridge.c: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH  
+ * Copyright (C) 2010-2015 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
- *                         
+ *
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -216,7 +216,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	ddbwritel(dev, 0, DMA_BASE_READ);
 	if (dev->link[0].info->type != DDB_MOD)
 		ddbwritel(dev, 0, DMA_BASE_WRITE);
-	
+
 	if (dev->link[0].info->type == DDB_MOD) {
 		if  (ddbreadl(dev, 0x1c) == 4)
 			dev->link[0].info->port_num = 4;
@@ -232,7 +232,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	}
 	if (ddb_init(dev) == 0)
 		return 0;
-	
+
 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
 	ddbwritel(dev, 0, MSI1_ENABLE);
 	free_irq(dev->pdev->irq, dev);
@@ -484,6 +484,8 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0006, DDVID, 0x0033, ddb_ctv7),
 	DDB_ID(DDVID, 0x0007, DDVID, 0x0023, ddb_s2_48),
 	DDB_ID(DDVID, 0x0008, DDVID, 0x0034, ddb_ct_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0035, ddb_ct_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0036, ddb_ct_8),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0040, ddb_ci),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0041, ddb_cis),
 	DDB_ID(DDVID, 0x0012, DDVID, 0x0042, ddb_ci),
