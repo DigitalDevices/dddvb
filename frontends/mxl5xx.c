@@ -222,6 +222,7 @@ static int send_command(struct mxl *state, u32 size, u8 *buf)
 		}
 		if (!count) {
 			pr_info("mxl5xx: send_command busy\n");
+			mutex_unlock(&state->base->i2c_lock);
 			return -EBUSY;
 		}
 	}
@@ -516,6 +517,8 @@ static int set_parameters(struct dvb_frontend *fe)
 	return stat;
 }
 
+static int get_stats(struct dvb_frontend *fe);
+
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct mxl *state = fe->demodulator_priv;
@@ -532,7 +535,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	mutex_unlock(&state->base->status_lock);
 
 	*status = (regData == 1) ? 0x1f : 0;
-
+	get_stats(fe);
 	return stat;
 }
 
@@ -599,6 +602,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	struct mxl *state = fe->demodulator_priv;
 	int stat;
 	u32 regData = 0;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
 	mutex_lock(&state->base->status_lock);
 	HYDRA_DEMOD_STATUS_LOCK(state, state->demod);
@@ -607,7 +611,10 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 			     &regData);
 	HYDRA_DEMOD_STATUS_UNLOCK(state, state->demod);
 	mutex_unlock(&state->base->status_lock);
-	*snr = (s16) (regData & 0xFFFF);
+	*snr = (s16) (regData & 0xFFFF); /* 100x dB */
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = 10 * (s64) *snr; 
 	return stat;
 }
 
@@ -621,6 +628,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct mxl *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	int stat;
 	u32 regData = 0;
 
@@ -631,7 +639,10 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 			     &regData);
 	HYDRA_DEMOD_STATUS_UNLOCK(state, state->demod);
 	mutex_unlock(&state->base->status_lock);
-	*strength = (u16) (regData & 0xFFFF);
+	*strength = (u16) (regData & 0xFFFF); /* 10x dBm */
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].uvalue = 10 * (s64) (s16) (regData & 0xFFFF); 
 	return stat;
 }
 
@@ -639,6 +650,16 @@ static int read_ucblocks(struct dvb_frontend *fe, u32 *ucblocks)
 {
 	return 0;
 }
+
+static int get_stats(struct dvb_frontend *fe)
+{
+	u16 val;
+
+	read_signal_strength(fe, &val);
+	read_snr(fe, &val);
+	return 0;
+}
+
 
 static int get_frontend(struct dvb_frontend *fe)
 {

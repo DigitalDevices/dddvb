@@ -1269,10 +1269,37 @@ static int get_tune_settings(struct dvb_frontend *fe,
 	}
 }
 
+static int read_snr(struct dvb_frontend *fe, u16 *snr);
+
+static int get_stats(struct dvb_frontend *fe)
+{
+	struct cxd_state *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	u16 val;
+
+	if (fe->ops.tuner_ops.get_rf_strength)
+		fe->ops.tuner_ops.get_rf_strength(fe, &val);
+	else
+		val = 0;
+
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].uvalue = 1000 * (s64) (s16) val;
+	
+	read_snr(fe, &val);
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = 100 * (s64) (s16) val;
+	return 0;
+}
+
+
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	u8 rdata;
+
+	get_stats(fe);
 
 	*status = 0;
 	switch (state->state) {
