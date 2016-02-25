@@ -1033,6 +1033,7 @@ int FlashVerify(int dev,int argc, char* argv[],uint32_t Flags)
     read(fh,Buffer,fsize);
     close(fh);
 
+#if 0
     if( BufferSize >= 0x10000 )
     {
 	    int i;
@@ -1044,6 +1045,7 @@ int FlashVerify(int dev,int argc, char* argv[],uint32_t Flags)
         }
         // Place our own header
     }
+#endif
     if (flashread(dev, Buffer2, FlashOffset, BufferSize)<0) {
 	    printf("Ioctl returns error\n");
 	    free(Buffer);
