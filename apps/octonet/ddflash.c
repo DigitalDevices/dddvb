@@ -91,6 +91,8 @@ enum {
 	SSTI_SST25VF032B = 3,
 	SSTI_SST25VF064C = 4,
 	SPANSION_S25FL116K = 5,
+	SPANSION_S25FL132K = 6,
+	SPANSION_S25FL164K = 7,
 };
 
 static int flashread(int ddb, uint8_t *buf, uint32_t addr, uint32_t len)
@@ -393,6 +395,8 @@ static int flashwrite(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxle
         case SSTI_SST25VF064C:
 		return flashwrite_pagemode(ddf, fs, addr, 0x3c, fw_off);
 	case SPANSION_S25FL116K: 
+	case SPANSION_S25FL132K: 
+	case SPANSION_S25FL164K: 
 		return flashwrite_pagemode(ddf, fs, addr, 0x1c, fw_off);
 	}
 	return -1;
@@ -467,6 +471,16 @@ static int flash_detect(struct ddflash *ddf)
 		printf("Flash: SPANSION S25FL116K 16 MBit\n");
 		ddf->sector_size = 4096; 
 		ddf->size = 0x200000; 
+	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x16) {
+		ddf->flash_type = SPANSION_S25FL132K;
+		printf("Flash: SPANSION S25FL132K 32 MBit\n");
+		ddf->sector_size = 4096; 
+		ddf->size = 0x400000; 
+	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x17) {
+		ddf->flash_type = SPANSION_S25FL164K;
+		printf("Flash: SPANSION S25FL164K 64 MBit\n");
+		ddf->sector_size = 4096; 
+		ddf->size = 0x800000; 
 	} else if (id[0] == 0x1F && id[1] == 0x28) {
 		ddf->flash_type = ATMEL_AT45DB642D; 
 		printf("Flash: Atmel AT45DB642D  64 MBit\n");

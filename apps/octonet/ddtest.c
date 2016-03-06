@@ -28,6 +28,8 @@ enum {
 	SSTI_SST25VF032B = 3,
 	SSTI_SST25VF064C = 4,
 	SPANSION_S25FL116K = 5,
+	SPANSION_S25FL132K = 6,
+	SPANSION_S25FL164K = 7,
 };
 
 struct SCommand
@@ -161,6 +163,10 @@ int FlashDetect(int dev)
 		r = SSTI_SST25VF064C; 
 	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x15 )
 		r = SPANSION_S25FL116K; 
+	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x16 )
+		r = SPANSION_S25FL132K; 
+	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x17 )
+		r = SPANSION_S25FL164K; 
 	else if ( Id[0] == 0x1F && Id[1] == 0x28)
 		r = ATMEL_AT45DB642D; 
 	else 
@@ -184,6 +190,12 @@ int FlashDetect(int dev)
 		break;
         case SPANSION_S25FL116K : 
 		printf("Flash: SPANSION S25FL116K 16 MBit\n"); 
+		break;
+        case SPANSION_S25FL132K : 
+		printf("Flash: SPANSION S25FL132K 32 MBit\n"); 
+		break;
+        case SPANSION_S25FL164K : 
+		printf("Flash: SPANSION S25FL164K 64 MBit\n"); 
 		break;
 	}
 	return r;
@@ -776,6 +788,8 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SSTI_SST25VF032B: SectorSize = 4096; FlashSize = 0x400000; break;
         case SSTI_SST25VF064C: SectorSize = 4096; FlashSize = 0x800000; break;
         case SPANSION_S25FL116K: SectorSize = 4096; FlashSize = 0x200000; break;
+        case SPANSION_S25FL132K: SectorSize = 4096; FlashSize = 0x400000; break;
+        case SPANSION_S25FL164K: SectorSize = 4096; FlashSize = 0x800000; break;
 	}
 	if (SectorSize == 0) 
 		return 0;
@@ -943,6 +957,8 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SSTI_SST25VF064C:
 		err = FlashWritePageMode(dev,FlashOffset,Buffer,BufferSize,0x3C); break;
         case SPANSION_S25FL116K: 
+        case SPANSION_S25FL132K: 
+        case SPANSION_S25FL164K: 
 		err = FlashWritePageMode(dev,FlashOffset,Buffer,BufferSize,0x1C); break;
 	}
 	
