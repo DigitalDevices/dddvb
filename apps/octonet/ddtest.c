@@ -192,10 +192,17 @@ int FlashDetect(int dev)
 		printf("Flash: SPANSION S25FL116K 16 MBit\n"); 
 		break;
         case SPANSION_S25FL132K : 
+<<<<<<< 472e247726096a6d88583bfaac91ce1f10f91c82
 		printf("Flash: SPANSION S25FL132K 32 MBit\n"); 
 		break;
         case SPANSION_S25FL164K : 
 		printf("Flash: SPANSION S25FL164K 64 MBit\n"); 
+=======
+		printf("Flash: SPANSION S25FL116K 32 MBit\n"); 
+		break;
+        case SPANSION_S25FL164K : 
+		printf("Flash: SPANSION S25FL116K 64 MBit\n"); 
+>>>>>>> add license support
 		break;
 	}
 	return r;
@@ -1436,6 +1443,222 @@ int XO2Prog(int dev, int argc, char* argv[], uint32_t Flags)
 	return 0;
 }
 
+// -----------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------------
+
+#define LICENSE_CONTROL 0x1C
+
+
+void GetId(int dev, uint8_t Id[])
+{
+	int i;
+	for(i = 0; i < 4; i += 1) {
+		uint32_t tmp;
+		
+		writereg(dev,LICENSE_CONTROL,0x00100000 + (i << 16));
+		readreg(dev,LICENSE_CONTROL,&tmp);
+		Id[i*2]   = ((tmp >> 24) & 0xFF);
+		Id[i*2+1] = ((tmp >> 16) & 0xFF);
+	}
+	writereg(dev,LICENSE_CONTROL,0x00000000);
+}
+
+void GetLK(int dev, uint8_t LK[])
+{
+	int i;
+	
+	for (i = 0; i < 12; i += 1) {
+		uint32_t tmp;
+		writereg(dev, LICENSE_CONTROL,0x00140000 + (i << 16));
+		readreg(dev,LICENSE_CONTROL,&tmp);
+		LK[i*2]   = ((tmp >> 24) & 0xFF);
+		LK[i*2+1] = ((tmp >> 16) & 0xFF);
+	}
+	writereg(dev, LICENSE_CONTROL, 0x00000000);
+}
+
+char *GetSerNbr(int dev)
+{
+	char* SerNbr;
+	uint8_t Buffer[17];
+	uint32_t BytesReturned = 0;
+	uint32_t Start = 0x10;
+	int i;
+	
+	memset(Buffer,0,sizeof(Buffer));
+	if (flashread(dev, Buffer, Start, sizeof(Buffer) - 1))
+	{
+		printf("Ioctl returns error\n");
+		return NULL;
+	}
+	if( Buffer[0] == 0xFF )
+		Buffer[0] = 0x00;
+	
+	SerNbr = malloc(17);
+	memset(SerNbr, 0, sizeof(char) * 17);
+	for(i = 0; i < 17; i += 1) {
+		SerNbr[i] = (char) Buffer[i];
+		if( SerNbr[i] == 0 )
+			break;
+	}
+
+	return SerNbr;
+}
+
+int GetHex(char* s, uint32_t nBytes, uint8_t* Buffer)
+{
+	int i;
+	if( strlen(s) < (nBytes * 2) ) return -1;
+	for (i = 0; i < nBytes; i += 1) {
+		char d0, d1;
+		d0 = s[i*2];
+		if( !isxdigit(d0) ) return -1;
+		d1 = s[i*2+1];
+		if( !isxdigit(d1) ) return -1;
+		
+		Buffer[i] =(uint8_t) ((d0 > '9' ? d0 - 'A' + 10 : d0 - '0') << 4) | ((d1 > '9' ? d1 - 'A' + 10 : d1 - '0'));
+	}
+	return (nBytes * 2);
+}
+
+int lic_export(int dev, int argc, char* argv[], uint32_t Flags)
+{
+	uint32_t HWVersion;
+	uint32_t DeviceID;
+	uint8_t Id[8];
+	uint8_t LK[24];
+	char *SerNbr;
+	FILE* fout = stdout;
+	int i;
+	
+	GetId(dev,Id);
+	GetLK(dev,LK);
+	SerNbr = GetSerNbr(dev);
+	if( SerNbr == NULL )
+		return -1;
+	
+	readreg(dev,0x00,&HWVersion);
+	readreg(dev,0x08,&DeviceID);
+
+	if( argc > 0 ) {
+		size_t n = strlen(argv[0]) + 8 + 16;
+		char *fname = malloc(n);
+		
+		snprintf(fname, n-1, "%s_%s.lic",argv[0],SerNbr);
+		fout = fopen(fname,"w");
+		if( fout == NULL ) {
+			printf("Can't create outputfile\n");
+			return 0;
+		}
+	}
+	
+	fprintf(fout,"VEN:%04X\n",DeviceID & 0xFFFF);
+	fprintf(fout,"DEV:%04X\n",(DeviceID >> 16) & 0xFFFF);
+	fprintf(fout,"VER:%08X\n",HWVersion);
+	fprintf(fout,"SERNBR:%s\n",SerNbr);
+	fprintf(fout,"ID:");
+	for (i = 0; i < 8; i += 1)
+		fprintf(fout,"%02X",Id[i]);
+	fprintf(fout,"\n");
+	fprintf(fout,"LK:");
+	for (i = 0; i < 24; i += 1)
+		fprintf(fout,"%02X",LK[i]);
+	fprintf(fout,"\n");
+	if( argc > 0 ) fclose(fout);
+	return 0;
+}
+
+int lic_import(int dev, int argc, char* argv[], uint32_t Flags)
+{
+	uint8_t LicId[8];
+	uint8_t CardId[8];
+	char *SerNbr;
+	uint8_t *Buffer;
+	FILE* fin;
+	int Flash;
+	uint32_t FlashSize = 0;
+	int err = 0;
+	
+	if( argc < 1 ) return -1;
+	
+	GetId(dev, CardId);
+	
+	
+	SerNbr = GetSerNbr(dev);
+	if( SerNbr == NULL )
+		return -1;
+	
+	Buffer = malloc(4096);
+	memset(Buffer, 0xFF, 4096);
+	
+	fin = fopen(argv[0], "r");
+	if( fin == NULL )
+	{
+		printf("License file not found\n");
+		return -1;
+	}
+	memset(LicId,0,8);
+	while(1) {
+		char s[128];
+		if( fgets(s,sizeof(s)-1,fin) == NULL ) break;
+		fputs(s,stdout);
+		if (strncmp(s,"ID:",3) == 0 )
+		{
+			if( GetHex(&s[3],8,LicId) < 0 ) return -1;
+		}
+		if (strncmp(s,"LK:",3) == 0 )
+		{
+			if( GetHex(&s[3],24,Buffer) < 0 ) return -1;
+		}
+	}
+	fclose(fin);
+	
+	if( memcmp(CardId,LicId,8) != 0 )
+	{
+		printf("Invalid ID\n");
+		free(Buffer);
+		return -1;
+	}
+	
+	Dump(Buffer,0,24);
+	Flash = FlashDetect(dev);
+	
+	switch(Flash) {
+	case SSTI_SST25VF064C:   err = FlashWritePageMode(dev,0x7FE000,Buffer,4096,0x3C); break;
+	case SPANSION_S25FL116K: err = FlashWritePageMode(dev,0x1FE000,Buffer,4096,0x1C); break;
+	case SPANSION_S25FL132K: err = FlashWritePageMode(dev,0x3FE000,Buffer,4096,0x1C); break;
+	case SPANSION_S25FL164K: err = FlashWritePageMode(dev,0x7FE000,Buffer,4096,0x1C); break;    
+	default:
+		printf("Unsupported Flash\n");
+		break;
+	}
+	free(Buffer);
+	return 0;
+}
+
+int lic_erase(int dev, int argc, char* argv[], uint32_t Flags)
+{
+	uint8_t* Buffer = malloc(4096);
+	int Flash = FlashDetect(dev);
+	uint32_t FlashSize = 0;
+	int err = -1;
+
+	memset(Buffer, 0xFF, 4096);
+	switch(Flash)
+	{
+        case SSTI_SST25VF064C:   err = FlashWritePageMode(dev,0x7FE000,Buffer,4096,0x3C); break;
+        case SPANSION_S25FL116K: err = FlashWritePageMode(dev,0x1FE000,Buffer,4096,0x1C); break;
+        case SPANSION_S25FL132K: err = FlashWritePageMode(dev,0x3FE000,Buffer,4096,0x1C); break;
+        case SPANSION_S25FL164K: err = FlashWritePageMode(dev,0x7FE000,Buffer,4096,0x1C); break;    
+        default:
+		printf("Unsupported Flash\n");
+		break;
+	}
+	free(Buffer);
+	return err;
+}
+
 
 struct SCommand CommandTable[] = 
 {
@@ -1456,6 +1679,10 @@ struct SCommand CommandTable[] =
 
 	{ "mdio",        mdio,       1,   "mdio                 : mdio <adr> <reg> [<value>]" },
 	{ "xo2prog",     XO2Prog,   1,   "DuoFlex Programming  : xo2prog <FileName> [<BusNumber>]" },
+
+	{ "licimport",   lic_import,       1,   "License Import           : licimport" },
+	{ "licexport",   lic_export,       1,   "License Export           : licexport" },
+	{ "licerase",    lic_erase,        1,   "License Erase            : licerase"  },
  	{ NULL,NULL,0 }
 };
 
