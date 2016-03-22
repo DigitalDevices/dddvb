@@ -1039,15 +1039,40 @@ static int set_parameters(struct dvb_frontend *fe)
 	return stat;
 }
 
+static int get_frontend(struct dvb_frontend *fe)
+{
+	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	
+
+	return 0;
+}
+
+
+static int read_snr(struct dvb_frontend *fe, u16 *snr);
+static int read_signal_strength(struct dvb_frontend *fe, u16 *strength);
+static int read_ber(struct dvb_frontend *fe, u32 *ber);
 
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 DmdState = 0;
 	u8 DStatus  = 0;
 	enum ReceiveMode CurReceiveMode = Mode_None;
 	u32 FECLock = 0;
+	u16 val;
+	u32 ber;
+	
+	read_signal_strength(fe, &val);
 
+	read_snr(fe, &val);
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = (s64) (s16) val;
+	
+	read_ber(fe, &ber);
+	
 	read_reg(state, RSTV0910_P2_DMDSTATE + state->regoff, &DmdState);
 
 	if (DmdState & 0x40) {
@@ -1274,6 +1299,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 n, d;
 
 	GetBitErrorRate(state, &n, &d);
@@ -1281,18 +1307,97 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 		*ber = n / d;
 	else
 		*ber = 0;
+
+	p->pre_bit_error.len = 1;
+	p->pre_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_error.stat[0].uvalue = n;
+	p->pre_bit_count.len = 1;
+	p->pre_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_count.stat[0].uvalue = d;
 	return 0;
+}
+
+static s32 Log10x100(u32 x)
+{
+	static u32 LookupTable[100] = {
+		101157945, 103514217, 105925373, 108392691, 110917482,
+		113501082, 116144861, 118850223, 121618600, 124451461,
+		127350308, 130316678, 133352143, 136458314, 139636836,
+		142889396, 146217717, 149623566, 153108746, 156675107,
+		160324539, 164058977, 167880402, 171790839, 175792361,
+		179887092, 184077200, 188364909, 192752491, 197242274,
+		201836636, 206538016, 211348904, 216271852, 221309471,
+		226464431, 231739465, 237137371, 242661010, 248313311,
+		254097271, 260015956, 266072506, 272270131, 278612117,
+		285101827, 291742701, 298538262, 305492111, 312607937,
+		319889511, 327340695, 334965439, 342767787, 350751874,
+		358921935, 367282300, 375837404, 384591782, 393550075,
+		402717034, 412097519, 421696503, 431519077, 441570447,
+		451855944, 462381021, 473151259, 484172368, 495450191,
+		506990708, 518800039, 530884444, 543250331, 555904257,
+		568852931, 582103218, 595662144, 609536897, 623734835,
+		638263486, 653130553, 668343918, 683911647, 699841996,
+		716143410, 732824533, 749894209, 767361489, 785235635,
+		803526122, 822242650, 841395142, 860993752, 881048873,
+		901571138, 922571427, 944060876, 966050879, 988553095,
+	};
+	s32 y;
+	int i;
+
+	if (x == 0)
+		return 0;
+	y = 800;
+	if (x >= 1000000000) {
+		x /= 10;
+		y += 100;
+	}
+
+	while (x < 100000000) {
+		x *= 10;
+		y -= 100;
+	}
+	i = 0;
+	while (i < 100 && x > LookupTable[i])
+		i += 1;
+	y += i;
+	return y;
 }
 
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 Agc1, Agc0;
+	u8 Reg[2];
+	u32 pBBGain;
+	s32 Power = 0;
+	int i;
 
-	read_reg(state, RSTV0910_P2_AGCIQIN1 + state->regoff, &Agc1);
-	read_reg(state, RSTV0910_P2_AGCIQIN0 + state->regoff, &Agc0);
+	read_regs(state, RSTV0910_P2_AGCIQIN1 + state->regoff, Reg, 2);
+	//KdPrintEx((MSG_INFO "_%d " __FUNCTION__ " AGCIQIN1 = %02x%02x\n",m_Instance,Reg[0],Reg[1]));
+	
+	*strength = (((u32) Reg[0]) << 8) | Reg[1];
+	
+	for (i = 0; i < 5; i += 1) {
+		read_regs(state, RSTV0910_P2_POWERI + state->regoff, Reg, 2);
+		Power += (u32) Reg[0] * (u32) Reg[0] + (u32) Reg[1] * (u32) Reg[1];
+		msleep(3);
+	}
+	Power /= 5;
+	
+	pBBGain = (465 - Log10x100(Power));
+	
+	if (fe->ops.tuner_ops.get_rf_strength)
+		fe->ops.tuner_ops.get_rf_strength(fe, strength);
+	else
+		*strength = 0;
 
-	*strength = ((255 - Agc1) * 3300) / 256;
+	*strength += pBBGain * 10;
+	
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].uvalue = 10 * (s64) (s16) *strength - 108750;
+
 	return 0;
 }
 
@@ -1324,6 +1429,7 @@ static struct dvb_frontend_ops stv0910_ops = {
 	.release                        = release,
 	.i2c_gate_ctrl                  = gate_ctrl,
 	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
 	.tune                           = tune,
 	.read_status			= read_status,
 	.set_tone			= set_tone,

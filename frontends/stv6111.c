@@ -50,6 +50,7 @@ struct stv {
 
 	u8 reg[11];
 	u32 ref_freq;
+	u32 Frequency;
 };
 
 static int i2c_read(struct i2c_adapter *adap,
@@ -87,14 +88,12 @@ static int write_regs(struct stv *state, int reg, int len)
 	return i2c_write(state->i2c, state->adr, d, len + 1);
 }
 
-#if 0
 static int write_reg(struct stv *state, u8 reg, u8 val)
 {
 	u8 d[2] = {reg, val};
 
 	return i2c_write(state->i2c, state->adr, d, 2);
 }
-#endif
 
 static int read_reg(struct stv *state, u8 reg, u8 *val)
 {
@@ -298,6 +297,8 @@ static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 	}
 	read_reg(state, 0x08, &tmp);
 
+	state->Frequency = Frequency;
+	
 	dump_regs(state);
 	return 0;
 }
@@ -362,21 +363,352 @@ static u32 AGC_Gain[] = {
 	67000, /* 2.9 */
 };
 
+struct SLookup {
+	s16 Value;
+	u16 RegValue;
+};
+
+
+static struct SLookup LNAGain_NF_LookUp[] = {
+	/*Gain *100dB*/      /*Reg*/   
+	{ 2572  , 0   },
+	{ 2575  , 1   },
+	{ 2580  , 2   },
+	{ 2588  , 3   },
+	{ 2596  , 4   },
+	{ 2611  , 5   },
+	{ 2633  , 6   },
+	{ 2664  , 7   },
+	{ 2701  , 8   },
+	{ 2753  , 9   },
+	{ 2816  , 10  },
+	{ 2902  , 11  },
+	{ 2995  , 12  },
+	{ 3104  , 13  },
+	{ 3215  , 14  },
+	{ 3337  , 15  },
+	{ 3492  , 16  },
+	{ 3614  , 17  },
+	{ 3731  , 18  },
+	{ 3861  , 19  },
+	{ 3988  , 20  },
+	{ 4124  , 21  },
+	{ 4253  , 22  },
+	{ 4386  , 23  },
+	{ 4505  , 24  },
+	{ 4623  , 25  },
+	{ 4726  , 26  },
+	{ 4821  , 27  },
+	{ 4903  , 28  },
+	{ 4979  , 29  },
+	{ 5045  , 30  },
+	{ 5102  , 31  }
+};
+                                                
+static struct SLookup LNAGain_IIP3_LookUp[] = {
+	/*Gain *100dB*/   /*reg*/
+	{ 1548 , 0   },
+	{ 1552 , 1   },
+	{ 1569 , 2   },
+	{ 1565 , 3   },
+	{ 1577 , 4   },
+	{ 1594 , 5   },
+	{ 1627 , 6   },
+	{ 1656 , 7   },
+	{ 1700 , 8   },
+	{ 1748 , 9   },
+	{ 1805 , 10  },
+	{ 1896 , 11  },
+	{ 1995 , 12  },
+	{ 2113 , 13  },
+	{ 2233 , 14  },
+	{ 2366 , 15  },
+	{ 2543 , 16  },
+	{ 2687 , 17  },
+	{ 2842 , 18  },
+	{ 2999 , 19  },
+	{ 3167 , 20  },
+	{ 3342 , 21  },
+	{ 3507 , 22  },
+	{ 3679 , 23  },
+	{ 3827 , 24  },
+	{ 3970 , 25  },
+	{ 4094 , 26  },
+	{ 4210 , 27  },
+	{ 4308 , 28  },
+	{ 4396 , 29  },
+	{ 4468 , 30  },
+	{ 4535 , 31  }
+};
+
+static struct SLookup Gain_RFAGC_LookUp[] = {                
+	/*Gain *100dB*/   /*reg*/
+	{  4870  , 0x3000 },
+	{  4850  , 0x3C00 },
+	{  4800  , 0x4500 },
+	{  4750  , 0x4800 },
+	{  4700  , 0x4B00 },
+	{  4650  , 0x4D00 },
+	{  4600  , 0x4F00 },
+	{  4550  , 0x5100 },
+	{  4500  , 0x5200 },
+	{  4420  , 0x5500 },
+	{  4316  , 0x5800 },
+	{  4200  , 0x5B00 },
+	{  4119  , 0x5D00 },
+	{  3999  , 0x6000 },
+	{  3950  , 0x6100 },
+	{  3876  , 0x6300 },
+	{  3755  , 0x6600 },
+	{  3641  , 0x6900 },
+	{  3567  , 0x6B00 },
+	{  3425  , 0x6F00 },
+	{  3350  , 0x7100 },
+	{  3236  , 0x7400 },
+	{  3118  , 0x7700 },
+	{  3004  , 0x7A00 },
+	{  2917  , 0x7C00 },
+	{  2776  , 0x7F00 },
+	{  2635  , 0x8200 },
+	{  2516  , 0x8500 },
+	{  2406  , 0x8800 },
+	{  2290  , 0x8B00 },
+	{  2170  , 0x8E00 },
+	{  2073  , 0x9100 },
+	{  1949  , 0x9400 },
+	{  1836  , 0x9700 },
+	{  1712  , 0x9A00 },
+	{  1631  , 0x9C00 },
+	{  1515  , 0x9F00 },
+	{  1400  , 0xA200 },
+	{  1323  , 0xA400 },
+	{  1203  , 0xA700 },
+	{  1091  , 0xAA00 },
+	{  1011  , 0xAC00 },
+	{  904   , 0xAF00 },
+	{  787   , 0xB200 },
+	{  685   , 0xB500 },
+	{  571   , 0xB800 },
+	{  464   , 0xBB00 },
+	{  374   , 0xBE00 },
+	{  275   , 0xC200 },
+	{  181   , 0xC600 },
+	{  102   , 0xCC00 },
+	{  49    , 0xD900 }
+};
+
+                                              
+// This table is 6 dB too low comapred to the others (probably created with a different BB_MAG setting)
+static struct SLookup Gain_Channel_AGC_NF_LookUp[] = {                
+	/*Gain *100dB*/   /*reg*/     
+	{  7082  ,  0x3000  },
+	{  7052  ,  0x4000  },
+	{  7007  ,  0x4600  },
+	{  6954  ,  0x4A00  },
+	{  6909  ,  0x4D00  },
+	{  6833  ,  0x5100  },
+	{  6753  ,  0x5400  },
+	{  6659  ,  0x5700  },
+	{  6561  ,  0x5A00  },
+	{  6472  ,  0x5C00  },
+	{  6366  ,  0x5F00  },
+	{  6259  ,  0x6100  },
+	{  6151  ,  0x6400  },
+	{  6026  ,  0x6700  },
+	{  5920  ,  0x6900  },
+	{  5835  ,  0x6B00  },
+	{  5770  ,  0x6C00  },
+	{  5681  ,  0x6E00  },
+	{  5596  ,  0x7000  },
+	{  5503  ,  0x7200  },
+	{  5429  ,  0x7300  },
+	{  5319  ,  0x7500  },
+	{  5220  ,  0x7700  },
+	{  5111  ,  0x7900  },
+	{  4983  ,  0x7B00  },
+	{  4876  ,  0x7D00  },
+	{  4755  ,  0x7F00  },
+	{  4635  ,  0x8100  },
+	{  4499  ,  0x8300  },
+	{  4405  ,  0x8500  },
+	{  4323  ,  0x8600  },
+	{  4233  ,  0x8800  },
+	{  4156  ,  0x8A00  },
+	{  4038  ,  0x8C00  },
+	{  3935  ,  0x8E00  },
+	{  3823  ,  0x9000  },
+	{  3712  ,  0x9200  },
+	{  3601  ,  0x9500  },
+	{  3511  ,  0x9700  },
+	{  3413  ,  0x9900  },
+	{  3309  ,  0x9B00  },
+	{  3213  ,  0x9D00  },
+	{  3088  ,  0x9F00  },
+	{  2992  ,  0xA100  },
+	{  2878  ,  0xA400  },
+	{  2769  ,  0xA700  },
+	{  2645  ,  0xAA00  },
+	{  2538  ,  0xAD00  },
+	{  2441  ,  0xB000  },
+	{  2350  ,  0xB600  },
+	{  2237  ,  0xBA00  },
+	{  2137  ,  0xBF00  },
+	{  2039  ,  0xC500  },
+	{  1938  ,  0xDF00  },
+	{  1927  ,  0xFF00  }
+};
+
+  
+static struct SLookup Gain_Channel_AGC_IIP3_LookUp[] = {                
+	/*Gain *100dB*/   /*reg*/     
+	{ 7070 , 0x3000 },
+	{ 7028 , 0x4000 },
+	{ 7019 , 0x4600 },
+	{ 6900 , 0x4A00 },
+	{ 6811 , 0x4D00 },
+	{ 6763 , 0x5100 },
+	{ 6690 , 0x5400 },
+	{ 6644 , 0x5700 },
+	{ 6617 , 0x5A00 },
+	{ 6598 , 0x5C00 },
+	{ 6462 , 0x5F00 },
+	{ 6348 , 0x6100 },
+	{ 6197 , 0x6400 },
+	{ 6154 , 0x6700 },
+	{ 6098 , 0x6900 },
+	{ 5893 , 0x6B00 },
+	{ 5812 , 0x6C00 },
+	{ 5773 , 0x6E00 },
+	{ 5723 , 0x7000 },
+	{ 5661 , 0x7200 },
+	{ 5579 , 0x7300 },
+	{ 5460 , 0x7500 },
+	{ 5308 , 0x7700 },
+	{ 5099 , 0x7900 },
+	{ 4910 , 0x7B00 }, 
+	{ 4800 , 0x7D00 }, 
+	{ 4785 , 0x7F00 },
+	{ 4635 , 0x8100 },
+	{ 4466 , 0x8300 },
+	{ 4314 , 0x8500 },
+	{ 4295 , 0x8600 },
+	{ 4144 , 0x8800 },
+	{ 3920 , 0x8A00 },
+	{ 3889 , 0x8C00 },
+	{ 3771 , 0x8E00 },
+	{ 3655 , 0x9000 },
+	{ 3446 , 0x9200 },
+	{ 3298 , 0x9500 },
+	{ 3083 , 0x9700 },
+	{ 3015 , 0x9900 },
+	{ 2833 , 0x9B00 },
+	{ 2746 , 0x9D00 },
+	{ 2632 , 0x9F00 },
+	{ 2598 , 0xA100 },
+	{ 2480 , 0xA400 },
+	{ 2236 , 0xA700 },
+	{ 2171 , 0xAA00 },
+	{ 2060 , 0xAD00 },
+	{ 1999 , 0xB000 },
+	{ 1974 , 0xB600 },
+	{ 1820 , 0xBA00 },
+	{ 1741 , 0xBF00 },
+	{ 1655 , 0xC500 },
+	{ 1444 , 0xDF00 },
+	{ 1325 , 0xFF00 },
+};
+
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
+{
+	s32 Gain;
+	s32 RegDiff;
+	int imin = 0;
+	int imax = TableSize - 1;
+	int i;
+	
+	// Assumes Table[0].RegValue < Table[imax].RegValue 
+	if( RegValue <= Table[0].RegValue )
+		Gain = Table[0].Value;
+	else if( RegValue >= Table[imax].RegValue )
+		Gain = Table[imax].Value;
+	else {
+		while(imax-imin > 1) {
+			i = (imax + imin) / 2;
+			if ((Table[imin].RegValue <= RegValue) &&
+			    (RegValue <= Table[i].RegValue) )
+				imax = i;
+			else
+				imin = i;
+		}
+		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
+		Gain = Table[imin].Value;
+		if (RegDiff != 0)
+			Gain += ((s32) (RegValue - Table[imin].RegValue) *
+			    (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+	}
+	return Gain;
+}
+
 static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 {
-	*st = 0;
-#if 0
 	struct stv *state = fe->tuner_priv;
+	u16 RFAgc = *st;
 	s32 Gain;
-	u32 Index = RFAgc / 100;
-	if (Index >= (sizeof(AGC_Gain) / sizeof(AGC_Gain[0]) - 1))
-		Gain = AGC_Gain[sizeof(AGC_Gain) / sizeof(AGC_Gain[0]) - 1];
-	else
-		Gain = AGC_Gain[Index] +
-			((AGC_Gain[Index+1] - AGC_Gain[Index]) *
-			 (RFAgc % 100)) / 100;
+
+	if ((state->reg[0x03] & 0x60) == 0 ) {
+		// RF Mode
+		// Read AGC ADC
+		u8 Reg = 0;
+		
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 1);
+		write_reg(state, 0x02, state->reg[0x02] | 0x20); 
+		read_reg(state, 2, &Reg);
+		if( Reg & 0x20 )
+			read_reg(state, 2, &Reg);
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+		
+		if((state->reg[0x02] & 0x80) == 0)
+			// NF
+			Gain = TableLookup(LNAGain_NF_LookUp,
+					   ARRAY_SIZE(LNAGain_NF_LookUp), Reg & 0x1F);
+		else
+			// IIP3
+			Gain = TableLookup(LNAGain_IIP3_LookUp,
+					   ARRAY_SIZE(LNAGain_IIP3_LookUp), Reg & 0x1F);
+		Gain += TableLookup(Gain_RFAGC_LookUp,
+				    ARRAY_SIZE(Gain_RFAGC_LookUp), RFAgc);
+		Gain -= 2400;
+	} else {
+		// Channel Mode
+		if( (state->reg[0x02] & 0x80) == 0 ) {
+			// NF
+			Gain = TableLookup(Gain_Channel_AGC_NF_LookUp,
+					   ARRAY_SIZE(Gain_Channel_AGC_NF_LookUp), RFAgc);
+			Gain += 600;
+		} else {
+			// IIP3
+			Gain = TableLookup(Gain_Channel_AGC_IIP3_LookUp,
+					   ARRAY_SIZE(Gain_Channel_AGC_IIP3_LookUp), RFAgc);
+		}
+	}
+	
+	if (state->Frequency > 0)
+		// Tilt correction ( 0.00016 dB/MHz )
+		Gain -= ((((s32)(state->Frequency / 1000) - 1550) * 2) / 12);
+	
+	Gain +=  (s32)( (state->reg[0x01] & 0xC0 ) >> 6 ) * 600 - 1300;// + (BBGain * 10);
+	
+	if( Gain < 0 )
+		Gain = 0;
+	else if (Gain > 10000)
+		Gain = 10000;
+	
 	*st = Gain;
-#endif
+
 	return 0;
 }
 

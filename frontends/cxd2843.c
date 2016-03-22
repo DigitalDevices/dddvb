@@ -1457,6 +1457,7 @@ static int get_ber_it(struct cxd_state *state, u32 *n, u32 *d)
 static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct cxd_state *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 n, d;
 	int s = 0;
 
@@ -1482,7 +1483,15 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	}
 	if (s)
 		return s;
-
+	
+	p->pre_bit_error.len = 1;
+	p->pre_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_error.stat[0].uvalue = n;
+	p->pre_bit_count.len = 1;
+	p->pre_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_count.stat[0].uvalue = d;
+	if (d)
+		*ber = (n * 1000) / d;
 	return 0;
 }
 
@@ -1585,7 +1594,7 @@ static void GetSignalToNoiseIT(struct cxd_state *state, u32 *SignalToNoise)
 	reg = (Data[0] << 8) | Data[1];
 	if (reg > 51441)
 		reg = 51441;
-
+	
 	if (state->bw == 8) {
 		if (reg > 1143)
 			reg = 1143;
@@ -1681,6 +1690,7 @@ static void GetSignalToNoiseC(struct cxd_state *state, u32 *SignalToNoise)
 static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct cxd_state *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 SNR = 0;
 
 	*snr = 0;
@@ -1707,6 +1717,9 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 		break;
 	}
 	*snr = SNR;
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = 10 * (s64) SNR; 
 	return 0;
 }
 
@@ -1878,7 +1891,7 @@ static int get_fe_c(struct cxd_state *state)
 	freeze_regst(state);
 	readregst_unlocked(state, 0x40, 0x19, &qam, 1);
 	unfreeze_regst(state);
-	p->modulation = qam & 0x07;
+	p->modulation = 1 + (qam & 0x07);
 	return 0;
 }
 
