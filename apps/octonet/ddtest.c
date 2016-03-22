@@ -192,17 +192,10 @@ int FlashDetect(int dev)
 		printf("Flash: SPANSION S25FL116K 16 MBit\n"); 
 		break;
         case SPANSION_S25FL132K : 
-<<<<<<< 472e247726096a6d88583bfaac91ce1f10f91c82
 		printf("Flash: SPANSION S25FL132K 32 MBit\n"); 
 		break;
         case SPANSION_S25FL164K : 
 		printf("Flash: SPANSION S25FL164K 64 MBit\n"); 
-=======
-		printf("Flash: SPANSION S25FL116K 32 MBit\n"); 
-		break;
-        case SPANSION_S25FL164K : 
-		printf("Flash: SPANSION S25FL116K 64 MBit\n"); 
->>>>>>> add license support
 		break;
 	}
 	return r;
