@@ -707,7 +707,7 @@ static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 	else if (Gain > 10000)
 		Gain = 10000;
 	
-	*st = Gain;
+	*st = 10000 - Gain;
 
 	return 0;
 }

@@ -1385,14 +1385,17 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	}
 	Power /= 5;
 	
-	pBBGain = (465 - Log10x100(Power));
+	pBBGain = (465 - Log10x100(Power)) * 10;
 	
 	if (fe->ops.tuner_ops.get_rf_strength)
 		fe->ops.tuner_ops.get_rf_strength(fe, strength);
 	else
 		*strength = 0;
-
-	*strength += pBBGain * 10;
+	
+	if (pBBGain < *strength)
+		*strength -= pBBGain;
+	else
+		*strength = 0;
 	
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
