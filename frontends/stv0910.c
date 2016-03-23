@@ -46,7 +46,6 @@ LIST_HEAD(stvlist);
 
 enum ReceiveMode { Mode_None, Mode_DVBS, Mode_DVBS2, Mode_Auto };
 
-
 enum DVBS2_FECType { DVBS2_64K, DVBS2_16K };
 
 enum DVBS2_ModCod {
@@ -134,9 +133,9 @@ struct SInitTable {
 	u8   Data;
 };
 
-struct SLookupSNTable {
-	s16  SignalToNoise;
-	u16  RefValue;
+struct SLookup {
+	s16  Value;
+	u16  RegValue;
 };
 
 static inline int i2c_write(struct i2c_adapter *adap, u8 adr,
@@ -194,7 +193,7 @@ static int read_regs(struct stv *state, u16 reg, u8 *val, int len)
 			       reg, val, len);
 }
 
-struct SLookupSNTable S1_SN_Lookup[] = {
+struct SLookup S1_SN_Lookup[] = {
 	{   0,    9242  },  /*C/N=  0dB*/
 	{  05,    9105  },  /*C/N=0.5dB*/
 	{  10,    8950  },  /*C/N=1.0dB*/
@@ -251,7 +250,7 @@ struct SLookupSNTable S1_SN_Lookup[] = {
 	{  510,    425  }   /*C/N=51.0dB*/
 };
 
-struct SLookupSNTable S2_SN_Lookup[] = {
+struct SLookup S2_SN_Lookup[] = {
 	{  -30,  13950  },  /*C/N=-2.5dB*/
 	{  -25,  13580  },  /*C/N=-2.5dB*/
 	{  -20,  13150  },  /*C/N=-2.0dB*/
@@ -550,14 +549,48 @@ static int TrackingOptimization(struct stv *state)
 	return 0;
 }
 
+static s32 TableLookup(struct SLookup *Table,
+		       int TableSize, u16 RegValue)
+{
+	s32 Value;
+	int imin = 0;
+	int imax = TableSize - 1;
+	int i;
+	s32 RegDiff;
+	
+	// Assumes Table[0].RegValue > Table[imax].RegValue 
+	if( RegValue >= Table[0].RegValue )
+		Value = Table[0].Value;
+	else if( RegValue <= Table[imax].RegValue )
+		Value = Table[imax].Value;
+	else
+	{
+		while(imax-imin > 1)
+		{
+			i = (imax + imin) / 2;
+			if( (Table[imin].RegValue >= RegValue) && (RegValue >= Table[i].RegValue) )
+				imax = i;
+			else
+				imin = i;
+		}
+		
+		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
+		Value = Table[imin].Value;
+		if( RegDiff != 0 )
+			Value += ((s32)(RegValue - Table[imin].RegValue) *
+				  (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+	}
+	
+	return Value;
+}
+
 static int GetSignalToNoise(struct stv *state, s32 *SignalToNoise)
 {
-	int i;
 	u8 Data0;
 	u8 Data1;
 	u16 Data;
 	int nLookup;
-	struct SLookupSNTable *Lookup;
+	struct SLookup *Lookup;
 
 	*SignalToNoise = 0;
 
@@ -576,25 +609,7 @@ static int GetSignalToNoise(struct stv *state, s32 *SignalToNoise)
 		Lookup = S1_SN_Lookup;
 	}
 	Data = (((u16)Data1) << 8) | (u16) Data0;
-	if (Data > Lookup[0].RefValue) {
-		*SignalToNoise = Lookup[0].SignalToNoise;
-	} else if (Data <= Lookup[nLookup-1].RefValue) {
-		*SignalToNoise = Lookup[nLookup-1].SignalToNoise;
-	} else {
-		for (i = 0; i < nLookup - 1; i += 1) {
-			if (Data <= Lookup[i].RefValue &&
-			    Data > Lookup[i+1].RefValue) {
-				*SignalToNoise =
-					(s32)(Lookup[i].SignalToNoise) +
-					((s32)(Data - Lookup[i].RefValue) *
-					 (s32)(Lookup[i+1].SignalToNoise -
-					       Lookup[i].SignalToNoise)) /
-					((s32)(Lookup[i+1].RefValue) -
-					  (s32)(Lookup[i].RefValue));
-				break;
-			}
-		}
-	}
+        *SignalToNoise = TableLookup(Lookup, nLookup, Data);
 	return 0;
 }
 
@@ -1043,8 +1058,62 @@ static int get_frontend(struct dvb_frontend *fe)
 {
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	
+	u8 tmp;
 
+	if (state->ReceiveMode == Mode_DVBS2) {
+		u32 mc;
+		enum fe_modulation modcod2mod[0x20] = {
+			QPSK, QPSK, QPSK, QPSK,
+			QPSK, QPSK, QPSK, QPSK,
+			QPSK, QPSK, QPSK, QPSK,
+			PSK_8, PSK_8, PSK_8, PSK_8,
+			PSK_8, PSK_8, APSK_16, APSK_16,
+			APSK_16, APSK_16, APSK_16, APSK_16,
+			APSK_32, APSK_32, APSK_32, APSK_32,
+			APSK_32, 
+		};
+		enum fe_code_rate modcod2fec[0x20] = {
+			FEC_NONE, FEC_1_4, FEC_1_3, FEC_2_5,
+			FEC_1_2, FEC_3_5, FEC_2_3, FEC_3_4,
+			FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
+			FEC_3_5, FEC_2_3, FEC_3_4, FEC_5_6,
+			FEC_8_9, FEC_9_10, FEC_2_3, FEC_3_4,
+			FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
+			FEC_3_4, FEC_4_5, FEC_5_6, FEC_8_9,
+			FEC_9_10
+		};		
+		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
+		mc = ((tmp & 0x7c) >> 2);
+		p->pilot = (tmp & 0x01) ? PILOT_ON : PILOT_OFF;
+		p->modulation = modcod2mod[mc];
+		p->fec_inner = modcod2fec[mc];	
+        } else if (state->ReceiveMode == Mode_DVBS) {
+		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
+		switch( tmp & 0x1F ) {
+                case 0x0d:
+			p->fec_inner = FEC_1_2;
+			break;
+                case 0x12:
+			p->fec_inner = FEC_2_3;
+			break;
+                case 0x15:
+			p->fec_inner = FEC_3_4;
+			break;
+                case 0x18:
+			p->fec_inner = FEC_5_6;
+			break;
+                case 0x1a:
+			p->fec_inner = FEC_7_8;
+			break;
+		default:
+			p->fec_inner = FEC_NONE;
+			break;
+		}
+		p->rolloff = ROLLOFF_35;
+	} else {
+		
+	}
+	
 	return 0;
 }
 
@@ -1067,9 +1136,6 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	read_signal_strength(fe, &val);
 
 	read_snr(fe, &val);
-	p->cnr.len = 1;
-	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].uvalue = (s64) (s16) val;
 	
 	read_ber(fe, &ber);
 	
@@ -1090,7 +1156,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	if (state->ReceiveMode == Mode_None) {
 		state->ReceiveMode = CurReceiveMode;
 		state->DemodLockTime = jiffies;
-		state->FirstTimeLock = 0;
+		state->FirstTimeLock = 1;
 
 		write_reg(state, RSTV0910_P2_TSCFGH + state->regoff,
 			  state->tscfgh);
@@ -1284,15 +1350,21 @@ static int sleep(struct dvb_frontend *fe)
 	return 0;
 }
 
+
 static int read_snr(struct dvb_frontend *fe, u16 *snr)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	s32 SNR;
 
 	*snr = 0;
 	if (GetSignalToNoise(state, &SNR))
 		return -EIO;
 	*snr = SNR;
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].uvalue = 100 * (s64) SNR;
+	
 	return 0;
 }
 
@@ -1369,7 +1441,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 Agc1, Agc0;
 	u8 Reg[2];
-	u32 pBBGain;
+	s32 bbgain;
 	s32 Power = 0;
 	int i;
 
@@ -1385,15 +1457,16 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	}
 	Power /= 5;
 	
-	pBBGain = (465 - Log10x100(Power)) * 10;
+	bbgain = (465 - Log10x100(Power)) * 10;
 	
 	if (fe->ops.tuner_ops.get_rf_strength)
 		fe->ops.tuner_ops.get_rf_strength(fe, strength);
 	else
 		*strength = 0;
-	
-	if (pBBGain < *strength)
-		*strength -= pBBGain;
+
+	printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
+	if (bbgain < (s32) *strength)
+		*strength -= bbgain;
 	else
 		*strength = 0;
 	
