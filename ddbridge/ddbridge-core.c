@@ -4,7 +4,7 @@
  * Copyright (C) 2010-2015 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
- *                         
+ *
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -255,7 +255,7 @@ static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 #else
 			dma_free_coherent(&pdev->dev, dma->size,
 					    dma->vbuf[i], dma->pbuf[i]);
-#endif			
+#endif
 			dma->vbuf[i] = 0;
 		}
 	}
@@ -292,20 +292,24 @@ static int ddb_buffers_alloc(struct ddb *dev)
 		switch (port->class) {
 		case DDB_PORT_TUNER:
 			if (port->input[0]->dma)
-				if (dma_alloc(dev->pdev, port->input[0]->dma, 0) < 0)
+				if (dma_alloc(dev->pdev,
+					      port->input[0]->dma, 0) < 0)
 					return -1;
 			if (port->input[1]->dma)
-				if (dma_alloc(dev->pdev, port->input[1]->dma, 0) < 0)
+				if (dma_alloc(dev->pdev,
+					      port->input[1]->dma, 0) < 0)
 					return -1;
 			break;
 		case DDB_PORT_CI:
 		case DDB_PORT_LOOP:
 			if (port->input[0]->dma)
-				if (dma_alloc(dev->pdev, port->input[0]->dma, 0) < 0)
+				if (dma_alloc(dev->pdev,
+					      port->input[0]->dma, 0) < 0)
 					return -1;
 		case DDB_PORT_MOD:
 			if (port->output->dma)
-				if (dma_alloc(dev->pdev, port->output->dma, 1) < 0)
+				if (dma_alloc(dev->pdev,
+					      port->output->dma, 1) < 0)
 					return -1;
 			break;
 		default:
@@ -410,7 +414,8 @@ static void ddb_input_stop(struct ddb_input *input)
 		input->dma->running = 0;
 		spin_unlock_irq(&input->dma->lock);
 	}
-	//printk("input_stop %u.%u.%u\n", dev->nr, input->port->lnr, input->nr);
+	/*printk("input_stop %u.%u.%u\n",
+	  dev->nr, input->port->lnr, input->nr);*/
 }
 
 static void ddb_input_start(struct ddb_input *input)
@@ -446,7 +451,8 @@ static void ddb_input_start(struct ddb_input *input)
 		input->dma->running = 1;
 		spin_unlock_irq(&input->dma->lock);
 	}
-	//printk("input_start %u.%u.%u\n", dev->nr, input->port->lnr, input->nr); 
+	/*printk("input_start %u.%u.%u\n",
+	  dev->nr, input->port->lnr, input->nr); */
 }
 
 
@@ -691,7 +697,8 @@ static u32 ddb_input_avail(struct ddb_input *input)
 	return 0;
 }
 
-static size_t ddb_input_read(struct ddb_input *input, __user u8 *buf, size_t count)
+static size_t ddb_input_read(struct ddb_input *input,
+			     __user u8 *buf, size_t count)
 {
 	struct ddb *dev = input->port->dev;
 	u32 left = count;
@@ -1033,7 +1040,7 @@ static int demod_attach_stv0367dd(struct ddb_input *input)
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_frontend *fe;
 	struct stv0367_cfg cfg = { .cont_clock = 0 };
-	
+
 	cfg.adr = 0x1f - (input->nr & 1);
 	if (input->port->dev->link[input->port->lnr].info->con_clock)
 		cfg.cont_clock = 1;
@@ -1282,11 +1289,11 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	u32 c, v = 0, tag = DDB_LINK_TAG(link);
 
 	v = LNB_TONE & (dev->link[link].lnb.tone << (15 - lnb));
-	//pr_info("lnb_control[%u] = %08x\n", lnb, cmd | v);
+	/*pr_info("lnb_control[%u] = %08x\n", lnb, cmd | v);*/
 	ddbwritel(dev, cmd | v, tag | LNB_CONTROL(lnb));
 	for (c = 0; c < 10; c++) {
 		v = ddbreadl(dev, tag | LNB_CONTROL(lnb));
-		//pr_info("ctrl = %08x\n", v);
+		/*pr_info("ctrl = %08x\n", v);*/
 		if ((v & LNB_BUSY) == 0)
 			break;
 		msleep(20);
@@ -1306,7 +1313,7 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	u32 tag = DDB_LINK_TAG(port->lnr);
 	int i;
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
-		
+
 	if (fmode == 2 || fmode == 1)
 		return 0;
 	if (dvb->diseqc_send_master_cmd)
@@ -1321,11 +1328,12 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	return 0;
 }
 
-static int lnb_set_tone(struct ddb *dev, u32 link, u32 input, fe_sec_tone_mode_t tone)
+static int lnb_set_tone(struct ddb *dev, u32 link, u32 input,
+			fe_sec_tone_mode_t tone)
 {
 	int s = 0;
-        u32 mask = (1ULL << input);
-	
+	u32 mask = (1ULL << input);
+
 	switch (tone) {
 	case SEC_TONE_OFF:
 		if (!(dev->link[link].lnb.tone & mask))
@@ -1346,7 +1354,8 @@ static int lnb_set_tone(struct ddb *dev, u32 link, u32 input, fe_sec_tone_mode_t
 	return s;
 }
 
-static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input, fe_sec_voltage_t voltage)
+static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input,
+			   fe_sec_voltage_t voltage)
 {
 	int s = 0;
 
@@ -1379,13 +1388,13 @@ static int max_set_input_unlocked(struct dvb_frontend *fe, int in)
 	struct ddb *dev = port->dev;
 	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
 	int res = 0;
-	
+
 	if (in > 3)
 		return -EINVAL;
 	if (dvb->input != in) {
 		u32 bit = (1ULL << input->nr);
 		u32 obit = dev->link[port->lnr].lnb.voltage[dvb->input] & bit;
-		
+
 		dev->link[port->lnr].lnb.voltage[dvb->input] &= ~bit;
 		dvb->input = in;
 		dev->link[port->lnr].lnb.voltage[dvb->input] |= obit;
@@ -1401,7 +1410,7 @@ static int max_set_input(struct dvb_frontend *fe, int in)
 	struct ddb *dev = input->port->dev;
 	int res;
 
-	mutex_lock(&dev->link[port->lnr].lnb.lock);	
+	mutex_lock(&dev->link[port->lnr].lnb.lock);
 	res = max_set_input_unlocked(fe, in);
 	mutex_unlock(&dev->link[port->lnr].lnb.lock);
 	return res;
@@ -1416,8 +1425,8 @@ static int max_set_tone(struct dvb_frontend *fe, fe_sec_tone_mode_t tone)
 	int tuner = 0;
 	int res = 0;
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
-			
-	mutex_lock(&dev->link[port->lnr].lnb.lock);	
+
+	mutex_lock(&dev->link[port->lnr].lnb.lock);
 	dvb->tone = tone;
 	switch (fmode) {
 	default:
@@ -1455,31 +1464,35 @@ static int max_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
 	u32 nv, ov = dev->link[port->lnr].lnb.voltages;
 	int res = 0;
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
-	
+
 	mutex_lock(&dev->link[port->lnr].lnb.lock);
 	dvb->voltage = voltage;
-	
+
 	switch (fmode) {
 	case 3:
 	default:
 	case 0:
 		if (fmode == 3)
 			max_set_input_unlocked(fe, 0);
-		if (voltage == SEC_VOLTAGE_OFF) 
-			dev->link[port->lnr].lnb.voltage[dvb->input] &= ~(1ULL << input->nr);
-		else 
-			dev->link[port->lnr].lnb.voltage[dvb->input] |= (1ULL << input->nr);
-		
+		if (voltage == SEC_VOLTAGE_OFF)
+			dev->link[port->lnr].lnb.voltage[dvb->input] &=
+				~(1ULL << input->nr);
+		else
+			dev->link[port->lnr].lnb.voltage[dvb->input] |=
+				(1ULL << input->nr);
+
 		res = lnb_set_voltage(dev, port->lnr, dvb->input, voltage);
 		break;
 	case 1:
 	case 2:
-		if (voltage == SEC_VOLTAGE_OFF) 
-			dev->link[port->lnr].lnb.voltages &= ~(1ULL << input->nr);
+		if (voltage == SEC_VOLTAGE_OFF)
+			dev->link[port->lnr].lnb.voltages &=
+				~(1ULL << input->nr);
 		else
-			dev->link[port->lnr].lnb.voltages |= (1ULL << input->nr);
+			dev->link[port->lnr].lnb.voltages |=
+				(1ULL << input->nr);
 		nv = dev->link[port->lnr].lnb.voltages;
-		
+
 		if (old_quattro) {
 			if (dvb->tone == SEC_TONE_ON)
 				tuner |= 2;
@@ -1492,27 +1505,42 @@ static int max_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
 				tuner |= 2;
 		}
 		res = max_set_input_unlocked(fe, tuner);
-		
+
 		if (nv != ov) {
 			if (nv) {
-				lnb_set_voltage(dev, port->lnr, 0, SEC_VOLTAGE_13);
+				lnb_set_voltage(dev, port->lnr, 0,
+						SEC_VOLTAGE_13);
 				if (fmode == 1) {
-					lnb_set_voltage(dev, port->lnr, 0, SEC_VOLTAGE_13);
+					lnb_set_voltage(dev, port->lnr, 0,
+							SEC_VOLTAGE_13);
 					if (old_quattro) {
-						lnb_set_voltage(dev, port->lnr, 1, SEC_VOLTAGE_18);
-						lnb_set_voltage(dev, port->lnr, 2, SEC_VOLTAGE_13);
+						lnb_set_voltage(dev,
+								port->lnr, 1,
+								SEC_VOLTAGE_18);
+						lnb_set_voltage(dev, port->lnr,
+								2,
+								SEC_VOLTAGE_13);
 					} else {
-						lnb_set_voltage(dev, port->lnr, 1, SEC_VOLTAGE_13);
-						lnb_set_voltage(dev, port->lnr, 2, SEC_VOLTAGE_18);
+						lnb_set_voltage(dev, port->lnr,
+								1,
+								SEC_VOLTAGE_13);
+						lnb_set_voltage(dev, port->lnr,
+								2,
+								SEC_VOLTAGE_18);
 					}
-					lnb_set_voltage(dev, port->lnr, 3, SEC_VOLTAGE_18);
+					lnb_set_voltage(dev, port->lnr, 3,
+							SEC_VOLTAGE_18);
 				}
 			} else {
-				lnb_set_voltage(dev, port->lnr, 0, SEC_VOLTAGE_OFF);
+				lnb_set_voltage(dev, port->lnr,
+						0, SEC_VOLTAGE_OFF);
 				if (fmode == 1) {
-					lnb_set_voltage(dev, port->lnr, 1, SEC_VOLTAGE_OFF);
-					lnb_set_voltage(dev, port->lnr, 2, SEC_VOLTAGE_OFF);
-					lnb_set_voltage(dev, port->lnr, 3, SEC_VOLTAGE_OFF);
+					lnb_set_voltage(dev, port->lnr, 1,
+							SEC_VOLTAGE_OFF);
+					lnb_set_voltage(dev, port->lnr, 2,
+							SEC_VOLTAGE_OFF);
+					lnb_set_voltage(dev, port->lnr, 3,
+							SEC_VOLTAGE_OFF);
 				}
 			}
 		}
@@ -1539,7 +1567,7 @@ static int mxl_fw_read(void *priv, u8 *buf, u32 len)
 	struct ddb *dev = link->dev;
 
 	pr_info("Read mxl_fw from link %u\n", link->nr);
-	
+
 	return ddbridge_flashread(dev, link->nr, buf, 0xc0000, len);
 }
 
@@ -1589,7 +1617,7 @@ static int fe_attach_mxl5xx(struct ddb_input *input)
 	cfg = mxl5xx;
 	cfg.fw_priv = link;
 	if (dev->link[0].info->type == DDB_OCTONET)
-		;//cfg.ts_clk = 69;
+		;/*cfg.ts_clk = 69;*/
 
 	demod = input->nr;
 	tuner = demod & 3;
@@ -1855,7 +1883,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	struct dvb_adapter *adap = dvb->adap;
 	struct dvb_demux *dvbdemux = &dvb->demux;
 	int par = 0;
-	
+
 	dvb->attached = 0x01;
 
 	ret = my_dvb_dmx_ts_card_init(dvbdemux, "SW demux",
@@ -1937,7 +1965,8 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
-		if (input->port->dev->link[input->port->lnr].info->ts_quirks & TS_QUIRK_SERIAL) 
+		if (input->port->dev->link[input->port->lnr].info->ts_quirks &
+		    TS_QUIRK_SERIAL)
 			par = 0;
 		else
 			par = 1;
@@ -2100,7 +2129,7 @@ static int init_xo2(struct ddb_port *port)
 	}
 
 	usleep_range(2000, 3000);
-        /* Start XO2 PLL */
+	/* Start XO2 PLL */
 	i2c_write_reg(i2c, 0x10, 0x08, 0x87);
 
 	return 0;
@@ -2189,13 +2218,13 @@ static void ddb_port_probe(struct ddb_port *port)
 	port->class = DDB_PORT_NONE;
 
 	/* Handle missing ports and ports without I2C */
-	
+
 	if (port->nr == ts_loop) {
 		port->name = "TS LOOP";
 		port->class = DDB_PORT_LOOP;
 		return;
 	}
-	
+
 	if (port->nr == 1 && dev->link[l].info->type == DDB_OCTOPUS_CI &&
 	    dev->link[l].info->i2c_mask == 1) {
 		port->name = "NO TAB";
@@ -2231,7 +2260,7 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 
 	/* Probe ports with I2C */
-		
+
 	if (port_has_cxd(port, &id)) {
 		if (id == 1) {
 			port->name = "CI";
@@ -2325,7 +2354,7 @@ static void ddb_port_probe(struct ddb_port *port)
 	} else if (port_has_encti(port)) {
 		port->name = "ENCTI";
 		port->class = DDB_PORT_LOOP;
-	} 
+	}
 }
 
 
@@ -2489,7 +2518,7 @@ static int write_creg(struct ddb_ci *ci, u8 data, u8 mask)
 {
 	struct i2c_adapter *i2c = &ci->port->i2c->adap;
 	u8 adr = (ci->port->type == DDB_CI_EXTERNAL_XO2) ? 0x12 : 0x13;
-	
+
 	ci->port->creg = (ci->port->creg & ~mask) | data;
 	return i2c_write_reg(i2c, adr, 0x02, ci->port->creg);
 }
@@ -2502,7 +2531,7 @@ static int read_attribute_mem_xo2(struct dvb_ca_en50221 *ca,
 	u8 adr = (ci->port->type == DDB_CI_EXTERNAL_XO2) ? 0x12 : 0x13;
 	int res;
 	u8 val;
-	
+
 	res = i2c_read_reg16(i2c, adr, 0x8000 | address, &val);
 	return res ? res : val;
 }
@@ -2525,7 +2554,7 @@ static int read_cam_control_xo2(struct dvb_ca_en50221 *ca,
 	u8 adr = (ci->port->type == DDB_CI_EXTERNAL_XO2) ? 0x12 : 0x13;
 	u8 val;
 	int res;
-	
+
 	res = i2c_read_reg(i2c, adr, 0x20 | (address & 3), &val);
 	return res ? res : val;
 }
@@ -2536,7 +2565,7 @@ static int write_cam_control_xo2(struct dvb_ca_en50221 *ca, int slot,
 	struct ddb_ci *ci = ca->data;
 	struct i2c_adapter *i2c = &ci->port->i2c->adap;
 	u8 adr = (ci->port->type == DDB_CI_EXTERNAL_XO2) ? 0x12 : 0x13;
-	
+
 	return i2c_write_reg(i2c, adr, 0x20 | (address & 3), value);
 }
 
@@ -2557,10 +2586,10 @@ static int slot_reset_xo2(struct dvb_ca_en50221 *ca, int slot)
 static int slot_shutdown_xo2(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
-	
+
 	pr_info("%s\n", __func__);
-	//i2c_write_reg(i2c, adr, 0x03, 0x60);
-	//i2c_write_reg(i2c, adr, 0x00, 0xc0);
+	/*i2c_write_reg(i2c, adr, 0x03, 0x60);*/
+	/*i2c_write_reg(i2c, adr, 0x00, 0xc0);*/
 	write_creg(ci, 0x10, 0xff);
 	write_creg(ci, 0x08, 0x08);
 	return 0;
@@ -2584,8 +2613,7 @@ static int poll_slot_status_xo2(struct dvb_ca_en50221 *ca, int slot, int open)
 	int stat = 0;
 
 	i2c_read_reg(i2c, adr, 0x01, &val);
-	//pr_info("%s %02x\n", __func__, val);
-	
+
 	if (val & 2)
 		stat |= DVB_CA_EN50221_POLL_CAM_PRESENT;
 	if (val & 1)
@@ -2834,7 +2862,7 @@ static void input_tasklet(unsigned long data)
 #endif
 	struct ddb *dev = input->port->dev;
 	unsigned long flags;
-	
+
 	spin_lock_irqsave(&dma->lock, flags);
 	if (!dma->running) {
 		spin_unlock_irqrestore(&dma->lock, flags);
@@ -2927,7 +2955,8 @@ static void ddb_dma_init(struct ddb_dma *dma, int nr, void *io, int out)
 	}
 }
 
-static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int dma_nr, int anr)
+static void ddb_input_init(struct ddb_port *port, int nr, int pnr,
+			   int dma_nr, int anr)
 {
 	struct ddb *dev = port->dev;
 	struct ddb_input *input = &dev->input[anr];
@@ -2981,7 +3010,7 @@ static int ddb_port_match_i2c(struct ddb_port *port)
 {
 	struct ddb *dev = port->dev;
 	u32 i;
-	
+
 	for (i = 0; i < dev->i2c_num; i++) {
 		if (dev->i2c[i].link == port->lnr &&
 		    dev->i2c[i].nr == port->nr) {
@@ -3007,7 +3036,7 @@ static void ddb_ports_init(struct ddb *dev)
 		if (!rm)
 			continue;
 		for (li2c = 0; li2c < dev->i2c_num; li2c++)
-			if (dev->i2c[li2c].link == l) 
+			if (dev->i2c[li2c].link == l)
 				break;
 		for (i = 0; i < info->port_num; i++, p++) {
 			port = &dev->port[p];
@@ -3021,14 +3050,14 @@ static void ddb_ports_init(struct ddb *dev)
 
 			if (!ddb_port_match_i2c(port)) {
 				if (info->type == DDB_OCTOPUS_MAX)
-					port->i2c = &dev->i2c[li2c];		
+					port->i2c = &dev->i2c[li2c];
 			}
 
 			ddb_port_probe(port);
-	
+
 			port->dvb[0].adap = &dev->adap[2 * p];
 			port->dvb[1].adap = &dev->adap[2 * p + 1];
-			
+
 			if ((port->class == DDB_PORT_NONE) && i &&
 			    dev->port[p - 1].type == DDB_CI_EXTERNAL_XO2) {
 				port->class = DDB_PORT_CI;
@@ -3036,46 +3065,53 @@ static void ddb_ports_init(struct ddb *dev)
 				port->name = "DuoFlex CI_B";
 				port->i2c = dev->port[p - 1].i2c;
 			}
-			
+
 			pr_info("Port %u: Link %u, Link Port %u (TAB %u): %s\n",
-				port->pnr, port->lnr, port->nr, port->nr + 1, port->name);
-			
+				port->pnr, port->lnr, port->nr,
+				port->nr + 1, port->name);
+
 			if (port->class == DDB_PORT_CI &&
 			    port->type == DDB_CI_EXTERNAL_XO2) {
 				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * i);
 				ddb_output_init(port, i, i + 8);
 				continue;
 			}
-			
+
 			if (port->class == DDB_PORT_CI &&
 			    port->type == DDB_CI_EXTERNAL_XO2_B) {
-				ddb_input_init(port, 2 * i - 1, 0, 2 * i - 1, 2 * i - 1);
+				ddb_input_init(port, 2 * i - 1, 0,
+					       2 * i - 1, 2 * i - 1);
 				ddb_output_init(port, i, i + 8);
 				continue;
 			}
-			
+
 			switch (dev->link[l].info->type) {
 			case DDB_OCTOPUS_CI:
 				if (i >= 2) {
-					ddb_input_init(port, 2 + i, 0, 2 + i, 2 + i);
-					ddb_input_init(port, 4 + i, 1, 4 + i, 4 + i);
+					ddb_input_init(port, 2 + i, 0,
+						       2 + i, 2 + i);
+					ddb_input_init(port, 4 + i, 1,
+						       4 + i, 4 + i);
 					ddb_output_init(port, i, i + 8);
 					break;
 				} /* fallthrough */
 			case DDB_OCTONET:
 			case DDB_OCTOPUS:
 				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * i);
-				ddb_input_init(port, 2 * i + 1, 1, 2 * i + 1, 2 * i + 1);
+				ddb_input_init(port, 2 * i + 1, 1,
+					       2 * i + 1, 2 * i + 1);
 				ddb_output_init(port, i, i + 8);
 				break;
 			case DDB_OCTOPUS_MAX:
 			case DDB_OCTOPUS_MAX_CT:
 				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * p);
-				ddb_input_init(port, 2 * i + 1, 1, 2 * i + 1, 2 * p + 1);
+				ddb_input_init(port, 2 * i + 1,
+					       1, 2 * i + 1, 2 * p + 1);
 				break;
 			case DDB_MOD:
 				ddb_output_init(port, i, i);
-				dev->handler[i + 18] = ddbridge_mod_rate_handler;
+				dev->handler[i + 18] =
+					ddbridge_mod_rate_handler;
 				dev->handler_data[i + 18] =
 					(unsigned long) &dev->output[i];
 				break;
@@ -3091,7 +3127,7 @@ static void ddb_ports_release(struct ddb *dev)
 {
 	int i;
 	struct ddb_port *port;
-	
+
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
 #ifdef DDB_USE_WORK
@@ -3303,7 +3339,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 			return -EINVAL;
 		ctrl = (input->port->lnr << 16) | ((input->nr & 7) << 8) |
 			((ts->filter_mask & 3) << 2);
-		//pr_info("GET_TS %u.%u\n", input->port->lnr, input->nr);
+		/*pr_info("GET_TS %u.%u\n", input->port->lnr, input->nr);*/
 		if (ddbreadl(dev, TS_CAPTURE_CONTROL) & 1) {
 			pr_info("ts capture busy\n");
 			return -EBUSY;
@@ -3352,7 +3388,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	case NSD_CANCEL_GET_TS:
 	{
 		u32 ctrl = 0;
-		
+
 		/*pr_info("cancel ts capture: 0x%x\n", ctrl);*/
 		ddbwritel(dev, ctrl, TS_CAPTURE_CONTROL);
 		ctrl = ddbreadl(dev, TS_CAPTURE_CONTROL);
@@ -3368,7 +3404,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		if (!input)
 			return -EINVAL;
 		if (ctrl & 1) {
-			pr_info("cannot stop ts capture, while it was neither finished not canceled\n");
+			pr_info("cannot stop ts capture, while it was neither finished nor canceled\n");
 			return -EBUSY;
 		}
 		/*pr_info("ts capture stopped\n");*/
@@ -3438,7 +3474,7 @@ static void ddb_nsd_detach(struct ddb *dev)
 static int reg_wait(struct ddb *dev, u32 reg, u32 bit)
 {
 	u32 count = 0;
-	
+
 	while (ddbreadl(dev, reg) & bit) {
 		ndelay(10);
 		if (++count == 100)
@@ -3447,7 +3483,8 @@ static int reg_wait(struct ddb *dev, u32 reg, u32 bit)
 	return 0;
 }
 
-static int flashio(struct ddb *dev, u32 lnr, u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen)
+static int flashio(struct ddb *dev, u32 lnr,
+		   u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen)
 {
 	u32 data, shift;
 	u32 tag = DDB_LINK_TAG(lnr);
@@ -3485,7 +3522,7 @@ static int flashio(struct ddb *dev, u32 lnr, u8 *wbuf, u32 wlen, u8 *rbuf, u32 r
 	ddbwritel(dev, data, tag | SPI_DATA);
 	if (reg_wait(dev, tag | SPI_CONTROL, 4))
 		goto fail;
-	
+
 	if (!rlen) {
 		ddbwritel(dev, 0, tag | SPI_CONTROL);
 		goto exit;
@@ -3502,7 +3539,8 @@ static int flashio(struct ddb *dev, u32 lnr, u8 *wbuf, u32 wlen, u8 *rbuf, u32 r
 		rbuf += 4;
 		rlen -= 4;
 	}
-	ddbwritel(dev, 0x0003 | ((rlen << (8 + 3)) & 0x1F00), tag | SPI_CONTROL);
+	ddbwritel(dev, 0x0003 | ((rlen << (8 + 3)) & 0x1F00),
+		  tag | SPI_CONTROL);
 	ddbwritel(dev, 0xffffffff, tag | SPI_DATA);
 	if (reg_wait(dev, tag | SPI_CONTROL, 4))
 		goto fail;
@@ -3670,7 +3708,8 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (copy_from_user(wbuf, fio.write_buf, fio.write_len))
 			return -EFAULT;
-		res = flashio(dev, fio.link, wbuf, fio.write_len, rbuf, fio.read_len);
+		res = flashio(dev, fio.link, wbuf,
+			      fio.write_len, rbuf, fio.read_len);
 		if (res)
 			return res;
 		if (copy_to_user(fio.read_buf, rbuf, fio.read_len))
@@ -4121,13 +4160,13 @@ static ssize_t bpsnr_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 	char snr[32];
-	
+
 	if (!dev->i2c_num)
 		return 0;
-	
+
 	if (i2c_read_regs16(&dev->i2c[0].adap,
 			    0x50, 0x0000, snr, 32) < 0 ||
-	    snr[0] == 0xff) 
+	    snr[0] == 0xff)
 		return sprintf(buf, "NO SNR\n");
 	snr[31] = 0; /* in case it is not terminated on EEPROM */
 	return sprintf(buf, "%s\n", snr);
@@ -4209,7 +4248,7 @@ static ssize_t vlan_show(struct device *device,
 			 struct device_attribute *attr, char *buf)
 {
 	struct ddb *dev = dev_get_drvdata(device);
-	
+
 	return sprintf(buf, "%u\n", dev->vlan);
 }
 
@@ -4235,7 +4274,7 @@ static ssize_t fmode_show(struct device *device,
 {
 	int num = attr->attr.name[5] - 0x30;
 	struct ddb *dev = dev_get_drvdata(device);
-	
+
 	return sprintf(buf, "%u\n", dev->link[num].lnb.fmode);
 }
 
@@ -4244,7 +4283,7 @@ static ssize_t devid_show(struct device *device,
 {
 	int num = attr->attr.name[5] - 0x30;
 	struct ddb *dev = dev_get_drvdata(device);
-	
+
 	return sprintf(buf, "%08x\n", dev->link[num].ids.devid);
 }
 
@@ -4457,9 +4496,9 @@ static void gtl_link_handler(unsigned long priv)
 {
 	struct ddb *dev = (struct ddb *) priv;
 	u32 regs = dev->link[0].info->regmap->gtl->base;
-	
-	printk("GT link change: %u\n",
-	       (1 & ddbreadl(dev, regs)));
+
+	pr_info("GT link change: %u\n",
+		(1 & ddbreadl(dev, regs)));
 }
 
 static void link_tasklet(unsigned long data)
@@ -4467,10 +4506,10 @@ static void link_tasklet(unsigned long data)
 	struct ddb_link *link = (struct ddb_link *) data;
 	struct ddb *dev = link->dev;
 	u32 s, off = 32 * link->nr, tag = DDB_LINK_TAG(link->nr);
-	
+
 	s = ddbreadl(dev, tag | INTERRUPT_STATUS);
-	printk("gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
-	
+	pr_info("gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
+
 	if (!s)
 		return;
 	ddbwritel(dev, s, tag | INTERRUPT_ACK);
@@ -4486,7 +4525,7 @@ static void gtl_irq_handler(unsigned long priv)
 #if 1
 	struct ddb *dev = link->dev;
 	u32 s, off = 32 * link->nr, tag = DDB_LINK_TAG(link->nr);
-	
+
 	while ((s = ddbreadl(dev, tag | INTERRUPT_STATUS)))  {
 		ddbwritel(dev, s, tag | INTERRUPT_ACK);
 		LINK_IRQ_HANDLE(0);
@@ -4495,7 +4534,6 @@ static void gtl_irq_handler(unsigned long priv)
 		LINK_IRQ_HANDLE(3);
 	}
 #else
-	printk("gtlirq\n");
 	tasklet_schedule(&link->tasklet);
 #endif
 }
@@ -4562,9 +4600,9 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	u32 regs = dev->link[0].info->regmap->gtl->base +
 		(l - 1) * dev->link[0].info->regmap->gtl->size;
 	u32 id;
-	
-	printk("Checking GT link %u: regs = %08x\n", l, regs);
-	
+
+	pr_info("Checking GT link %u: regs = %08x\n", l, regs);
+
 	spin_lock_init(&link->lock);
 	mutex_init(&link->lnb.lock);
 	link->lnb.fmode = 0xffffffff;
@@ -4572,7 +4610,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 
 	if (!(1 & ddbreadl(dev, regs))) {
 		u32 c;
-		
+
 		for (c = 0; c < 5; c++) {
 			ddbwritel(dev, 2, regs);
 			msleep(20);
@@ -4587,7 +4625,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	link->nr = l;
 	link->dev = dev;
 	link->regs = regs;
-	
+
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
 	switch (id) {
 	case 0x0007dd01:
@@ -4597,25 +4635,24 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 		link->info = &octopus_ct_gtl;
 		break;
 	default:
-		pr_info("DDBridge: Detected GT link but found invalid ID %08x. "
-			"You might have to update (flash) the add-on card first.",
+		pr_info("DDBridge: Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
 			id);
 		return -1;
 	}
 	link->ids.devid = id;
-	
+
 	ddbwritel(dev, 1, 0x1a0);
 
 	dev->handler_data[11] = (unsigned long) link;
 	dev->handler[11] = gtl_irq_handler;
-	
+
 	pr_info("GTL %s\n", dev->link[l].info->name);
 	pr_info("GTL HW %08x REGMAP %08x\n",
 		ddbreadl(dev, DDB_LINK_TAG(l) | 0),
 		ddbreadl(dev, DDB_LINK_TAG(l) | 4));
 	pr_info("GTL ID %08x\n",
 		ddbreadl(dev, DDB_LINK_TAG(l) | 8));
-	
+
 	tasklet_init(&link->tasklet, link_tasklet, (unsigned long) link);
 	ddbwritel(dev, 0xffffffff, DDB_LINK_TAG(l) | INTERRUPT_ACK);
 	ddbwritel(dev, 0xf, DDB_LINK_TAG(l) | INTERRUPT_ENABLE);
@@ -4626,13 +4663,12 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 static int ddb_gtl_init(struct ddb *dev)
 {
 	u32 l;
-	
+
 	dev->handler_data[10] = (unsigned long) dev;
 	dev->handler[10] = gtl_link_handler;
 
-	for (l = 1; l < dev->link[0].info->regmap->gtl->num + 1; l++) {
+	for (l = 1; l < dev->link[0].info->regmap->gtl->num + 1; l++)
 		ddb_gtl_init_link(dev, l);
-	}
 	return 0;
 }
 
@@ -4640,7 +4676,7 @@ static int ddb_init_boards(struct ddb *dev)
 {
 	struct ddb_info *info;
 	u32 l;
-	
+
 	for (l = 0; l < DDB_MAX_LINK; l++) {
 		info = dev->link[l].info;
 		if (!info)
@@ -4648,9 +4684,11 @@ static int ddb_init_boards(struct ddb *dev)
 		if (info->board_control) {
 			ddbwritel(dev, 0, DDB_LINK_TAG(l) | BOARD_CONTROL);
 			msleep(100);
-			ddbwritel(dev, info->board_control_2, DDB_LINK_TAG(l) | BOARD_CONTROL);
+			ddbwritel(dev, info->board_control_2,
+				  DDB_LINK_TAG(l) | BOARD_CONTROL);
 			usleep_range(2000, 3000);
-			ddbwritel(dev, info->board_control_2 | info->board_control,
+			ddbwritel(dev, info->board_control_2 |
+				  info->board_control,
 				  DDB_LINK_TAG(l) | BOARD_CONTROL);
 			usleep_range(2000, 3000);
 		}

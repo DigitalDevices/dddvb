@@ -118,19 +118,24 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 		pr_err("DDBridge I2C timeout, card %d, port %d, link %u\n",
 		       dev->nr, i2c->nr, i2c->link);
 #if 1
-		{ 
+		{
 			u32 istat = ddbreadl(dev, INTERRUPT_STATUS);
-			
+
 			dev_err(dev->dev, "DDBridge IRS %08x\n", istat);
 			if (i2c->link) {
-				u32 listat = ddbreadl(dev, DDB_LINK_TAG(i2c->link) | INTERRUPT_STATUS);
-				dev_err(dev->dev, "DDBridge link %u IRS %08x\n",
+				u32 listat =
+					ddbreadl(dev,
+						 DDB_LINK_TAG(i2c->link) |
+						 INTERRUPT_STATUS);
+				dev_err(dev->dev,
+					"DDBridge link %u IRS %08x\n",
 					i2c->link, listat);
 			}
 			if (istat & 1) {
 				ddbwritel(dev, istat & 1, INTERRUPT_ACK);
 			} else {
-				u32 mon = ddbreadl(dev, i2c->regs + I2C_MONITOR);
+				u32 mon = ddbreadl(dev,
+						   i2c->regs + I2C_MONITOR);
 
 				dev_err(dev->dev, "I2C cmd=%08x mon=%08x\n",
 					val, mon);
@@ -150,7 +155,7 @@ static int ddb_i2c_master_xfer(struct i2c_adapter *adapter,
 	struct ddb_i2c *i2c = (struct ddb_i2c *) i2c_get_adapdata(adapter);
 	struct ddb *dev = i2c->dev;
 	u8 addr = 0;
-	
+
 	if (num != 1 && num != 2)
 		return -EIO;
 	addr = msg[0].addr;
@@ -219,19 +224,20 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 		       struct ddb_regmap *regmap, int link, int i, int num)
 {
 	struct i2c_adapter *adap;
-	
+
 	i2c->nr = i;
 	i2c->dev = dev;
 	i2c->link = link;
 	i2c->bsize = regmap->i2c_buf->size;
-	i2c->wbuf = DDB_LINK_TAG(link) | (regmap->i2c_buf->base + i2c->bsize * i);
-	i2c->rbuf = i2c->wbuf;// + i2c->bsize / 2;
-	i2c->regs = DDB_LINK_TAG(link) | (regmap->i2c->base + regmap->i2c->size * i);
+	i2c->wbuf = DDB_LINK_TAG(link) |
+		(regmap->i2c_buf->base + i2c->bsize * i);
+	i2c->rbuf = i2c->wbuf;/* + i2c->bsize / 2; */
+	i2c->regs = DDB_LINK_TAG(link) |
+		(regmap->i2c->base + regmap->i2c->size * i);
 	ddbwritel(dev, I2C_SPEED_100, i2c->regs + I2C_TIMING);
 	ddbwritel(dev, ((i2c->rbuf & 0xffff) << 16) | (i2c->wbuf & 0xffff),
 		  i2c->regs + I2C_TASKADDRESS);
 	init_completion(&i2c->completion);
-	
 	adap = &i2c->adap;
 	i2c_set_adapdata(adap, i2c);
 #ifdef I2C_ADAP_CLASS_TV_DIGITAL
@@ -255,7 +261,7 @@ static int ddb_i2c_init(struct ddb *dev)
 	struct ddb_i2c *i2c;
 	struct i2c_adapter *adap;
 	struct ddb_regmap *regmap;
-	
+
 	for (l = 0; l < DDB_MAX_LINK; l++) {
 		if (!dev->link[l].info)
 			continue;
@@ -280,7 +286,7 @@ static int ddb_i2c_init(struct ddb *dev)
 			adap = &i2c->adap;
 			i2c_del_adapter(adap);
 		}
-	} else 
+	} else
 		dev->i2c_num = num;
 	return stat;
 }

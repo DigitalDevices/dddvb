@@ -166,7 +166,8 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		stat = pci_enable_msi_range(dev->pdev, 1, 2);
 		if (stat >= 1) {
 			dev->msi = stat;
-			pr_info("DDBridge: using %d MSI interrupt(s)\n", dev->msi);
+			pr_info("DDBridge: using %d MSI interrupt(s)\n",
+				dev->msi);
 			irq_flag = 0;
 		} else
 			pr_info("DDBridge: MSI not available.\n");

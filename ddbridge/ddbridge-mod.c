@@ -965,7 +965,8 @@ void ddbridge_mod_rate_handler(unsigned long data)
 						      InPacketDiff/1000));
 					if (OutPacketDiff)
 						mod->rate_inc =
-							div_u64(mul, OutPacketDiff);
+							div_u64(mul,
+								OutPacketDiff);
 					else
 						mod->rate_inc = 0;
 					mod_set_rateinc(dev, output->nr);
@@ -975,7 +976,8 @@ void ddbridge_mod_rate_handler(unsigned long data)
 					if (InPacketDiff)
 						mod->PCRDecrement =
 							div_u64(mod->PCRIncrement *
-								(u64) OutPacketDiff,
+								(u64)
+								OutPacketDiff,
 								InPacketDiff);
 					else
 						mod->PCRDecrement = 0;

@@ -41,7 +41,7 @@
 #include <linux/poll.h>
 #include <linux/io.h>
 #include <linux/pci.h>
-//#include <linux/pci_ids.h>
+/*#include <linux/pci_ids.h>*/
 #include <linux/timer.h>
 #include <linux/i2c.h>
 #include <linux/swab.h>
@@ -132,7 +132,7 @@ struct ddb_ids {
 	u16 device;
 	u16 subvendor;
 	u16 subdevice;
-	
+
 	u32 hwid;
 	u32 regmapid;
 	u32 devid;
@@ -191,7 +191,7 @@ struct ddb_dma {
 	u32                    size;
 	u32                    div;
 	u32                    bufreg;
-	
+
 #ifdef DDB_USE_WORK
 	struct work_struct     work;
 #else
@@ -205,7 +205,7 @@ struct ddb_dma {
 	u32                    cbuf;
 	u32                    coff;
 };
-	
+
 struct ddb_dvb {
 	struct dvb_adapter    *adap;
 	int                    adap_registered;
@@ -221,14 +221,15 @@ struct ddb_dvb {
 	int                    users;
 	u32                    attached;
 	u8                     input;
-	
+
 	fe_sec_tone_mode_t     tone;
 	fe_sec_voltage_t       voltage;
-	
+
 	int (*i2c_gate_ctrl)(struct dvb_frontend *, int);
 	int (*set_voltage)(struct dvb_frontend *fe, fe_sec_voltage_t voltage);
 	int (*set_input)(struct dvb_frontend *fe, int input);
-	int (*diseqc_send_master_cmd)(struct dvb_frontend* fe, struct dvb_diseqc_master_cmd* cmd);
+	int (*diseqc_send_master_cmd)(struct dvb_frontend *fe,
+				      struct dvb_diseqc_master_cmd *cmd);
 };
 
 struct ddb_ci {
@@ -374,7 +375,7 @@ struct ddb_ns {
 struct ddb_lnb {
 	struct mutex           lock;
 	u32                    tone;
-        fe_sec_voltage_t       oldvoltage[4];
+	fe_sec_voltage_t       oldvoltage[4];
 	u32                    voltage[4];
 	u32                    voltages;
 	u32                    fmode;
@@ -396,12 +397,12 @@ struct ddb {
 	struct pci_dev        *pdev;
 	struct platform_device *pfdev;
 	struct device         *dev;
-	
+
 	int                    msi;
 	struct workqueue_struct *wq;
 	u32                    has_dma;
 	u32                    has_ns;
-	
+
 	struct ddb_link        link[DDB_MAX_LINK];
 	unsigned char         *regs;
 	u32                    regs_len;
@@ -413,7 +414,7 @@ struct ddb {
 	struct ddb_output      output[DDB_MAX_OUTPUT];
 	struct dvb_adapter     adap[DDB_MAX_INPUT];
 	struct ddb_dma         dma[DDB_MAX_INPUT + DDB_MAX_OUTPUT];
-	
+
 	void                   (*handler[128])(unsigned long);
 	unsigned long          handler_data[128];
 
@@ -461,36 +462,37 @@ static inline u32 ddbreadl0(struct ddb_link *link, u32 adr)
 #if 0
 static inline void gtlw(struct ddb_link *link)
 {
-        u32 count = 0;
-        static u32 max = 0;
+	u32 count = 0;
+	static u32 max;
 
-        while (1 & ddbreadl0(link, link->regs + 0x10)) {
-        if (++count == 1024) {
-                        printk("LTO\n");
+	while (1 & ddbreadl0(link, link->regs + 0x10)) {
+		if (++count == 1024) {
+			pr_info("LTO\n");
 			break;
 		}
 	}
 	if (count > max) {
 		max = count;
-		printk("TO=%u\n", max); 
+		pr_info("TO=%u\n", max);
 	}
 	if (ddbreadl0(link, link->regs + 0x10) & 0x8000)
-		printk("link error\n");
+		pr_err("link error\n");
 }
 #else
 static inline void gtlw(struct ddb_link *link)
 {
-        while (1 & ddbreadl0(link, link->regs + 0x10));
+	while (1 & ddbreadl0(link, link->regs + 0x10))
+		;
 }
 #endif
 
 static u32 ddblreadl(struct ddb_link *link, u32 adr)
 {
-        if (unlikely(link->nr)) {
-                unsigned long flags;
-                u32 val;
-		
-                spin_lock_irqsave(&link->lock, flags);
+	if (unlikely(link->nr)) {
+		unsigned long flags;
+		u32 val;
+
+		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
 		ddbwritel0(link, 3, link->regs + 0x10);
@@ -506,8 +508,8 @@ static void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 {
 	if (unlikely(link->nr)) {
 		unsigned long flags;
-		
-                spin_lock_irqsave(&link->lock, flags);
+
+		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
 		ddbwritel0(link, val, link->regs + 0x18);
@@ -520,12 +522,12 @@ static void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 
 static u32 ddbreadl(struct ddb *dev, u32 adr)
 {
-        if (unlikely(adr & 0xf0000000)) {
-                unsigned long flags;
-                u32 val, l = (adr >> DDB_LINK_SHIFT);
+	if (unlikely(adr & 0xf0000000)) {
+		unsigned long flags;
+		u32 val, l = (adr >> DDB_LINK_SHIFT);
 		struct ddb_link *link = &dev->link[l];
-		
-                spin_lock_irqsave(&link->lock, flags);
+
+		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
 		ddbwritel0(link, 3, link->regs + 0x10);
@@ -543,8 +545,8 @@ static void ddbwritel(struct ddb *dev, u32 val, u32 adr)
 		unsigned long flags;
 		u32 l = (adr >> DDB_LINK_SHIFT);
 		struct ddb_link *link = &dev->link[l];
-		
-                spin_lock_irqsave(&link->lock, flags);
+
+		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
 		ddbwritel0(link, val, link->regs + 0x18);

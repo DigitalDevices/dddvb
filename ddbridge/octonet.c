@@ -176,9 +176,11 @@ static int __init octonet_probe(struct platform_device *pdev)
 		dev->link[0].info = &ddb_octonet_gtl;
 	else
 		dev->link[0].info = &ddb_octonet_tbd;
-		
-	pr_info("HW  %08x REGMAP %08x\n", dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
-	pr_info("MAC %08x DEVID  %08x\n", dev->link[0].ids.mac, dev->link[0].ids.devid);
+
+	pr_info("HW  %08x REGMAP %08x\n",
+		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
+	pr_info("MAC %08x DEVID  %08x\n",
+		dev->link[0].ids.mac, dev->link[0].ids.devid);
 
 	ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);

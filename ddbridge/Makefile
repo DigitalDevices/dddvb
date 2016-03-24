@@ -1,9 +1,9 @@
 KDIR	?= /lib/modules/$(shell uname -r)/build
 PWD	:= $(shell pwd)
 
-MODDEFS := CONFIG_DVB_DDBRIDGE=m 
+MODDEFS := CONFIG_DVB_DDBRIDGE=m
 
-all: 
+all:
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) $(MODDEFS) modules
 	$(MAKE) -C apps
 
