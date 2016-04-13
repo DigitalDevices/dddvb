@@ -175,7 +175,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 #else
 		stat = pci_enable_msi_block(dev->pdev, 2);
 		if (stat == 0) {
-			dev->msi = 1;
+			dev->msi = 2;
 			pr_info("DDBridge: using 2 MSI interrupts\n");
 		}
 		if (stat == 1)

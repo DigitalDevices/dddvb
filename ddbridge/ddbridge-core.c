@@ -3217,11 +3217,11 @@ static irqreturn_t irq_handler0(int irq, void *dev_id)
 	u32 s = ddbreadl(dev, INTERRUPT_STATUS);
 
 	do {
-		if (s == 0xffffffff)
+		if (s & 0x80000000)
 			return IRQ_NONE;
 		if (!(s & 0xfff00))
 			return IRQ_NONE;
-		ddbwritel(dev, s, INTERRUPT_ACK);
+		ddbwritel(dev, s & 0xfff00, INTERRUPT_ACK);
 		irq_handle_io(dev, s);
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
 
@@ -3238,7 +3238,7 @@ static irqreturn_t irq_handler1(int irq, void *dev_id)
 			return IRQ_NONE;
 		if (!(s & 0x0000f))
 			return IRQ_NONE;
-		ddbwritel(dev, s, INTERRUPT_ACK);
+		ddbwritel(dev, s & 0x0000f, INTERRUPT_ACK);
 		irq_handle_msg(dev, s);
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
 
