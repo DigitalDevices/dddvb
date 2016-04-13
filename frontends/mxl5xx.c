@@ -670,9 +670,9 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	default:
 		break;
 	}
-	pr_info("mxl5xx: ber %08x %08x %08x %08x %08x %08x %08x\n",
+	pr_debug("mxl5xx: ber %08x %08x %08x %08x %08x %08x %08x\n",
 		reg[0], reg[1], reg[2], reg[3], reg[4], reg[5], reg[6]);
-	pr_info("mxl5xx: ber2 %08x %08x %08x %08x\n",
+	pr_debug("mxl5xx: ber2 %08x %08x %08x %08x\n",
 		reg[0], reg[1], reg[2], reg[3]);
         //pre_bit_error, pre_bit_count
 	//post_bit_error, post_bit_count;
@@ -755,7 +755,7 @@ static int get_frontend(struct dvb_frontend *fe)
 	HYDRA_DEMOD_STATUS_UNLOCK(state, state->demod);
 	mutex_unlock(&state->base->status_lock);
 	
-	pr_info("mxl5xx: freq=%u delsys=%u srate=%u\n",
+	pr_debug("mxl5xx: freq=%u delsys=%u srate=%u\n",
 		freq * 1000, regData[DMD_STANDARD_ADDR],
 		regData[DMD_SYMBOL_RATE_ADDR]);
 	p->symbol_rate = regData[DMD_SYMBOL_RATE_ADDR];
