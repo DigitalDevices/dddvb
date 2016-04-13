@@ -425,7 +425,8 @@ static void ddb_input_stop(struct ddb_input *input)
 static void ddb_input_start(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
-	/* u32 tsbase = TS_INPUT_BASE + input->nr * 0x10; */
+	u32 tsctrl = TS_INPUT_BASE + input->nr * 0x10;
+	u32 tsctrl2 = tsctrl + 4;
 	u32 tag = DDB_LINK_TAG(input->port->lnr);
 
 	if (input->dma) {
