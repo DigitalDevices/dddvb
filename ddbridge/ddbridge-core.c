@@ -3148,12 +3148,12 @@ static void ddb_ports_release(struct ddb *dev)
 /****************************************************************************/
 
 #define IRQ_HANDLE(_nr) \
-	do { if ((s & (1UL << _nr)) && dev->handler[0][_nr]) \
+	do { if ((s & (1UL << (_nr & 0x1f))) && dev->handler[0][_nr])	\
 		dev->handler[0][_nr](dev->handler_data[0][_nr]); } \
 	while (0)
 
 #define IRQ_HANDLE_BYTE(_n) \
-	if (s & (0x000000ff << _n)) { \
+	if (s & (0x000000ff << (_n & 0x1f))) {	\
 		IRQ_HANDLE(0 + _n); \
 		IRQ_HANDLE(1 + _n); \
 		IRQ_HANDLE(2 + _n); \
@@ -3286,6 +3286,7 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 	ddbwritel(dev, s, reg);
 	
 	if ((s & 0x000000ff)) {
+		IRQ_HANDLE(0 + off);
 		IRQ_HANDLE(1 + off);
 		IRQ_HANDLE(2 + off);
 		IRQ_HANDLE(3 + off);
