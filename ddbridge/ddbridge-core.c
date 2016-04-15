@@ -54,9 +54,17 @@ static int xo2_speed = 2;
 module_param(xo2_speed, int, 0444);
 MODULE_PARM_DESC(xo2_speed, "default transfer speed for xo2 based duoflex, 0=55,1=75,2=90,3=104 MBit/s, default=2, use attribute to change for individual cards");
 
-static int alt_dma= 0;
+#ifdef MACH_OCTOPRO
+static int alt_dma = 1;
+#else
+static int alt_dma;
+#endif
 module_param(alt_dma, int, 0444);
 MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
+
+static int no_init;
+module_param(no_init, int, 0444);
+MODULE_PARM_DESC(no_init, "do not initialize most devices");
 
 #define DDB_MAX_ADAPTER 64
 static struct ddb *ddbs[DDB_MAX_ADAPTER];
@@ -3144,6 +3152,19 @@ static void ddb_ports_release(struct ddb *dev)
 		dev->handler[0][_nr](dev->handler_data[0][_nr]); } \
 	while (0)
 
+#define IRQ_HANDLE_BYTE(_n) \
+	if (s & (0x000000ff << _n)) { \
+		IRQ_HANDLE(0 + _n); \
+		IRQ_HANDLE(1 + _n); \
+		IRQ_HANDLE(2 + _n); \
+		IRQ_HANDLE(3 + _n); \
+		IRQ_HANDLE(4 + _n); \
+		IRQ_HANDLE(5 + _n); \
+		IRQ_HANDLE(6 + _n); \
+		IRQ_HANDLE(7 + _n); \
+	}
+	
+
 static void irq_handle_msg(struct ddb *dev, u32 s)
 {
 	dev->i2c_irq++;
@@ -3256,7 +3277,7 @@ static irqreturn_t irq_handler(int irq, void *dev_id)
 
 static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 {
-	u32 reg = INTERRUPT_V2_STATUS + 4 + 4 * n;
+	u32 reg = INTERRUPT_V2_STATUS_1 + 4 * n;
 	u32 s = ddbreadl(dev, reg);
 	u32 off = n * 32;
 	
@@ -3265,7 +3286,6 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 	ddbwritel(dev, s, reg);
 	
 	if ((s & 0x000000ff)) {
-		IRQ_HANDLE(0 + off);
 		IRQ_HANDLE(1 + off);
 		IRQ_HANDLE(2 + off);
 		IRQ_HANDLE(3 + off);
@@ -3274,6 +3294,7 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 		IRQ_HANDLE(6 + off);
 		IRQ_HANDLE(7 + off);
 	}
+	return IRQ_HANDLED;
 }
 
 static irqreturn_t irq_handler_v2(int irq, void *dev_id)
@@ -4726,6 +4747,13 @@ static int ddb_init_boards(struct ddb *dev)
 
 static int ddb_init(struct ddb *dev)
 {
+	mutex_init(&dev->link[0].flash_mutex);
+	if (no_init) {
+		ddb_device_create(dev);
+		return 0;	
+	}
+
+
 	if (dev->link[0].info->ns_num) {
 		ddbwritel(dev, 1, ETHER_CONTROL);
 		dev->vlan = vlan;
@@ -4733,8 +4761,8 @@ static int ddb_init(struct ddb *dev)
 	}
 
 	mutex_init(&dev->link[0].lnb.lock);
-	mutex_init(&dev->link[0].flash_mutex);
 
+	
 	if (dev->link[0].info->regmap->gtl)
 		ddb_gtl_init(dev);
 

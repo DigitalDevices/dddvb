@@ -164,7 +164,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	if (stat < 0)
 		return stat;
 
-	ddbwritel(dev, 0x0f, INTERRUPT_V2_CONTROL);
+	//ddbwritel(dev, 0x0f, INTERRUPT_V2_CONTROL);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_1);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_2);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_3);
