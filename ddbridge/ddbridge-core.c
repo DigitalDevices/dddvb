@@ -256,6 +256,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 						      DMA_FROM_DEVICE);
 			if (dma_mapping_error(&pdev->dev, dma->pbuf[i])) {
 				kfree(dma->vbuf[i]);
+				dma->vbuf[i] = 0;
 				return -ENOMEM;
 			}
 		} else {
@@ -3092,6 +3093,7 @@ static void ddb_ports_init(struct ddb *dev)
 				} /* fallthrough */
 			case DDB_OCTONET:
 			case DDB_OCTOPUS:
+			case DDB_OCTOPRO:
 				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * i);
 				ddb_input_init(port, 2 * i + 1, 1,
 					       2 * i + 1, 2 * i + 1);
@@ -3148,12 +3150,12 @@ static void ddb_ports_release(struct ddb *dev)
 /****************************************************************************/
 
 #define IRQ_HANDLE(_nr) \
-	do { if ((s & (1UL << (_nr & 0x1f))) && dev->handler[0][_nr])	\
+	do { if ((s & (1UL << ((_nr) & 0x1f))) && dev->handler[0][_nr])	\
 		dev->handler[0][_nr](dev->handler_data[0][_nr]); } \
 	while (0)
 
 #define IRQ_HANDLE_BYTE(_n) \
-	if (s & (0x000000ff << (_n & 0x1f))) {	\
+	if (s & (0x000000ff << ((_n) & 0x1f))) {	\
 		IRQ_HANDLE(0 + _n); \
 		IRQ_HANDLE(1 + _n); \
 		IRQ_HANDLE(2 + _n); \
@@ -3280,7 +3282,8 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 	u32 reg = INTERRUPT_V2_STATUS_1 + 4 * n;
 	u32 s = ddbreadl(dev, reg);
 	u32 off = n * 32;
-	
+
+	//pr_info("irq_handle_v2_%u s=%08x\n", n, s);
 	if (!s)
 		return IRQ_NONE;
 	ddbwritel(dev, s, reg);
@@ -3301,7 +3304,7 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 static irqreturn_t irq_handler_v2(int irq, void *dev_id)
 {
 	struct ddb *dev = (struct ddb *) dev_id;
-	u32 s = ddbreadl(dev, INTERRUPT_V2_STATUS);
+	u32 s = 0xffff & ddbreadl(dev, INTERRUPT_V2_STATUS);
 	int ret = IRQ_HANDLED;
 
 	if (!s)
@@ -3309,9 +3312,10 @@ static irqreturn_t irq_handler_v2(int irq, void *dev_id)
 	do {
 		if (s & 0x80000000)
 			return IRQ_NONE;
+		//pr_info("irq_handler_v2 s=%08x\n", s);
 		if (s & 0x00000001)
 			irq_handle_v2_n(dev, 0);
-	} while ((s = ddbreadl(dev, INTERRUPT_V2_STATUS)));
+	} while ((s = 0xffff & ddbreadl(dev, INTERRUPT_V2_STATUS)));
 
 	return ret;
 }
@@ -4753,16 +4757,12 @@ static int ddb_init(struct ddb *dev)
 		ddb_device_create(dev);
 		return 0;	
 	}
-
-
 	if (dev->link[0].info->ns_num) {
 		ddbwritel(dev, 1, ETHER_CONTROL);
 		dev->vlan = vlan;
 		ddbwritel(dev, 14 + (dev->vlan ? 4 : 0), ETHER_LENGTH);
 	}
-
 	mutex_init(&dev->link[0].lnb.lock);
-
 	
 	if (dev->link[0].info->regmap->gtl)
 		ddb_gtl_init(dev);

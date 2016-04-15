@@ -57,7 +57,7 @@ static void ddb_unmap(struct ddb *dev)
 	vfree(dev);
 }
 
-static void __devexit ddb_irq_exit(struct ddb *dev)
+static void __devexit ddb_irq_disable(struct ddb *dev)
 {
 	if ((dev->link[0].ids.regmapid & 0xffff0000) == 0x00020000) {
 		//ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
@@ -72,6 +72,11 @@ static void __devexit ddb_irq_exit(struct ddb *dev)
 		ddbwritel(dev, 0, INTERRUPT_ENABLE);
 		ddbwritel(dev, 0, MSI1_ENABLE);
 	}
+}
+
+static void __devexit ddb_irq_exit(struct ddb *dev)
+{
+	ddb_irq_disable(dev);
 	if (dev->msi == 2)
 		free_irq(dev->pdev->irq + 1, dev);
 	free_irq(dev->pdev->irq, dev);
@@ -306,7 +311,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (ddb_init(dev) == 0)
 		return 0;
 
-	ddb_irq_exit(dev);
+	ddb_irq_disable(dev);
 fail0:
 	pr_err("fail0\n");
 	if (dev->msi)
