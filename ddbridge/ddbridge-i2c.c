@@ -272,8 +272,8 @@ static int ddb_i2c_init(struct ddb *dev)
 			if (!(dev->link[l].info->i2c_mask & (1 << i)))
 				continue;
 			i2c = &dev->i2c[num];
-			dev->handler_data[i + l * 32] = (unsigned long) i2c;
-			dev->handler[i + l * 32] = i2c_handler;
+			dev->handler_data[l][i] = (unsigned long) i2c;
+			dev->handler[l][i] = i2c_handler;
 			stat = ddb_i2c_add(dev, i2c, regmap, l, i, num);
 			if (stat)
 				break;

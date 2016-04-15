@@ -148,6 +148,8 @@ struct ddb_info {
 #define DDB_OCTONET      4
 #define DDB_OCTOPUS_MAX  5
 #define DDB_OCTOPUS_MAX_CT  6
+#define DDB_OCTOPRO      7
+#define DDB_OCTOPRO_HDIN 8
 	char *name;
 	u32   i2c_mask;
 	u8    port_num;
@@ -415,8 +417,8 @@ struct ddb {
 	struct dvb_adapter     adap[DDB_MAX_INPUT];
 	struct ddb_dma         dma[DDB_MAX_INPUT + DDB_MAX_OUTPUT];
 
-	void                   (*handler[128])(unsigned long);
-	unsigned long          handler_data[128];
+	void                   (*handler[4][128])(unsigned long);
+	unsigned long          handler_data[4][128];
 
 	struct device         *ddb_dev;
 	u32                    ddb_dev_users;

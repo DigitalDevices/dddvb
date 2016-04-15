@@ -54,6 +54,10 @@ static int xo2_speed = 2;
 module_param(xo2_speed, int, 0444);
 MODULE_PARM_DESC(xo2_speed, "default transfer speed for xo2 based duoflex, 0=55,1=75,2=90,3=104 MBit/s, default=2, use attribute to change for individual cards");
 
+static int alt_dma= 0;
+module_param(alt_dma, int, 0444);
+MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
+
 #define DDB_MAX_ADAPTER 64
 static struct ddb *ddbs[DDB_MAX_ADAPTER];
 
@@ -203,7 +207,6 @@ static int ddb_redirect(u32 i, u32 p)
 /****************************************************************************/
 /****************************************************************************/
 
-#ifdef DDB_ALT_DMA
 static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 {
 	int i;
@@ -212,54 +215,16 @@ static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 		return;
 	for (i = 0; i < dma->num; i++) {
 		if (dma->vbuf[i]) {
-			dma_unmap_single(&pdev->dev, dma->pbuf[i],
-					 dma->size,
-					 dir ? DMA_TO_DEVICE :
-					 DMA_FROM_DEVICE);
-			kfree(dma->vbuf[i]);
-			dma->vbuf[i] = NULL;
-		}
-	}
-}
-
-static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
-{
-	int i;
-
-	if (!dma)
-		return 0;
-	for (i = 0; i < dma->num; i++) {
-		dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
-		if (!dma->vbuf[i])
-			return -ENOMEM;
-		dma->pbuf[i] = dma_map_single(&pdev->dev, dma->vbuf[i],
-					      dma->size,
-					      dir ? DMA_TO_DEVICE :
-					      DMA_FROM_DEVICE);
-		if (dma_mapping_error(&pdev->dev, dma->pbuf[i])) {
-			kfree(dma->vbuf[i]);
-			return -ENOMEM;
-		}
-	}
-	return 0;
-}
-#else
-
-static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
-{
-	int i;
-
-	if (!dma)
-		return;
-	for (i = 0; i < dma->num; i++) {
-		if (dma->vbuf[i]) {
-#if 0
-			pci_free_consistent(pdev, dma->size,
-					    dma->vbuf[i], dma->pbuf[i]);
-#else
-			dma_free_coherent(&pdev->dev, dma->size,
-					    dma->vbuf[i], dma->pbuf[i]);
-#endif
+			if (alt_dma) {
+				dma_unmap_single(&pdev->dev, dma->pbuf[i],
+						 dma->size,
+						 dir ? DMA_TO_DEVICE :
+						 DMA_FROM_DEVICE);
+				kfree(dma->vbuf[i]);
+			} else
+				dma_free_coherent(&pdev->dev, dma->size,
+						  dma->vbuf[i],
+						  dma->pbuf[i]);
 			dma->vbuf[i] = 0;
 		}
 	}
@@ -272,19 +237,30 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 	if (!dma)
 		return 0;
 	for (i = 0; i < dma->num; i++) {
-#if 0
-		dma->vbuf[i] = pci_alloc_consistent(pdev, dma->size,
-						    &dma->pbuf[i]);
-#else
-		dma->vbuf[i] = dma_alloc_coherent(&pdev->dev, dma->size,
-						  &dma->pbuf[i], GFP_KERNEL);
-#endif
-		if (!dma->vbuf[i])
-			return -ENOMEM;
+		if (alt_dma) {
+			dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
+			if (!dma->vbuf[i])
+				return -ENOMEM;
+			dma->pbuf[i] = dma_map_single(&pdev->dev,
+						      dma->vbuf[i],
+						      dma->size,
+						      dir ? DMA_TO_DEVICE :
+						      DMA_FROM_DEVICE);
+			if (dma_mapping_error(&pdev->dev, dma->pbuf[i])) {
+				kfree(dma->vbuf[i]);
+				return -ENOMEM;
+			}
+		} else {
+			dma->vbuf[i] = dma_alloc_coherent(&pdev->dev,
+							  dma->size,
+							  &dma->pbuf[i],
+							  GFP_KERNEL);
+			if (!dma->vbuf[i])
+				return -ENOMEM;
+		}
 	}
 	return 0;
 }
-#endif
 
 static int ddb_buffers_alloc(struct ddb *dev)
 {
@@ -586,12 +562,11 @@ static ssize_t ddb_output_write(struct ddb_output *output,
 				   output->dma->coff,
 				   buf, len))
 			return -EIO;
-#ifdef DDB_ALT_DMA
-		dma_sync_single_for_device(dev->dev,
-					   output->dma->pbuf[
-						   output->dma->cbuf],
-					   output->dma->size, DMA_TO_DEVICE);
-#endif
+		if (alt_dma)
+			dma_sync_single_for_device(dev->dev,
+						   output->dma->pbuf[
+							   output->dma->cbuf],
+						   output->dma->size, DMA_TO_DEVICE);
 		left -= len;
 		buf += len;
 		output->dma->coff += len;
@@ -719,11 +694,10 @@ static size_t ddb_input_read(struct ddb_input *input,
 		free = input->dma->size - input->dma->coff;
 		if (free > left)
 			free = left;
-#ifdef DDB_ALT_DMA
-		dma_sync_single_for_cpu(dev->dev,
-					input->dma->pbuf[input->dma->cbuf],
-					input->dma->size, DMA_FROM_DEVICE);
-#endif
+		if (alt_dma)
+			dma_sync_single_for_cpu(dev->dev,
+						input->dma->pbuf[input->dma->cbuf],
+						input->dma->size, DMA_FROM_DEVICE);
 		ret = copy_to_user(buf, input->dma->vbuf[input->dma->cbuf] +
 				   input->dma->coff, free);
 		if (ret)
@@ -2242,6 +2216,15 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->class = DDB_PORT_MOD;
 		return;
 	}
+	
+	if (dev->link[l].info->type == DDB_OCTOPRO_HDIN) {
+		if( port->nr == 0 ) {
+			dev->link[l].info->type = DDB_OCTOPUS;
+			port->name = "HDIN";
+			port->class = DDB_PORT_LOOP;
+		}
+		return;
+	}   
 
 	if (dev->link[l].info->type == DDB_OCTOPUS_MAX) {
 		port->name = "DUAL DVB-S2 MAX";
@@ -2838,10 +2821,9 @@ static void input_write_dvb(struct ddb_input *input,
 			/*pr_err("Overflow dma %d\n", dma->nr);*/
 			ack = 1;
 		}
-#ifdef DDB_ALT_DMA
-		dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
-					dma2->size, DMA_FROM_DEVICE);
-#endif
+		if (alt_dma)
+			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
+						dma2->size, DMA_FROM_DEVICE);
 		dvb_dmx_swfilter_packets(&dvb->demux,
 					 dma2->vbuf[dma->cbuf],
 					 dma2->size / 188);
@@ -2967,8 +2949,8 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr,
 	struct ddb_input *input = &dev->input[anr];
 
 	if (dev->has_dma) {
-		dev->handler[dma_nr + 8] = input_handler;
-		dev->handler_data[dma_nr + 8] = (unsigned long) input;
+		dev->handler[0][dma_nr + 8] = input_handler;
+		dev->handler_data[0][dma_nr + 8] = (unsigned long) input;
 	}
 	port->input[pnr] = input;
 	input->nr = nr;
@@ -2990,8 +2972,8 @@ static void ddb_output_init(struct ddb_port *port, int nr, int dma_nr)
 	struct ddb_output *output = &dev->output[nr];
 
 	if (dev->has_dma) {
-		dev->handler[dma_nr + 8] = output_handler;
-		dev->handler_data[dma_nr + 8] = (unsigned long) output;
+		dev->handler[0][dma_nr + 8] = output_handler;
+		dev->handler_data[0][dma_nr + 8] = (unsigned long) output;
 	}
 	port->output = output;
 	output->nr = nr;
@@ -3115,9 +3097,9 @@ static void ddb_ports_init(struct ddb *dev)
 				break;
 			case DDB_MOD:
 				ddb_output_init(port, i, i);
-				dev->handler[i + 18] =
+				dev->handler[0][i + 18] =
 					ddbridge_mod_rate_handler;
-				dev->handler_data[i + 18] =
+				dev->handler_data[0][i + 18] =
 					(unsigned long) &dev->output[i];
 				break;
 			default:
@@ -3158,8 +3140,8 @@ static void ddb_ports_release(struct ddb *dev)
 /****************************************************************************/
 
 #define IRQ_HANDLE(_nr) \
-	do { if ((s & (1UL << _nr)) && dev->handler[_nr]) \
-		dev->handler[_nr](dev->handler_data[_nr]); } \
+	do { if ((s & (1UL << _nr)) && dev->handler[0][_nr]) \
+		dev->handler[0][_nr](dev->handler_data[0][_nr]); } \
 	while (0)
 
 static void irq_handle_msg(struct ddb *dev, u32 s)
@@ -3268,6 +3250,46 @@ static irqreturn_t irq_handler(int irq, void *dev_id)
 #endif
 		}
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
+
+	return ret;
+}
+
+static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
+{
+	u32 reg = INTERRUPT_V2_STATUS + 4 + 4 * n;
+	u32 s = ddbreadl(dev, reg);
+	u32 off = n * 32;
+	
+	if (!s)
+		return IRQ_NONE;
+	ddbwritel(dev, s, reg);
+	
+	if ((s & 0x000000ff)) {
+		IRQ_HANDLE(0 + off);
+		IRQ_HANDLE(1 + off);
+		IRQ_HANDLE(2 + off);
+		IRQ_HANDLE(3 + off);
+		IRQ_HANDLE(4 + off);
+		IRQ_HANDLE(5 + off);
+		IRQ_HANDLE(6 + off);
+		IRQ_HANDLE(7 + off);
+	}
+}
+
+static irqreturn_t irq_handler_v2(int irq, void *dev_id)
+{
+	struct ddb *dev = (struct ddb *) dev_id;
+	u32 s = ddbreadl(dev, INTERRUPT_V2_STATUS);
+	int ret = IRQ_HANDLED;
+
+	if (!s)
+		return IRQ_NONE;
+	do {
+		if (s & 0x80000000)
+			return IRQ_NONE;
+		if (s & 0x00000001)
+			irq_handle_v2_n(dev, 0);
+	} while ((s = ddbreadl(dev, INTERRUPT_V2_STATUS)));
 
 	return ret;
 }
@@ -4492,9 +4514,9 @@ static void ddb_device_destroy(struct ddb *dev)
 	device_destroy(&ddb_class, MKDEV(ddb_major, dev->nr));
 }
 
-#define LINK_IRQ_HANDLE(_nr)				  \
-	do { if ((s & (1UL << _nr)) && dev->handler[_nr + off]) \
-		dev->handler[_nr + off](dev->handler_data[_nr + off]); } \
+#define LINK_IRQ_HANDLE(_l, _nr)				\
+	do { if ((s & (1UL << _nr)) && dev->handler[_l][_nr]) \
+		dev->handler[_l][_nr](dev->handler_data[_l][_nr]); } \
 	while (0)
 
 static void gtl_link_handler(unsigned long priv)
@@ -4510,18 +4532,19 @@ static void link_tasklet(unsigned long data)
 {
 	struct ddb_link *link = (struct ddb_link *) data;
 	struct ddb *dev = link->dev;
-	u32 s, off = 32 * link->nr, tag = DDB_LINK_TAG(link->nr);
-
+	u32 s, tag = DDB_LINK_TAG(link->nr);
+	u32 l = link->nr;
+	
 	s = ddbreadl(dev, tag | INTERRUPT_STATUS);
 	pr_info("gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
 
 	if (!s)
 		return;
 	ddbwritel(dev, s, tag | INTERRUPT_ACK);
-	LINK_IRQ_HANDLE(0);
-	LINK_IRQ_HANDLE(1);
-	LINK_IRQ_HANDLE(2);
-	LINK_IRQ_HANDLE(3);
+	LINK_IRQ_HANDLE(l, 0);
+	LINK_IRQ_HANDLE(l, 1);
+	LINK_IRQ_HANDLE(l, 2);
+	LINK_IRQ_HANDLE(l, 3);
 }
 
 static void gtl_irq_handler(unsigned long priv)
@@ -4529,14 +4552,14 @@ static void gtl_irq_handler(unsigned long priv)
 	struct ddb_link *link = (struct ddb_link *) priv;
 #if 1
 	struct ddb *dev = link->dev;
-	u32 s, off = 32 * link->nr, tag = DDB_LINK_TAG(link->nr);
+	u32 s, l = link->nr, tag = DDB_LINK_TAG(link->nr);
 
 	while ((s = ddbreadl(dev, tag | INTERRUPT_STATUS)))  {
 		ddbwritel(dev, s, tag | INTERRUPT_ACK);
-		LINK_IRQ_HANDLE(0);
-		LINK_IRQ_HANDLE(1);
-		LINK_IRQ_HANDLE(2);
-		LINK_IRQ_HANDLE(3);
+		LINK_IRQ_HANDLE(l, 0);
+		LINK_IRQ_HANDLE(l, 1);
+		LINK_IRQ_HANDLE(l, 2);
+		LINK_IRQ_HANDLE(l, 3);
 	}
 #else
 	tasklet_schedule(&link->tasklet);
@@ -4648,8 +4671,8 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 
 	ddbwritel(dev, 1, 0x1a0);
 
-	dev->handler_data[11] = (unsigned long) link;
-	dev->handler[11] = gtl_irq_handler;
+	dev->handler_data[0][11] = (unsigned long) link;
+	dev->handler[0][11] = gtl_irq_handler;
 
 	pr_info("GTL %s\n", dev->link[l].info->name);
 	pr_info("GTL HW %08x REGMAP %08x\n",
@@ -4669,8 +4692,8 @@ static int ddb_gtl_init(struct ddb *dev)
 {
 	u32 l;
 
-	dev->handler_data[10] = (unsigned long) dev;
-	dev->handler[10] = gtl_link_handler;
+	dev->handler_data[0][10] = (unsigned long) dev;
+	dev->handler[0][10] = gtl_link_handler;
 
 	for (l = 1; l < dev->link[0].info->regmap->gtl->num + 1; l++)
 		ddb_gtl_init_link(dev, l);
