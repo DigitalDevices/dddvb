@@ -124,8 +124,8 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 #else
 		stat = pci_enable_msi_block(dev->pdev, nr);
 		if (stat == 0) {
-			dev->msi = 2;
-			pr_info("DDBridge: using 2 MSI interrupts\n");
+			dev->msi = nr;
+			pr_info("DDBridge: using %d MSI interrupts\n", nr);
 		}
 		if (stat == 1)
 			stat = pci_enable_msi(dev->pdev);
@@ -537,8 +537,8 @@ static struct ddb_info ddb_octopro = {
 	.type     = DDB_OCTOPRO,
 	.name     = "Digital Devices OctopusNet Pro",
 	.regmap   = &octopus_map,
-	.port_num = 1,
-	.i2c_mask = 0x00,
+	.port_num = 4,
+	.i2c_mask = 0x0f,
 	.mdio_num = 1,
 };
 
@@ -582,7 +582,7 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	/* testing on OctopusNet Pro */
 	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopus_net),
 	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
 	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0328, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0329, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
