@@ -125,6 +125,7 @@ struct ddb_regmap {
 	struct ddb_regset *pid_filter;
 	struct ddb_regset *ns;
 	struct ddb_regset *gtl;
+	struct ddb_regset *mdio;
 };
 
 struct ddb_ids {
