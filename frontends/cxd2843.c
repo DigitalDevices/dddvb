@@ -34,8 +34,11 @@
 #include <linux/mutex.h>
 #include <asm/div64.h>
 
+#include "dvb_math.h"
 #include "dvb_frontend.h"
 #include "cxd2843.h"
+
+#define INTLOG10X100(x) ((u32) (((u64) intlog10(x) * 100) >> 24))
 
 #define USE_ALGO 1
 
@@ -1504,52 +1507,6 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	return 0;
 }
 
-static s32 Log10x100(u32 x)
-{
-	static u32 LookupTable[100] = {
-		101157945, 103514217, 105925373, 108392691, 110917482,
-		113501082, 116144861, 118850223, 121618600, 124451461,
-		127350308, 130316678, 133352143, 136458314, 139636836,
-		142889396, 146217717, 149623566, 153108746, 156675107,
-		160324539, 164058977, 167880402, 171790839, 175792361,
-		179887092, 184077200, 188364909, 192752491, 197242274,
-		201836636, 206538016, 211348904, 216271852, 221309471,
-		226464431, 231739465, 237137371, 242661010, 248313311,
-		254097271, 260015956, 266072506, 272270131, 278612117,
-		285101827, 291742701, 298538262, 305492111, 312607937,
-		319889511, 327340695, 334965439, 342767787, 350751874,
-		358921935, 367282300, 375837404, 384591782, 393550075,
-		402717034, 412097519, 421696503, 431519077, 441570447,
-		451855944, 462381021, 473151259, 484172368, 495450191,
-		506990708, 518800039, 530884444, 543250331, 555904257,
-		568852931, 582103218, 595662144, 609536897, 623734835,
-		638263486, 653130553, 668343918, 683911647, 699841996,
-		716143410, 732824533, 749894209, 767361489, 785235635,
-		803526122, 822242650, 841395142, 860993752, 881048873,
-		901571138, 922571427, 944060876, 966050879, 988553095,
-	};
-	s32 y;
-	int i;
-
-	if (x == 0)
-		return 0;
-	y = 800;
-	if (x >= 1000000000) {
-		x /= 10;
-		y += 100;
-	}
-
-	while (x < 100000000) {
-		x *= 10;
-		y -= 100;
-	}
-	i = 0;
-	while (i < 100 && x > LookupTable[i])
-		i += 1;
-	y += i;
-	return y;
-}
-
 #if 0
 static void GetPLPIds(struct cxd_state *state, u32 nValues,
 		      u8 *Values, u32 *Returned)
@@ -1598,10 +1555,10 @@ static void GetSignalToNoiseIT(struct cxd_state *state, u32 *SignalToNoise)
 	if (state->bw == 8) {
 		if (reg > 1143)
 			reg = 1143;
-		*SignalToNoise = (Log10x100(reg) -
-				  Log10x100(1200 - reg)) + 220;
+		*SignalToNoise = (INTLOG10X100(reg) -
+				  INTLOG10X100(1200 - reg)) + 220;
 	} else
-		*SignalToNoise = Log10x100(reg) - 90;
+		*SignalToNoise = INTLOG10X100(reg) - 90;
 }
 
 static void GetSignalToNoiseC2(struct cxd_state *state, u32 *SignalToNoise)
@@ -1617,7 +1574,7 @@ static void GetSignalToNoiseC2(struct cxd_state *state, u32 *SignalToNoise)
 	if (reg > 51441)
 		reg = 51441;
 
-	*SignalToNoise = (Log10x100(reg) - Log10x100(55000 - reg)) + 384;
+	*SignalToNoise = (INTLOG10X100(reg) - INTLOG10X100(55000 - reg)) + 384;
 }
 
 
@@ -1634,7 +1591,7 @@ static void GetSignalToNoiseT2(struct cxd_state *state, u32 *SignalToNoise)
 	if (reg > 10876)
 		reg = 10876;
 
-	*SignalToNoise = (Log10x100(reg) - Log10x100(12600 - reg)) + 320;
+	*SignalToNoise = (INTLOG10X100(reg) - INTLOG10X100(12600 - reg)) + 320;
 }
 
 static void GetSignalToNoiseT(struct cxd_state *state, u32 *SignalToNoise)
@@ -1650,7 +1607,7 @@ static void GetSignalToNoiseT(struct cxd_state *state, u32 *SignalToNoise)
 	if (reg > 4996)
 		reg = 4996;
 
-	*SignalToNoise = (Log10x100(reg) - Log10x100(5350 - reg)) + 285;
+	*SignalToNoise = (INTLOG10X100(reg) - INTLOG10X100(5350 - reg)) + 285;
 }
 
 static void GetSignalToNoiseC(struct cxd_state *state, u32 *SignalToNoise)
@@ -1676,13 +1633,13 @@ static void GetSignalToNoiseC(struct cxd_state *state, u32 *SignalToNoise)
 	case 4: /* QAM 256 */
 		if (reg < 126)
 			reg = 126;
-		*SignalToNoise = ((439 - Log10x100(reg)) * 2134 + 500) / 1000;
+		*SignalToNoise = ((439 - INTLOG10X100(reg)) * 2134 + 500) / 1000;
 		break;
 	case 1: /* QAM 32 */
 	case 3: /* QAM 128 */
 		if (reg < 69)
 			reg = 69;
-		*SignalToNoise = ((432 - Log10x100(reg)) * 2015 + 500) / 1000;
+		*SignalToNoise = ((432 - INTLOG10X100(reg)) * 2015 + 500) / 1000;
 		break;
 	}
 }
