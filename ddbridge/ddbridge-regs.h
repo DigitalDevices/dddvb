@@ -156,7 +156,7 @@
 /* ------------------------------------------------------------------------- */
 /* I2C Master Controller */
 
-#define I2C_BASE        (0x80)  /* Byte offset */
+/*#define I2C_BASE        (0x80)  */
 
 #define I2C_COMMAND     (0x00)
 #define I2C_TIMING      (0x04)

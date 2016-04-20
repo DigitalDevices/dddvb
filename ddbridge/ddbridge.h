@@ -116,10 +116,14 @@ struct ddb_regmap {
 	struct ddb_ports  *bc;
 	struct ddb_regset *i2c;
 	struct ddb_regset *i2c_buf;
-	struct ddb_regset *dma;
-	struct ddb_regset *dma_buf;
+	struct ddb_regset *idma[4];
+	struct ddb_regset *idma_buf[4];
+	struct ddb_regset *odma;
+	struct ddb_regset *odma_buf;
+
 	struct ddb_regset *input;
 	struct ddb_regset *output;
+	
 	struct ddb_regset *channel;
 	struct ddb_regset *ci;
 	struct ddb_regset *pid_filter;
@@ -188,12 +192,15 @@ struct ddb_port;
 struct ddb_dma {
 	void                  *io;
 	u32                    nr;
+	u32                    regs;
+	u32                    bufregs;
+
 	dma_addr_t             pbuf[DMA_MAX_BUFS];
 	u8                    *vbuf[DMA_MAX_BUFS];
 	u32                    num;
 	u32                    size;
 	u32                    div;
-	u32                    bufreg;
+	u32                    bufval;
 
 #ifdef DDB_USE_WORK
 	struct work_struct     work;
@@ -245,6 +252,7 @@ struct ddb_ci {
 struct ddb_io {
 	struct ddb_port       *port;
 	u32                    nr;
+	u32                    regs;
 	struct ddb_dma        *dma;
 	struct ddb_io         *redo;
 	struct ddb_io         *redi;

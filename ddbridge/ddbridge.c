@@ -329,6 +329,36 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 
+static struct ddb_regset octopus_input = {
+	.base = 0x200,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_output = {
+	.base = 0x280,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_idma_buf = {
+	.base = 0x2000,
+	.num  = 0x08,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopus_odma = {
+	.base = 0x380,
+	.num  = 0x04,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_odma_buf = {
+	.base = 0x2800,
+	.num  = 0x04,
+	.size = 0x100,
+};
+
 static struct ddb_regset octopus_i2c = {
 	.base = 0x80,
 	.num  = 0x04,
@@ -343,18 +373,115 @@ static struct ddb_regset octopus_i2c_buf = {
 
 /****************************************************************************/
 
+static struct ddb_regset octopro_input = {
+	.base = 0x400,
+	.num  = 0xFile Edit Options Buffers Tools C Help
+	.base = 0x1000,
+	.num  = 0x04,
+	.size = 0x200,
+};
+
+/****************************************************************************/
+
+static struct ddb_regset octopro_input = {
+	.base = 0x400,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_output = {
+	.base = 0x600,
+	.num  = 0x0a,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_idma = {
+	.base = 0x800,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_odma = {
+	.base = 0x1000,
+	.num  = 0x04,
+	.size = 0x200,
+};
+
+/****************************************************************************/
+
+static struct ddb_regset octopro_input = {
+	.base = 0x400,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_output = {
+	.base = 0x600,
+	.num  = 0x0a,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_idma = {
+	.base = 0x800,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_idma_buf = {
+	.base = 0x4000,
+	.num  = 0x14,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopro_odma = {
+	.base = 0xa00,
+	.num  = 0x0a,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_odma_buf = {
+	.base = 0x6000,
+	.num  = 0x0a,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopro_i2c = {
+	.base = 0x2000,
+	.num  = 0x0a,
+	.size = 0x20,
+};
+
+static struct ddb_regset octopro_i2c_buf = {
+	.base = 0x2000,
+	.num  = 0x0a,
+	.size = 0x200,
+};
+
+/****************************************************************************/
+/****************************************************************************/
+
 
 static struct ddb_regmap octopus_map = {
 	.i2c = &octopus_i2c,
 	.i2c_buf = &octopus_i2c_buf,
+	.idma[0] = &octopus_idma,
+	.idma_buf[0] = &octopus_idma_buf,
+	.odma = &octopus_odma,
+	.odma_buf = &octopus_odma_buf,
 };
 
-static struct ddb_regmap octopus_net_map = {
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
+static struct ddb_regmap octopro_map = {
+	.i2c = &octopro_i2c,
+	.i2c_buf = &octopro_i2c_buf,
+	.idma[0] = &octopro_idma,
+	.idma_buf[0] = &octopro_idma_buf,
+	.odma = &octopro_odma,
+	.odma_buf = &octopro_odma_buf,
 };
 
 static struct ddb_regmap octopus_mod_map = {
+	.odma = &octopus_odma,
+	.odma_buf = &octopus_odma_buf,
 };
 
 
@@ -519,16 +646,6 @@ static struct ddb_info ddb_mod = {
 	.temp_num = 1,
 };
 
-static struct ddb_info ddb_octopus_net = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet network DVB adapter",
-	.regmap   = &octopus_net_map,
-	.port_num = 10,
-	.i2c_mask = 0x3ff,
-	.ns_num   = 12,
-	.mdio_num = 1,
-};
-
 static struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
@@ -541,7 +658,7 @@ static struct ddb_info ddb_octopro_hdin = {
 static struct ddb_info ddb_octopro = {
 	.type     = DDB_OCTOPRO,
 	.name     = "Digital Devices OctopusNet Pro",
-	.regmap   = &octopus_map,
+	.regmap   = &octopro_map,
 	.port_num = 4,
 	.i2c_mask = 0x0f,
 	.mdio_num = 1,
@@ -585,7 +702,7 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
 	/* testing on OctopusNet Pro */
-	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopus_net),
+	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
 	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
 	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
