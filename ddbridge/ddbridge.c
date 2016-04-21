@@ -422,7 +422,7 @@ static struct ddb_regset octopro_odma_buf = {
 };
 
 static struct ddb_regset octopro_i2c = {
-	.base = 0x2000,
+	.base = 0x200,
 	.num  = 0x0a,
 	.size = 0x20,
 };
