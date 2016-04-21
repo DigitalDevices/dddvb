@@ -247,6 +247,12 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (pci_enable_device(pdev) < 0)
 		return -ENODEV;
 
+	pci_set_master(pdev);
+
+	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)))
+		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
+			return -ENODEV;
+	
 	dev = vzalloc(sizeof(struct ddb));
 	if (dev == NULL)
 		return -ENOMEM;
@@ -341,6 +347,12 @@ static struct ddb_regset octopus_output = {
 	.size = 0x10,
 };
 
+static struct ddb_regset octopus_idma = {
+	.base = 0x300,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
 static struct ddb_regset octopus_idma_buf = {
 	.base = 0x2000,
 	.num  = 0x08,
@@ -366,42 +378,6 @@ static struct ddb_regset octopus_i2c = {
 };
 
 static struct ddb_regset octopus_i2c_buf = {
-	.base = 0x1000,
-	.num  = 0x04,
-	.size = 0x200,
-};
-
-/****************************************************************************/
-
-static struct ddb_regset octopro_input = {
-	.base = 0x400,
-	.num  = 0xFile Edit Options Buffers Tools C Help
-	.base = 0x1000,
-	.num  = 0x04,
-	.size = 0x200,
-};
-
-/****************************************************************************/
-
-static struct ddb_regset octopro_input = {
-	.base = 0x400,
-	.num  = 0x14,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_output = {
-	.base = 0x600,
-	.num  = 0x0a,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_idma = {
-	.base = 0x800,
-	.num  = 0x14,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_odma = {
 	.base = 0x1000,
 	.num  = 0x04,
 	.size = 0x200,
