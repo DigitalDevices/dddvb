@@ -1464,7 +1464,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	else
 		*strength = 0;
 
-	printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
+	// printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
 	if (bbgain < (s32) *strength)
 		*strength -= bbgain;
 	else
