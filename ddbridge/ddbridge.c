@@ -59,7 +59,7 @@ static void ddb_unmap(struct ddb *dev)
 
 static void __devexit ddb_irq_disable(struct ddb *dev)
 {
-	if ((dev->link[0].ids.regmapid & 0xffff0000) == 0x00020000) {
+	if (dev->link[0].info->regmap->irq_version == 2) {
 		//ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_2);
@@ -131,14 +131,12 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 		if (stat == 0) {
 			dev->msi = nr;
 			pr_info("DDBridge: using %d MSI interrupts\n", nr);
-		}
-		if (stat == 1)
+		} else if (stat == 1) {
 			stat = pci_enable_msi(dev->pdev);
-		if (stat < 0) {
-			pr_info("DDBridge: MSI not available.\n");
-		} else {
-			dev->msi++;
+			dev->msi = 1;
 		}
+		if (stat < 0) 
+			pr_info("DDBridge: MSI not available.\n");
 #endif
 	}
 	return stat;
@@ -185,7 +183,7 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 	int stat;
 	int irq_flag = IRQF_SHARED;
 	
-	if ((dev->link[0].ids.regmapid & 0xffff0000) == 0x00020000)
+	if (dev->link[0].info->regmap->irq_version == 2)
 		return ddb_irq_init2(dev);
 	
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);
@@ -294,12 +292,8 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 
 	if (dev->link[0].info->ns_num) {
-		int i;
-
 		ddbwritel(dev, 0, ETHER_CONTROL);
-		for (i = 0; i < 16; i++)
-			ddbwritel(dev, 0x00, TS_OUTPUT_CONTROL(i));
-		usleep_range(5000, 6000);
+		ddb_reset_ios(dev);
 	}
 	ddbwritel(dev, 0, DMA_BASE_READ);
 	if (dev->link[0].info->type != DDB_MOD)
@@ -333,134 +327,6 @@ fail:
 
 /****************************************************************************/
 /****************************************************************************/
-/****************************************************************************/
-
-static struct ddb_regset octopus_input = {
-	.base = 0x200,
-	.num  = 0x08,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopus_output = {
-	.base = 0x280,
-	.num  = 0x08,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopus_idma = {
-	.base = 0x300,
-	.num  = 0x08,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopus_idma_buf = {
-	.base = 0x2000,
-	.num  = 0x08,
-	.size = 0x100,
-};
-
-static struct ddb_regset octopus_odma = {
-	.base = 0x380,
-	.num  = 0x04,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopus_odma_buf = {
-	.base = 0x2800,
-	.num  = 0x04,
-	.size = 0x100,
-};
-
-static struct ddb_regset octopus_i2c = {
-	.base = 0x80,
-	.num  = 0x04,
-	.size = 0x20,
-};
-
-static struct ddb_regset octopus_i2c_buf = {
-	.base = 0x1000,
-	.num  = 0x04,
-	.size = 0x200,
-};
-
-/****************************************************************************/
-
-static struct ddb_regset octopro_input = {
-	.base = 0x400,
-	.num  = 0x14,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_output = {
-	.base = 0x600,
-	.num  = 0x0a,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_idma = {
-	.base = 0x800,
-	.num  = 0x14,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_idma_buf = {
-	.base = 0x4000,
-	.num  = 0x14,
-	.size = 0x100,
-};
-
-static struct ddb_regset octopro_odma = {
-	.base = 0xa00,
-	.num  = 0x0a,
-	.size = 0x10,
-};
-
-static struct ddb_regset octopro_odma_buf = {
-	.base = 0x6000,
-	.num  = 0x0a,
-	.size = 0x100,
-};
-
-static struct ddb_regset octopro_i2c = {
-	.base = 0x200,
-	.num  = 0x0a,
-	.size = 0x20,
-};
-
-static struct ddb_regset octopro_i2c_buf = {
-	.base = 0x2000,
-	.num  = 0x0a,
-	.size = 0x200,
-};
-
-/****************************************************************************/
-/****************************************************************************/
-
-
-static struct ddb_regmap octopus_map = {
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
-	.idma[0] = &octopus_idma,
-	.idma_buf[0] = &octopus_idma_buf,
-	.odma = &octopus_odma,
-	.odma_buf = &octopus_odma_buf,
-};
-
-static struct ddb_regmap octopro_map = {
-	.i2c = &octopro_i2c,
-	.i2c_buf = &octopro_i2c_buf,
-	.idma[0] = &octopro_idma,
-	.idma_buf[0] = &octopro_idma_buf,
-	.odma = &octopro_odma,
-	.odma_buf = &octopro_odma_buf,
-};
-
-static struct ddb_regmap octopus_mod_map = {
-	.odma = &octopus_odma,
-	.odma_buf = &octopus_odma_buf,
-};
-
-
 /****************************************************************************/
 
 static struct ddb_info ddb_none = {
@@ -594,26 +460,6 @@ static struct ddb_info ddb_dvbct = {
 
 /****************************************************************************/
 
-static struct ddb_info ddb_s2_48 = {
-	.type     = DDB_OCTOPUS_MAX,
-	.name     = "Digital Devices MAX S8 4/8",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x01,
-	.board_control = 1,
-};
-
-static struct ddb_info ddb_ct_8 = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices MAX CT8",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 0x0ff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-};
-
 static struct ddb_info ddb_mod = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices DVB-C modulator",
@@ -711,7 +557,7 @@ static __init int module_init_ddbridge(void)
 
 	pr_info("Digital Devices PCIE bridge driver "
 		DDBRIDGE_VERSION
-		", Copyright (C) 2010-15 Digital Devices GmbH\n");
+		", Copyright (C) 2010-16 Digital Devices GmbH\n");
 	if (ddb_class_create() < 0)
 		return -1;
 	ddb_wq = create_workqueue("ddbridge");

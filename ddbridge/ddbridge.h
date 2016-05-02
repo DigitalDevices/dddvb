@@ -91,10 +91,10 @@
 #include "lnbh25.h"
 #include "mxl5xx.h"
 
-#define DDB_MAX_I2C    16
-#define DDB_MAX_PORT   22
-#define DDB_MAX_INPUT  44
-#define DDB_MAX_OUTPUT 24
+#define DDB_MAX_I2C    32
+#define DDB_MAX_PORT   32
+#define DDB_MAX_INPUT  64
+#define DDB_MAX_OUTPUT 32
 #define DDB_MAX_LINK    4
 #define DDB_LINK_SHIFT 28
 
@@ -106,18 +106,17 @@ struct ddb_regset {
 	u32 size;
 };
 
-struct ddb_ports {
-	u32 base;
-	u32 num;
-	u32 size;
-};
-
 struct ddb_regmap {
-	struct ddb_ports  *bc;
+	u32 irq_version;
+	u32 irq_base_i2c;
+	u32 irq_base_idma;
+	u32 irq_base_odma;
+	u32 irq_base_gtl;
+	
 	struct ddb_regset *i2c;
 	struct ddb_regset *i2c_buf;
-	struct ddb_regset *idma[4];
-	struct ddb_regset *idma_buf[4];
+	struct ddb_regset *idma;
+	struct ddb_regset *idma_buf;
 	struct ddb_regset *odma;
 	struct ddb_regset *odma_buf;
 
@@ -125,11 +124,11 @@ struct ddb_regmap {
 	struct ddb_regset *output;
 	
 	struct ddb_regset *channel;
-	struct ddb_regset *ci;
-	struct ddb_regset *pid_filter;
-	struct ddb_regset *ns;
+	//struct ddb_regset *ci;
+	//struct ddb_regset *pid_filter;
+	//struct ddb_regset *ns;
 	struct ddb_regset *gtl;
-	struct ddb_regset *mdio;
+	//struct ddb_regset *mdio;
 };
 
 struct ddb_ids {
@@ -191,7 +190,6 @@ struct ddb_port;
 
 struct ddb_dma {
 	void                  *io;
-	u32                    nr;
 	u32                    regs;
 	u32                    bufregs;
 
@@ -424,7 +422,8 @@ struct ddb {
 	struct ddb_input       input[DDB_MAX_INPUT];
 	struct ddb_output      output[DDB_MAX_OUTPUT];
 	struct dvb_adapter     adap[DDB_MAX_INPUT];
-	struct ddb_dma         dma[DDB_MAX_INPUT + DDB_MAX_OUTPUT];
+	struct ddb_dma         idma[DDB_MAX_INPUT];
+	struct ddb_dma         odma[DDB_MAX_OUTPUT];
 
 	void                   (*handler[4][128])(unsigned long);
 	unsigned long          handler_data[4][128];

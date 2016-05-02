@@ -201,10 +201,10 @@ static int ns_set_ci(struct dvbnss *nss, u8 ci)
 	pr_info("input %d.%d to ci %d at port %d\n",
 		input->port->lnr, input->nr, ci, ciport);
 	ddbwritel(dev, (input->port->lnr << 21) | (input->nr << 16) | 0x1c,
-		  TS_OUTPUT_CONTROL(ciport));
+		  TS_CONTROL(dev->port[ciport].output));
 	usleep_range(1, 5);
 	ddbwritel(dev, (input->port->lnr << 21) | (input->nr << 16) | 0x1d,
-		  TS_OUTPUT_CONTROL(ciport));
+		  TS_CONTROL(dev->port[ciport].output));
 	dns->fe = dev->port[ciport].input[0];
 	return 0;
 }

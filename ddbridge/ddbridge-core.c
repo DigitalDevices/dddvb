@@ -1,7 +1,7 @@
 /*
  * ddbridge-core.c: Digital Devices bridge core functions
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH
+ * Copyright (C) 2010-2016 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -54,7 +54,7 @@ static int xo2_speed = 2;
 module_param(xo2_speed, int, 0444);
 MODULE_PARM_DESC(xo2_speed, "default transfer speed for xo2 based duoflex, 0=55,1=75,2=90,3=104 MBit/s, default=2, use attribute to change for individual cards");
 
-#ifdef MACH_OCTOPRO
+#ifdef __arm__
 static int alt_dma = 1;
 #else
 static int alt_dma;
@@ -76,18 +76,220 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 #include "ddbridge-ns.c"
 
 
-static void ddb_set_dma_table(struct ddb *dev, struct ddb_dma *dma)
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+static struct ddb_regset octopus_mod_odma = {
+	.base = 0x300,
+	.num  = 0x0a,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_mod_odma_buf = {
+	.base = 0x2000,
+	.num  = 0x0a,
+	.size = 0x100,
+};
+
+/****************************************************************************/
+
+static struct ddb_regset octopus_input = {
+	.base = 0x200,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_output = {
+	.base = 0x280,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_idma = {
+	.base = 0x300,
+	.num  = 0x08,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_idma_buf = {
+	.base = 0x2000,
+	.num  = 0x08,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopus_odma = {
+	.base = 0x380,
+	.num  = 0x04,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_odma_buf = {
+	.base = 0x2800,
+	.num  = 0x04,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopus_i2c = {
+	.base = 0x80,
+	.num  = 0x04,
+	.size = 0x20,
+};
+
+static struct ddb_regset octopus_i2c_buf = {
+	.base = 0x1000,
+	.num  = 0x04,
+	.size = 0x200,
+};
+
+/****************************************************************************/
+
+static struct ddb_regset octopro_input = {
+	.base = 0x400,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_output = {
+	.base = 0x600,
+	.num  = 0x0a,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_idma = {
+	.base = 0x800,
+	.num  = 0x40,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_idma_buf = {
+	.base = 0x4000,
+	.num  = 0x40,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopro_odma = {
+	.base = 0xc00,
+	.num  = 0x20,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopro_odma_buf = {
+	.base = 0x8000,
+	.num  = 0x20,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopro_i2c = {
+	.base = 0x200,
+	.num  = 0x0a,
+	.size = 0x20,
+};
+
+static struct ddb_regset octopro_i2c_buf = {
+	.base = 0x2000,
+	.num  = 0x0a,
+	.size = 0x200,
+};
+
+static struct ddb_regset octopro_gtl = {
+	.base = 0xe00,
+	.num  = 0x03,
+	.size = 0x40,
+};
+
+/****************************************************************************/
+/****************************************************************************/
+
+
+static struct ddb_regmap octopus_map = {
+	.irq_version = 1,
+	.irq_base_i2c = 0,
+	.irq_base_idma = 8,
+	.irq_base_odma = 16,
+	.i2c = &octopus_i2c,
+	.i2c_buf = &octopus_i2c_buf,
+	.idma = &octopus_idma,
+	.idma_buf = &octopus_idma_buf,
+	.odma = &octopus_odma,
+	.odma_buf = &octopus_odma_buf,
+	.input = &octopus_input,
+	.output = &octopus_output,
+};
+
+static struct ddb_regmap octopro_map = {
+	.irq_version = 2,
+	.irq_base_i2c = 32,
+	.irq_base_idma = 64,
+	.irq_base_odma = 128,
+	.irq_base_gtl = 8,
+	.i2c = &octopro_i2c,
+	.i2c_buf = &octopro_i2c_buf,
+	.idma = &octopro_idma,
+	.idma_buf = &octopro_idma_buf,
+	.odma = &octopro_odma,
+	.odma_buf = &octopro_odma_buf,
+	.input = &octopro_input,
+	.output = &octopro_output,
+	.gtl = &octopro_gtl,
+};
+
+static struct ddb_regset octopus_mod_channel = {
+	.base = 0x400,
+	.num  = 0x0c,
+	.size = 0x40,
+};
+
+static struct ddb_regmap octopus_mod_map = {
+	.irq_version = 1,
+	.irq_base_odma = 8,
+	.output = &octopus_output,
+	.odma = &octopus_mod_odma,
+	.odma_buf = &octopus_mod_odma_buf,
+	.channel = &octopus_mod_channel,
+};
+
+
+/****************************************************************************/
+
+static struct ddb_info ddb_s2_48 = {
+	.type     = DDB_OCTOPUS_MAX,
+	.name     = "Digital Devices MAX S8 4/8",
+	.regmap   = &octopus_map,
+	.port_num = 4,
+	.i2c_mask = 0x01,
+	.board_control = 1,
+};
+
+static struct ddb_info ddb_ct_8 = {
+	.type     = DDB_OCTOPUS_MAX_CT,
+	.name     = "Digital Devices MAX CT8",
+	.regmap   = &octopus_map,
+	.port_num = 4,
+	.i2c_mask = 0x0f,
+	.board_control   = 0x0ff,
+	.board_control_2 = 0xf00,
+	.ts_quirks = TS_QUIRK_SERIAL,
+};
+
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+static void ddb_set_dma_table(struct ddb_io *io)
 {
-	u32 i, base;
+	struct ddb *dev = io->port->dev;
+	struct ddb_dma *dma = io->dma;
+	u32 i;
 	u64 mem;
 
 	if (!dma)
 		return;
-	base = DMA_BASE_ADDRESS_TABLE + dma->nr * 0x100;
 	for (i = 0; i < dma->num; i++) {
 		mem = dma->pbuf[i];
-		ddbwritel(dev, mem & 0xffffffff, base + i * 8);
-		ddbwritel(dev, mem >> 32, base + i * 8 + 4);
+		ddbwritel(dev, mem & 0xffffffff, dma->bufregs + i * 8);
+		ddbwritel(dev, mem >> 32, dma->bufregs + i * 8 + 4);
 	}
 	dma->bufval = (dma->div << 16) |
 		((dma->num & 0x1f) << 11) |
@@ -97,11 +299,15 @@ static void ddb_set_dma_table(struct ddb *dev, struct ddb_dma *dma)
 static void ddb_set_dma_tables(struct ddb *dev)
 {
 	u32 i;
-
-	for (i = 0; i < dev->link[0].info->port_num * 2; i++)
-		ddb_set_dma_table(dev, dev->input[i].dma);
-	for (i = 0; i < dev->link[0].info->port_num; i++)
-		ddb_set_dma_table(dev, dev->output[i].dma);
+	
+	for (i = 0; i < DDB_MAX_PORT; i++) {
+		if (dev->port[i].input[0])
+			ddb_set_dma_table(dev->port[i].input[0]);
+		if (dev->port[i].input[1])
+			ddb_set_dma_table(dev->port[i].input[1]);
+		if (dev->port[i].output)
+			ddb_set_dma_table(dev->port[i].output);
+        }
 }
 
 
@@ -117,7 +323,7 @@ static void ddb_redirect_dma(struct ddb *dev,
 	u64 mem;
 
 	sdma->bufval = ddma->bufval;
-	base = DMA_BASE_ADDRESS_TABLE + sdma->nr * 0x100;
+	base = sdma->bufregs;
 	for (i = 0; i < ddma->num; i++) {
 		mem = ddma->pbuf[i];
 		ddbwritel(dev, mem & 0xffffffff, base + i * 8);
@@ -151,7 +357,7 @@ static int ddb_unredirect(struct ddb_port *port)
 						 oredi->dma, iredo->dma);
 			}
 			port->input[0]->redo = 0;
-			ddb_set_dma_table(port->dev, port->input[0]->dma);
+			ddb_set_dma_table(port->input[0]);
 		}
 		oredi->redi = iredi;
 		port->input[0]->redi = 0;
@@ -159,7 +365,7 @@ static int ddb_unredirect(struct ddb_port *port)
 	oredi->redo = 0;
 	port->output->redi = 0;
 
-	ddb_set_dma_table(oredi->port->dev, oredi->dma);
+	ddb_set_dma_table(oredi);
 done:
 	mutex_unlock(&redirect_lock);
 	return 0;
@@ -339,33 +545,33 @@ static void ddb_output_start(struct ddb_output *output)
 		output->dma->cbuf = 0;
 		output->dma->coff = 0;
 		output->dma->stat = 0;
-		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma->nr));
+		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class == DDB_PORT_MOD)
 		ddbridge_mod_output_start(output);
 	else {
-		ddbwritel(dev, 0, TS_OUTPUT_CONTROL(output->nr));
-		ddbwritel(dev, 2, TS_OUTPUT_CONTROL(output->nr));
-		ddbwritel(dev, 0, TS_OUTPUT_CONTROL(output->nr));
-		ddbwritel(dev, 0x3c, TS_OUTPUT_CONTROL(output->nr));
-		ddbwritel(dev, con2, TS_OUTPUT_CONTROL2(output->nr));
+		ddbwritel(dev, 0, TS_CONTROL(output));
+		ddbwritel(dev, 2, TS_CONTROL(output));
+		ddbwritel(dev, 0, TS_CONTROL(output));
+		ddbwritel(dev, 0x3c, TS_CONTROL(output));
+		ddbwritel(dev, con2, TS_CONTROL2(output));
 	}
 	if (output->dma) {
 		ddbwritel(dev, output->dma->bufval,
-			  DMA_BUFFER_SIZE(output->dma->nr));
-		ddbwritel(dev, 0, DMA_BUFFER_ACK(output->dma->nr));
+			  DMA_BUFFER_SIZE(output->dma));
+		ddbwritel(dev, 0, DMA_BUFFER_ACK(output->dma));
 		ddbwritel(dev, 1, DMA_BASE_READ);
-		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(output->dma->nr));
+		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class != DDB_PORT_MOD) {
 		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
-			/*ddbwritel(dev, 0x15, TS_OUTPUT_CONTROL(output->nr));
+			/*ddbwritel(dev, 0x15, TS_CONTROL(output));
 			  ddbwritel(dev, 0x45,
-			  TS_OUTPUT_CONTROL(output->nr));*/
+			  TS_CONTROL(output));*/
 			ddbwritel(dev, (1 << 13) | 0x15,
-				  TS_OUTPUT_CONTROL(output->nr));
+				  TS_CONTROL(output));
 		else
-			ddbwritel(dev, 0x11d, TS_OUTPUT_CONTROL(output->nr));
+			ddbwritel(dev, 0x11d, TS_CONTROL(output));
 	}
 	if (output->dma) {
 		output->dma->running = 1;
@@ -382,9 +588,9 @@ static void ddb_output_stop(struct ddb_output *output)
 	if (output->port->class == DDB_PORT_MOD)
 		ddbridge_mod_output_stop(output);
 	else
-		ddbwritel(dev, 0, TS_OUTPUT_CONTROL(output->nr));
+		ddbwritel(dev, 0, TS_CONTROL(output));
 	if (output->dma) {
-		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma->nr));
+		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 		output->dma->running = 0;
 		spin_unlock_irq(&output->dma->lock);
 	}
@@ -397,9 +603,9 @@ static void ddb_input_stop(struct ddb_input *input)
 
 	if (input->dma)
 		spin_lock_irq(&input->dma->lock);
-	ddbwritel(dev, 0, tag | TS_INPUT_CONTROL(input->nr));
+	ddbwritel(dev, 0, tag | TS_CONTROL(input));
 	if (input->dma) {
-		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma->nr));
+		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 		input->dma->running = 0;
 		spin_unlock_irq(&input->dma->lock);
 	}
@@ -410,39 +616,36 @@ static void ddb_input_stop(struct ddb_input *input)
 static void ddb_input_start(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
-	u32 tsctrl = TS_INPUT_BASE + input->nr * 0x10;
-	u32 tsctrl2 = tsctrl + 4;
-	u32 tag = DDB_LINK_TAG(input->port->lnr);
 
 	if (input->dma) {
 		spin_lock_irq(&input->dma->lock);
 		input->dma->cbuf = 0;
 		input->dma->coff = 0;
 		input->dma->stat = 0;
-		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma->nr));
+		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 	}
-	//ddbwritel(dev, 0, tag | TS_INPUT_CONTROL2(input->nr));
-	ddbwritel(dev, 0, tag | TS_INPUT_CONTROL(input->nr));
-	ddbwritel(dev, 2, tag | TS_INPUT_CONTROL(input->nr));
-	ddbwritel(dev, 0, tag | TS_INPUT_CONTROL(input->nr));
+	ddbwritel(dev, 0, TS_CONTROL(input));
+	ddbwritel(dev, 2, TS_CONTROL(input));
+	ddbwritel(dev, 0, TS_CONTROL(input));
 
 	if (input->dma) {
 		ddbwritel(dev, input->dma->bufval,
-			  DMA_BUFFER_SIZE(input->dma->nr));
-		ddbwritel(dev, 0, DMA_BUFFER_ACK(input->dma->nr));
+			  DMA_BUFFER_SIZE(input->dma));
+		ddbwritel(dev, 0, DMA_BUFFER_ACK(input->dma));
 		ddbwritel(dev, 1, DMA_BASE_WRITE);
-		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(input->dma->nr));
+		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(input->dma));
 	}
 	if (dev->link[0].info->type == DDB_OCTONET)
-		ddbwritel(dev, 0x01, tag | TS_INPUT_CONTROL(input->nr));
+		ddbwritel(dev, 0x01, TS_CONTROL(input));
 	else
-		ddbwritel(dev, 0x09, tag | TS_INPUT_CONTROL(input->nr));
+		ddbwritel(dev, 0x09, TS_CONTROL(input));
 	if (input->dma) {
 		input->dma->running = 1;
 		spin_unlock_irq(&input->dma->lock);
 	}
-	/*printk("input_start %u.%u.%u\n",
-	  dev->nr, input->port->lnr, input->nr); */
+	pr_info("input_start %u.%u.%u\n",
+		dev->nr, input->port->lnr, input->nr);
+	pr_info("dmaregs = %08x\n", input->dma->regs);
 }
 
 
@@ -587,7 +790,7 @@ static ssize_t ddb_output_write(struct ddb_output *output,
 		ddbwritel(dev,
 			  (output->dma->cbuf << 11) |
 			  (output->dma->coff >> 7),
-			  DMA_BUFFER_ACK(output->dma->nr));
+			  DMA_BUFFER_ACK(output->dma));
 	}
 	return count - left;
 }
@@ -597,7 +800,7 @@ static u32 ddb_input_free_bytes(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
 	u32 idx, off, stat = input->dma->stat;
-	u32 ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(input->dma->nr));
+	u32 ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(input->dma));
 
 	idx = (stat >> 11) & 0x1f;
 	off = (stat & 0x7ff) << 7;
@@ -671,14 +874,14 @@ static u32 ddb_input_avail(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
 	u32 idx, off, stat = input->dma->stat;
-	u32 ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(input->dma->nr));
+	u32 ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(input->dma));
 
 	idx = (stat >> 11) & 0x1f;
 	off = (stat & 0x7ff) << 7;
 
 	if (ctrl & 4) {
 		pr_err("IA %d %d %08x\n", idx, off, ctrl);
-		ddbwritel(dev, stat, DMA_BUFFER_ACK(input->dma->nr));
+		ddbwritel(dev, stat, DMA_BUFFER_ACK(input->dma));
 		return 0;
 	}
 	if (input->dma->cbuf != idx)
@@ -720,7 +923,7 @@ static size_t ddb_input_read(struct ddb_input *input,
 		left -= free;
 		ddbwritel(dev,
 			  (input->dma->cbuf << 11) | (input->dma->coff >> 7),
-			  DMA_BUFFER_ACK(input->dma->nr));
+			  DMA_BUFFER_ACK(input->dma));
 	}
 	return count;
 }
@@ -925,20 +1128,6 @@ static struct dvb_device dvbdev_mod = {
 	.users   = 2,
 	.fops    = &mod_fops,
 };
-
-
-#if 0
-static struct ddb_input *fe2input(struct ddb *dev, struct dvb_frontend *fe)
-{
-	int i;
-
-	for (i = 0; i < dev->link[0].info->port_num * 2; i++) {
-		if (dev->input[i].fe == fe)
-			return &dev->input[i];
-	}
-	return NULL;
-}
-#endif
 
 static int locked_gate_ctrl(struct dvb_frontend *fe, int enable)
 {
@@ -2797,7 +2986,7 @@ static void input_write_output(struct ddb_input *input,
 			       struct ddb_output *output)
 {
 	ddbwritel(output->port->dev,
-		  input->dma->stat, DMA_BUFFER_ACK(output->dma->nr));
+		  input->dma->stat, DMA_BUFFER_ACK(output->dma));
 	output->dma->cbuf = (input->dma->stat >> 11) & 0x1f;
 	output->dma->coff = (input->dma->stat & 0x7ff) << 7;
 }
@@ -2806,7 +2995,7 @@ static void output_ack_input(struct ddb_output *output,
 			     struct ddb_input *input)
 {
 	ddbwritel(input->port->dev,
-		  output->dma->stat, DMA_BUFFER_ACK(input->dma->nr));
+		  output->dma->stat, DMA_BUFFER_ACK(input->dma));
 }
 
 static void input_write_dvb(struct ddb_input *input,
@@ -2833,15 +3022,20 @@ static void input_write_dvb(struct ddb_input *input,
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
+#if 0
+		pr_info("%02x %02x %02x %02x \n",
+			dma2->vbuf[dma->cbuf][0], dma2->vbuf[dma->cbuf][1],
+			dma2->vbuf[dma->cbuf][2], dma2->vbuf[dma->cbuf][3]);
+#endif
 		dvb_dmx_swfilter_packets(&dvb->demux,
 					 dma2->vbuf[dma->cbuf],
 					 dma2->size / 188);
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
-				  DMA_BUFFER_ACK(dma->nr));
-		dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma->nr));
-		dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma->nr));
+				  DMA_BUFFER_ACK(dma));
+		dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
+		dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 	}
 }
 
@@ -2864,8 +3058,8 @@ static void input_tasklet(unsigned long data)
 		spin_unlock_irqrestore(&dma->lock, flags);
 		return;
 	}
-	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma->nr));
-	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma->nr));
+	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
+	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 
 #if 0
 	if (4 & dma->ctrl)
@@ -2912,8 +3106,8 @@ static void output_handler(unsigned long data)
 		spin_unlock(&dma->lock);
 		return;
 	}
-	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma->nr));
-	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma->nr));
+	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
+	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 	if (output->redi)
 		output_ack_input(output, output->redi);
 	wake_up(&dma->wq);
@@ -2925,17 +3119,32 @@ static void output_handler(unsigned long data)
 /****************************************************************************/
 
 
-static void ddb_dma_init(struct ddb_dma *dma, int nr, void *io, int out)
+static struct ddb_regmap *io_regmap(struct ddb_io *io, int link)
 {
-#ifndef DDB_USE_WORK
-	unsigned long priv = (unsigned long) io;
-#endif
+	struct ddb_info *info;
 
+	if (link)
+		info = io->port->dev->link[io->port->lnr].info;
+	else
+		info = io->port->dev->link[0].info;
+	if (!info)
+		return NULL;
+	return info->regmap;
+}
+
+static void ddb_dma_init(struct ddb_io *io, int nr, int out)
+{
+	struct ddb_dma *dma;
+	struct ddb_regmap *rm = io_regmap(io, 0);
+
+	dma = out ? &io->port->dev->odma[nr] : &io->port->dev->idma[nr];
+	io->dma = dma;
 	dma->io = io;
-	dma->nr = nr;
 	spin_lock_init(&dma->lock);
 	init_waitqueue_head(&dma->wq);
 	if (out) {
+		dma->regs = rm->odma->base + rm->odma->size * nr;
+		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		dma->num = OUTPUT_DMA_BUFS;
 		dma->size = OUTPUT_DMA_SIZE;
 		dma->div = OUTPUT_DMA_IRQ_DIV;
@@ -2943,63 +3152,66 @@ static void ddb_dma_init(struct ddb_dma *dma, int nr, void *io, int out)
 #ifdef DDB_USE_WORK
 		INIT_WORK(&dma->work, input_work);
 #else
-		tasklet_init(&dma->tasklet, input_tasklet, priv);
+		tasklet_init(&dma->tasklet, input_tasklet, (unsigned long) io);
 #endif
+		dma->regs = rm->idma->base + rm->idma->size * nr;
+		dma->bufregs = rm->idma_buf->base + rm->idma_buf->size * nr;
 		dma->num = INPUT_DMA_BUFS;
 		dma->size = INPUT_DMA_SIZE;
 		dma->div = INPUT_DMA_IRQ_DIV;
 	}
+	ddbwritel(io->port->dev, 0, DMA_BUFFER_ACK(dma));
+	pr_info("init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
+		io->port->lnr, io->nr, nr, dma->regs, dma->bufregs); 
 }
 
-static void ddb_input_init(struct ddb_port *port, int nr, int pnr,
-			   int dma_nr, int anr)
+static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 {
 	struct ddb *dev = port->dev;
 	struct ddb_input *input = &dev->input[anr];
+	struct ddb_regmap *rm;
 
-	if (dev->has_dma) {
-		dev->handler[0][dma_nr + 8] = input_handler;
-		dev->handler_data[0][dma_nr + 8] = (unsigned long) input;
-	}
 	port->input[pnr] = input;
 	input->nr = nr;
 	input->port = port;
+	rm = io_regmap(input, 1);
+	input->regs = DDB_LINK_TAG(port->lnr) |
+		(rm->input->base + rm->input->size * nr);
+	pr_info("init link %u, input %u, regs %08x\n", port->lnr, nr, input->regs); 
 	if (dev->has_dma) {
-		input->dma = &dev->dma[dma_nr];
-		ddb_dma_init(input->dma, dma_nr, (void *) input, 0);
+		u32 base = rm->irq_base_idma;
+		u32 dma_nr = nr;
+
+		if (port->lnr)
+			dma_nr += 32 + (port->lnr - 1) * 8;
+		
+		pr_info("init link %u, input %u, handler %u\n", port->lnr, nr, dma_nr + base); 
+		dev->handler[0][dma_nr + base] = input_handler;
+		dev->handler_data[0][dma_nr + base] = (unsigned long) input;
+		ddb_dma_init(input, dma_nr, 0);
 	}
-	ddbwritel(dev, 0, TS_INPUT_CONTROL(nr));
-	ddbwritel(dev, 2, TS_INPUT_CONTROL(nr));
-	ddbwritel(dev, 0, TS_INPUT_CONTROL(nr));
-	if (input->dma)
-		ddbwritel(dev, 0, DMA_BUFFER_ACK(input->dma->nr));
 }
 
-static void ddb_output_init(struct ddb_port *port, int nr, int dma_nr)
+static void ddb_output_init(struct ddb_port *port, int nr)
 {
 	struct ddb *dev = port->dev;
 	struct ddb_output *output = &dev->output[nr];
+	struct ddb_regmap *rm;
 
-	if (dev->has_dma) {
-		dev->handler[0][dma_nr + 8] = output_handler;
-		dev->handler_data[0][dma_nr + 8] = (unsigned long) output;
-	}
 	port->output = output;
 	output->nr = nr;
 	output->port = port;
+	rm = io_regmap(output, 1);
+	output->regs = DDB_LINK_TAG(port->lnr) |
+		(rm->output->base + rm->output->size * nr);
+	pr_info("init link %u, output %u, regs %08x\n", port->lnr, nr, output->regs); 
 	if (dev->has_dma) {
-		output->dma = &dev->dma[dma_nr];
-		ddb_dma_init(output->dma, dma_nr, (void *) output, 1);
+		u32 base = rm->irq_base_odma;
+
+		dev->handler[0][nr + base] = output_handler;
+		dev->handler_data[0][nr + base] = (unsigned long) output;
+		ddb_dma_init(output, nr, 1);
 	}
-	if (output->port->class == DDB_PORT_MOD) {
-		/*ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));*/
-	} else {
-		ddbwritel(dev, 0, TS_OUTPUT_CONTROL(nr));
-		ddbwritel(dev, 2, TS_OUTPUT_CONTROL(nr));
-		ddbwritel(dev, 0, TS_OUTPUT_CONTROL(nr));
-	}
-	if (output->dma)
-		ddbwritel(dev, 0, DMA_BUFFER_ACK(output->dma->nr));
 }
 
 static int ddb_port_match_i2c(struct ddb_port *port)
@@ -3017,9 +3229,23 @@ static int ddb_port_match_i2c(struct ddb_port *port)
 	return 0;
 }
 
+static int ddb_port_match_link_i2c(struct ddb_port *port)
+{
+	struct ddb *dev = port->dev;
+	u32 i;
+
+	for (i = 0; i < dev->i2c_num; i++) {
+		if (dev->i2c[i].link == port->lnr) {
+			port->i2c = &dev->i2c[i];
+			return 1;
+		}
+	}
+	return 0;
+}
+
 static void ddb_ports_init(struct ddb *dev)
 {
-	u32 i, l, p, li2c;
+	u32 i, l, p;
 	struct ddb_port *port;
 	struct ddb_info *info;
 	struct ddb_regmap *rm;
@@ -3031,9 +3257,6 @@ static void ddb_ports_init(struct ddb *dev)
 		rm = info->regmap;
 		if (!rm)
 			continue;
-		for (li2c = 0; li2c < dev->i2c_num; li2c++)
-			if (dev->i2c[li2c].link == l)
-				break;
 		for (i = 0; i < info->port_num; i++, p++) {
 			port = &dev->port[p];
 			port->dev = dev;
@@ -3043,12 +3266,9 @@ static void ddb_ports_init(struct ddb *dev)
 			port->gap = 4;
 			port->obr = ci_bitrate;
 			mutex_init(&port->i2c_gate_lock);
-
-			if (!ddb_port_match_i2c(port)) {
+			if (!ddb_port_match_i2c(port))
 				if (info->type == DDB_OCTOPUS_MAX)
-					port->i2c = &dev->i2c[li2c];
-			}
-
+					ddb_port_match_link_i2c(port);
 			ddb_port_probe(port);
 
 			port->dvb[0].adap = &dev->adap[2 * p];
@@ -3061,52 +3281,48 @@ static void ddb_ports_init(struct ddb *dev)
 				port->name = "DuoFlex CI_B";
 				port->i2c = dev->port[p - 1].i2c;
 			}
-
 			pr_info("Port %u: Link %u, Link Port %u (TAB %u): %s\n",
 				port->pnr, port->lnr, port->nr,
 				port->nr + 1, port->name);
 
 			if (port->class == DDB_PORT_CI &&
 			    port->type == DDB_CI_EXTERNAL_XO2) {
-				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * i);
-				ddb_output_init(port, i, i + 8);
+				ddb_input_init(port, 2 * i, 0, 2 * i);
+				ddb_output_init(port, i);
 				continue;
 			}
 
 			if (port->class == DDB_PORT_CI &&
 			    port->type == DDB_CI_EXTERNAL_XO2_B) {
-				ddb_input_init(port, 2 * i - 1, 0,
-					       2 * i - 1, 2 * i - 1);
-				ddb_output_init(port, i, i + 8);
+				ddb_input_init(port, 2 * i - 1, 0, 2 * i - 1);
+				ddb_output_init(port, i);
 				continue;
 			}
+			if (port->class == DDB_PORT_NONE)
+				continue;
 
 			switch (dev->link[l].info->type) {
 			case DDB_OCTOPUS_CI:
 				if (i >= 2) {
-					ddb_input_init(port, 2 + i, 0,
-						       2 + i, 2 + i);
-					ddb_input_init(port, 4 + i, 1,
-						       4 + i, 4 + i);
-					ddb_output_init(port, i, i + 8);
+					ddb_input_init(port, 2 + i, 0, 2 + i);
+					ddb_input_init(port, 4 + i, 1, 4 + i);
+					ddb_output_init(port, i);
 					break;
 				} /* fallthrough */
 			case DDB_OCTONET:
 			case DDB_OCTOPUS:
 			case DDB_OCTOPRO:
-				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * i);
-				ddb_input_init(port, 2 * i + 1, 1,
-					       2 * i + 1, 2 * i + 1);
-				ddb_output_init(port, i, i + 8);
+				ddb_input_init(port, 2 * i, 0, 2 * i);
+				ddb_input_init(port, 2 * i + 1, 1, 2 * i + 1);
+				ddb_output_init(port, i);
 				break;
 			case DDB_OCTOPUS_MAX:
 			case DDB_OCTOPUS_MAX_CT:
-				ddb_input_init(port, 2 * i, 0, 2 * i, 2 * p);
-				ddb_input_init(port, 2 * i + 1,
-					       1, 2 * i + 1, 2 * p + 1);
+				ddb_input_init(port, 2 * i, 0, 2 * p);
+				ddb_input_init(port, 2 * i + 1, 1, 2 * p + 1);
 				break;
 			case DDB_MOD:
-				ddb_output_init(port, i, i);
+				ddb_output_init(port, i);
 				dev->handler[0][i + 18] =
 					ddbridge_mod_rate_handler;
 				dev->handler_data[0][i + 18] =
@@ -3279,24 +3495,53 @@ static irqreturn_t irq_handler(int irq, void *dev_id)
 
 static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 {
-	u32 reg = INTERRUPT_V2_STATUS_1 + 4 * n;
+	u32 reg = INTERRUPT_V2_STATUS + 4 * n;
 	u32 s = ddbreadl(dev, reg);
 	u32 off = n * 32;
 
-	//pr_info("irq_handle_v2_%u s=%08x\n", n, s);
 	if (!s)
 		return IRQ_NONE;
 	ddbwritel(dev, s, reg);
 	
 	if ((s & 0x000000ff)) {
-		IRQ_HANDLE(0 + off);
-		IRQ_HANDLE(1 + off);
-		IRQ_HANDLE(2 + off);
-		IRQ_HANDLE(3 + off);
-		IRQ_HANDLE(4 + off);
-		IRQ_HANDLE(5 + off);
-		IRQ_HANDLE(6 + off);
-		IRQ_HANDLE(7 + off);
+		IRQ_HANDLE( 0 + off);
+		IRQ_HANDLE( 1 + off);
+		IRQ_HANDLE( 2 + off);
+		IRQ_HANDLE( 3 + off);
+		IRQ_HANDLE( 4 + off);
+		IRQ_HANDLE( 5 + off);
+		IRQ_HANDLE( 6 + off);
+		IRQ_HANDLE( 7 + off);
+	}
+	if ((s & 0x0000ff00)) {
+		IRQ_HANDLE( 8 + off);
+		IRQ_HANDLE( 9 + off);
+		IRQ_HANDLE(10 + off);
+		IRQ_HANDLE(11 + off);
+		IRQ_HANDLE(12 + off);
+		IRQ_HANDLE(13 + off);
+		IRQ_HANDLE(14 + off);
+		IRQ_HANDLE(15 + off);
+	}
+	if ((s & 0x00ff0000)) {
+		IRQ_HANDLE(16 + off);
+		IRQ_HANDLE(17 + off);
+		IRQ_HANDLE(18 + off);
+		IRQ_HANDLE(19 + off);
+		IRQ_HANDLE(20 + off);
+		IRQ_HANDLE(21 + off);
+		IRQ_HANDLE(22 + off);
+		IRQ_HANDLE(23 + off);
+	}
+	if ((s & 0xff000000)) {
+		IRQ_HANDLE(24 + off);
+		IRQ_HANDLE(25 + off);
+		IRQ_HANDLE(26 + off);
+		IRQ_HANDLE(27 + off);
+		IRQ_HANDLE(28 + off);
+		IRQ_HANDLE(29 + off);
+		IRQ_HANDLE(30 + off);
+		IRQ_HANDLE(31 + off);
 	}
 	return IRQ_HANDLED;
 }
@@ -3310,11 +3555,21 @@ static irqreturn_t irq_handler_v2(int irq, void *dev_id)
 	if (!s)
 		return IRQ_NONE;
 	do {
-		if (s & 0x80000000)
+		if (s & 0x80)
 			return IRQ_NONE;
-		//pr_info("irq_handler_v2 s=%08x\n", s);
+		ddbwritel(dev, s, INTERRUPT_V2_STATUS);
 		if (s & 0x00000001)
-			irq_handle_v2_n(dev, 0);
+			irq_handle_v2_n(dev, 1);
+		if (s & 0x00000002) {
+			//pr_info("irq_handler_v2 s=%08x\n", s);
+			irq_handle_v2_n(dev, 2);
+		}
+		if (s & 0x00000004)
+			irq_handle_v2_n(dev, 3);
+		IRQ_HANDLE(8);
+		IRQ_HANDLE(9);
+		IRQ_HANDLE(10);
+		IRQ_HANDLE(11);
 	} while ((s = 0xffff & ddbreadl(dev, INTERRUPT_V2_STATUS)));
 
 	return ret;
@@ -4592,68 +4847,12 @@ static void gtl_irq_handler(unsigned long priv)
 #endif
 }
 
-static struct ddb_regset octopus_max_gtl_i2c = {
-	.base = 0x80,
-	.num  = 0x01,
-	.size = 0x20,
-};
-
-static struct ddb_regset octopus_max_gtl_i2c_buf = {
-	.base = 0x1000,
-	.num  = 0x01,
-	.size = 0x200,
-};
-
-static struct ddb_regmap octopus_max_gtl_map = {
-	.i2c = &octopus_max_gtl_i2c,
-	.i2c_buf = &octopus_max_gtl_i2c_buf,
-};
-
-static struct ddb_info octopus_max_gtl = {
-	.type     = DDB_OCTOPUS_MAX,
-	.name     = "Digital Devices Octopus MAX GTL",
-	.regmap   = &octopus_max_gtl_map,
-	.port_num = 4,
-	.i2c_mask = 0x01,
-	.board_control = 1,
-};
-
-
-static struct ddb_regset octopus_maxct_gtl_i2c = {
-	.base = 0x80,
-	.num  = 0x04,
-	.size = 0x20,
-};
-
-static struct ddb_regset octopus_maxct_gtl_i2c_buf = {
-	.base = 0x1000,
-	.num  = 0x04,
-	.size = 0x200,
-};
-
-static struct ddb_regmap octopus_maxct_gtl_map = {
-	.i2c = &octopus_maxct_gtl_i2c,
-	.i2c_buf = &octopus_maxct_gtl_i2c_buf,
-};
-
-static struct ddb_info octopus_ct_gtl = {
-	.type     = DDB_OCTOPUS_MAX_CT,
-	.name     = "Digital Devices Octopus MAX CT GTL",
-	.regmap   = &octopus_maxct_gtl_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control = 0xff,
-	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
-};
-
-
 static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 {
 	struct ddb_link *link = &dev->link[l];
 	u32 regs = dev->link[0].info->regmap->gtl->base +
 		(l - 1) * dev->link[0].info->regmap->gtl->size;
-	u32 id;
+	u32 id, base = dev->link[0].info->regmap->irq_base_gtl;
 
 	pr_info("Checking GT link %u: regs = %08x\n", l, regs);
 
@@ -4683,10 +4882,10 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
 	switch (id) {
 	case 0x0007dd01:
-		link->info = &octopus_max_gtl;
+		link->info = &ddb_s2_48;
 		break;
 	case 0x0008dd01:
-		link->info = &octopus_ct_gtl;
+		link->info = &ddb_ct_8;
 		break;
 	default:
 		pr_info("DDBridge: Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
@@ -4697,8 +4896,8 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 
 	ddbwritel(dev, 1, 0x1a0);
 
-	dev->handler_data[0][11] = (unsigned long) link;
-	dev->handler[0][11] = gtl_irq_handler;
+	dev->handler_data[0][base + l] = (unsigned long) link;
+	dev->handler[0][base + l] = gtl_irq_handler;
 
 	pr_info("GTL %s\n", dev->link[l].info->name);
 	pr_info("GTL HW %08x REGMAP %08x\n",
@@ -4716,11 +4915,10 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 
 static int ddb_gtl_init(struct ddb *dev)
 {
-	u32 l;
+	u32 l, base = dev->link[0].info->regmap->irq_base_gtl;
 
-	dev->handler_data[0][10] = (unsigned long) dev;
-	dev->handler[0][10] = gtl_link_handler;
-
+	dev->handler_data[0][base] = (unsigned long) dev;
+	dev->handler[0][base] = gtl_link_handler; 
 	for (l = 1; l < dev->link[0].info->regmap->gtl->num + 1; l++)
 		ddb_gtl_init_link(dev, l);
 	return 0;
@@ -4805,4 +5003,25 @@ fail2:
 fail:
 	pr_err("fail1\n");
 	return -1;
+}
+
+static void ddb_reset_io(struct ddb *dev, u32 reg)
+{
+	ddbwritel(dev, 0x00, reg);
+	ddbwritel(dev, 0x02, reg);
+	ddbwritel(dev, 0x00, reg);
+}
+
+static void ddb_reset_ios(struct ddb *dev)
+{
+	u32 i;
+	struct ddb_regmap *rm = dev->link[0].info->regmap;
+	
+	if (rm->input)
+		for (i = 0; i < rm->input->num; i++)
+			ddb_reset_io(dev, rm->input->base + i * rm->input->size);
+	if (rm->output)
+		for (i = 0; i < rm->output->num; i++)
+			ddb_reset_io(dev, rm->output->base + i * rm->output->size);
+	usleep_range(5000, 6000);
 }

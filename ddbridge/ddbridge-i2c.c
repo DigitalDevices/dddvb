@@ -257,7 +257,7 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 static int ddb_i2c_init(struct ddb *dev)
 {
 	int stat = 0;
-	u32 i, j, num = 0, l;
+	u32 i, j, num = 0, l, base;
 	struct ddb_i2c *i2c;
 	struct i2c_adapter *adap;
 	struct ddb_regmap *regmap;
@@ -268,12 +268,13 @@ static int ddb_i2c_init(struct ddb *dev)
 		regmap = dev->link[l].info->regmap;
 		if (!regmap || !regmap->i2c)
 			continue;
+		base = regmap->irq_base_i2c;
 		for (i = 0; i < regmap->i2c->num; i++) {
 			if (!(dev->link[l].info->i2c_mask & (1 << i)))
 				continue;
 			i2c = &dev->i2c[num];
-			dev->handler_data[l][i] = (unsigned long) i2c;
-			dev->handler[l][i] = i2c_handler;
+			dev->handler_data[l][i + base] = (unsigned long) i2c;
+			dev->handler[l][i + base] = i2c_handler;
 			stat = ddb_i2c_add(dev, i2c, regmap, l, i, num);
 			if (stat)
 				break;

@@ -1054,12 +1054,31 @@ static int set_parameters(struct dvb_frontend *fe)
 	return stat;
 }
 
+static int get_frequency_offset(struct stv *state, s32 *off)
+{
+	u8 cfr0, cfr1, cfr2;
+	s32 derot;
+
+	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr2);
+	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr1);
+	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr0);
+	
+	derot = ((u32) cfr2 << 16) | ((u32)cfr1 << 8) | cfr0;
+	if (derot & (1<<23))
+		derot |= 0xFF000000;
+        *off = - (s32) (((s64) derot * (s64) state->base->mclk) >> 24);
+	pr_info("foff = %d\n", *off);
+	return 0;
+}
+
+
 static int get_frontend(struct dvb_frontend *fe)
 {
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 tmp;
 
+	
 	if (state->ReceiveMode == Mode_DVBS2) {
 		u32 mc;
 		enum fe_modulation modcod2mod[0x20] = {
@@ -1132,6 +1151,9 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	u32 FECLock = 0;
 	u16 val;
 	u32 ber;
+	s32 foff;
+
+	get_frequency_offset(state, &foff);
 	
 	read_signal_strength(fe, &val);
 
@@ -1446,8 +1468,6 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	int i;
 
 	read_regs(state, RSTV0910_P2_AGCIQIN1 + state->regoff, Reg, 2);
-	//KdPrintEx((MSG_INFO "_%d " __FUNCTION__ " AGCIQIN1 = %02x%02x\n",m_Instance,Reg[0],Reg[1]));
-	
 	*strength = (((u32) Reg[0]) << 8) | Reg[1];
 	
 	for (i = 0; i < 5; i += 1) {
@@ -1456,7 +1476,6 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 		msleep(3);
 	}
 	Power /= 5;
-	
 	bbgain = (465 - Log10x100(Power)) * 10;
 	
 	if (fe->ops.tuner_ops.get_rf_strength)
@@ -1464,7 +1483,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	else
 		*strength = 0;
 
-	printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
+	//printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
 	if (bbgain < (s32) *strength)
 		*strength -= bbgain;
 	else

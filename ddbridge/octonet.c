@@ -1,7 +1,7 @@
 /*
  * octonet.c: Digital Devices network tuner driver
  *
- * Copyright (C) 2012-15 Digital Devices GmbH
+ * Copyright (C) 2012-16 Digital Devices GmbH
  *                       Marcus Metzler <mocm@metzlerbros.de>
  *                       Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -34,21 +34,16 @@ MODULE_PARM_DESC(adapter_alloc,
 
 #include "ddbridge-core.c"
 
-static struct ddb_regset octopus_i2c = {
-	.base = 0x80,
-	.num  = 0x04,
-	.size = 0x20,
-};
-
-static struct ddb_regset octopus_i2c_buf = {
-	.base = 0x1000,
-	.num  = 0x04,
-	.size = 0x200,
-};
-
 static struct ddb_regmap octopus_net_map = {
+	.irq_version = 1,
+	.irq_base_i2c = 0,
+	.irq_base_idma = 8,
 	.i2c = &octopus_i2c,
 	.i2c_buf = &octopus_i2c_buf,
+	.i2c = &octopus_i2c,
+	.i2c_buf = &octopus_i2c_buf,
+	.input = &octopus_input,
+	.output = &octopus_output,
 };
 
 static struct ddb_regset octopus_gtl = {
@@ -58,8 +53,16 @@ static struct ddb_regset octopus_gtl = {
 };
 
 static struct ddb_regmap octopus_net_gtl = {
+	.irq_version = 1,
+	.irq_base_i2c = 0,
+	.irq_base_idma = 8,
+	.irq_base_gtl = 10,
 	.i2c = &octopus_i2c,
 	.i2c_buf = &octopus_i2c_buf,
+	.i2c = &octopus_i2c,
+	.i2c_buf = &octopus_i2c_buf,
+	.input = &octopus_input,
+	.output = &octopus_output,
 	.gtl = &octopus_gtl,
 };
 
@@ -185,9 +188,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 	ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_STATUS);
-	for (i = 0; i < 16; i++)
-		ddbwritel(dev, 0x00, TS_OUTPUT_CONTROL(i));
-	usleep_range(5000, 6000);
+	ddb_reset_ios(dev);
 
 	irq = platform_get_irq(dev->pfdev, 0);
 	if (irq < 0)
@@ -236,7 +237,7 @@ static __init int init_octonet(void)
 	int res;
 
 	pr_info("Digital Devices OctopusNet driver " DDBRIDGE_VERSION
-		", Copyright (C) 2010-15 Digital Devices GmbH\n");
+		", Copyright (C) 2010-16 Digital Devices GmbH\n");
 	res = ddb_class_create();
 	if (res)
 		return res;
