@@ -985,8 +985,6 @@ static int ts_open(struct inode *inode, struct file *file)
 	} else if ((file->f_flags & O_ACCMODE) == O_WRONLY) {
 		if (!output)
 			return -EINVAL;
-	} else {
-		return -EINVAL;
 	}
 	err = dvb_generic_open(inode, file);
 	if (err < 0)
