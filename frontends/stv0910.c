@@ -1067,7 +1067,7 @@ static int get_frequency_offset(struct stv *state, s32 *off)
 	if (derot & (1<<23))
 		derot |= 0xFF000000;
         *off = - (s32) (((s64) derot * (s64) state->base->mclk) >> 24);
-	pr_info("foff = %d\n", *off);
+	/*pr_info("foff = %d\n", *off);*/
 	return 0;
 }
 
