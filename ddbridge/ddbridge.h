@@ -425,8 +425,8 @@ struct ddb {
 	struct ddb_dma         idma[DDB_MAX_INPUT];
 	struct ddb_dma         odma[DDB_MAX_OUTPUT];
 
-	void                   (*handler[4][128])(unsigned long);
-	unsigned long          handler_data[4][128];
+	void                   (*handler[4][256])(unsigned long);
+	unsigned long          handler_data[4][256];
 
 	struct device         *ddb_dev;
 	u32                    ddb_dev_users;

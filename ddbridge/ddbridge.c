@@ -60,7 +60,7 @@ static void ddb_unmap(struct ddb *dev)
 static void __devexit ddb_irq_disable(struct ddb *dev)
 {
 	if (dev->link[0].info->regmap->irq_version == 2) {
-		//ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
+		ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_2);
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_3);
@@ -166,8 +166,8 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 			   irq_flag, "ddbridge", (void *) dev);
 	if (stat < 0)
 		return stat;
-
-	//ddbwritel(dev, 0x0f, INTERRUPT_V2_CONTROL);
+	
+	ddbwritel(dev, 0x0000ff7f, INTERRUPT_V2_CONTROL);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_1);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_2);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_3);
@@ -471,9 +471,9 @@ static struct ddb_info ddb_mod = {
 static struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
-	.regmap   = &octopus_map,
-	.port_num = 1,
-	.i2c_mask = 0x00,
+	.regmap   = &octopro_hdin_map,
+	.port_num = 10,
+	.i2c_mask = 0x3ff,
 	.mdio_num = 1,
 };
 
@@ -481,8 +481,8 @@ static struct ddb_info ddb_octopro = {
 	.type     = DDB_OCTOPRO,
 	.name     = "Digital Devices OctopusNet Pro",
 	.regmap   = &octopro_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
+	.port_num = 10,
+	.i2c_mask = 0x3ff,
 	.mdio_num = 1,
 };
 
@@ -524,7 +524,7 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
 	/* testing on OctopusNet Pro */
-	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
+	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
 	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
 	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),

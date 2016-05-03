@@ -234,6 +234,21 @@ static struct ddb_regmap octopro_map = {
 	.gtl = &octopro_gtl,
 };
 
+static struct ddb_regmap octopro_hdin_map = {
+	.irq_version = 2,
+	.irq_base_i2c = 32,
+	.irq_base_idma = 64,
+	.irq_base_odma = 128,
+	.i2c = &octopro_i2c,
+	.i2c_buf = &octopro_i2c_buf,
+	.idma = &octopro_idma,
+	.idma_buf = &octopro_idma_buf,
+	.odma = &octopro_odma,
+	.odma_buf = &octopro_odma_buf,
+	.input = &octopro_input,
+	.output = &octopro_output,
+};
+
 static struct ddb_regset octopus_mod_channel = {
 	.base = 0x400,
 	.num  = 0x0c,
@@ -643,9 +658,6 @@ static void ddb_input_start(struct ddb_input *input)
 		input->dma->running = 1;
 		spin_unlock_irq(&input->dma->lock);
 	}
-	pr_info("input_start %u.%u.%u\n",
-		dev->nr, input->port->lnr, input->nr);
-	pr_info("dmaregs = %08x\n", input->dma->regs);
 }
 
 
@@ -3566,6 +3578,8 @@ static irqreturn_t irq_handler_v2(int irq, void *dev_id)
 		}
 		if (s & 0x00000004)
 			irq_handle_v2_n(dev, 3);
+		if (s & 0x0000ff00) 
+			;//pr_info("irq_handler_v2 s=%08x\n", s);
 		IRQ_HANDLE(8);
 		IRQ_HANDLE(9);
 		IRQ_HANDLE(10);
@@ -4837,6 +4851,7 @@ static void gtl_irq_handler(unsigned long priv)
 
 	while ((s = ddbreadl(dev, tag | INTERRUPT_STATUS)))  {
 		ddbwritel(dev, s, tag | INTERRUPT_ACK);
+		//pr_info("gtlirq %08x\n", s);
 		LINK_IRQ_HANDLE(l, 0);
 		LINK_IRQ_HANDLE(l, 1);
 		LINK_IRQ_HANDLE(l, 2);
@@ -4861,6 +4876,10 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	link->lnb.fmode = 0xffffffff;
 	mutex_init(&link->flash_mutex);
 
+	link->nr = l;
+	link->dev = dev;
+	link->regs = regs;
+
 	if (!(1 & ddbreadl(dev, regs))) {
 		u32 c;
 
@@ -4875,10 +4894,6 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 		if (c == 5)
 			return -1;
 	}
-	link->nr = l;
-	link->dev = dev;
-	link->regs = regs;
-
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
 	switch (id) {
 	case 0x0007dd01:
