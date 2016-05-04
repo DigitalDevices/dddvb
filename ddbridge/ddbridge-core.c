@@ -497,7 +497,7 @@ static int ddb_buffers_alloc(struct ddb *dev)
 	int i;
 	struct ddb_port *port;
 
-	for (i = 0; i < dev->link[0].info->port_num; i++) {
+	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
 		switch (port->class) {
 		case DDB_PORT_TUNER:
@@ -535,7 +535,7 @@ static void ddb_buffers_free(struct ddb *dev)
 	int i;
 	struct ddb_port *port;
 
-	for (i = 0; i < dev->link[0].info->port_num; i++) {
+	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
 
 		if (port->input[0] && port->input[0]->dma)
@@ -3572,14 +3572,10 @@ static irqreturn_t irq_handler_v2(int irq, void *dev_id)
 		ddbwritel(dev, s, INTERRUPT_V2_STATUS);
 		if (s & 0x00000001)
 			irq_handle_v2_n(dev, 1);
-		if (s & 0x00000002) {
-			//pr_info("irq_handler_v2 s=%08x\n", s);
+		if (s & 0x00000002)
 			irq_handle_v2_n(dev, 2);
-		}
 		if (s & 0x00000004)
 			irq_handle_v2_n(dev, 3);
-		if (s & 0x0000ff00) 
-			;//pr_info("irq_handler_v2 s=%08x\n", s);
 		IRQ_HANDLE(8);
 		IRQ_HANDLE(9);
 		IRQ_HANDLE(10);
@@ -4225,7 +4221,7 @@ static ssize_t ports_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 
-	return sprintf(buf, "%d\n", dev->link[0].info->port_num);
+	return sprintf(buf, "%d\n", dev->port_num);
 }
 
 static ssize_t ts_irq_show(struct device *device,
