@@ -4905,7 +4905,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	}
 	link->ids.devid = id;
 
-	ddbwritel(dev, 1, 0x1a0);
+	ddbwritel(dev, 1, regs + 0x20);
 
 	dev->handler_data[0][base + l] = (unsigned long) link;
 	dev->handler[0][base + l] = gtl_irq_handler;
