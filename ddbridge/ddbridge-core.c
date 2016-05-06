@@ -3191,7 +3191,8 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 		(rm->input->base + rm->input->size * nr);
 	pr_info("init link %u, input %u, regs %08x\n", port->lnr, nr, input->regs); 
 	if (dev->has_dma) {
-		u32 base = rm->irq_base_idma;
+		struct ddb_regmap *rm0 = io_regmap(input, 0);
+		u32 base = rm0->irq_base_idma;
 		u32 dma_nr = nr;
 
 		if (port->lnr)
@@ -3218,7 +3219,8 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 		(rm->output->base + rm->output->size * nr);
 	pr_info("init link %u, output %u, regs %08x\n", port->lnr, nr, output->regs); 
 	if (dev->has_dma) {
-		u32 base = rm->irq_base_odma;
+		struct ddb_regmap *rm0 = io_regmap(output, 0);
+		u32 base = rm0->irq_base_odma;
 
 		dev->handler[0][nr + base] = output_handler;
 		dev->handler_data[0][nr + base] = (unsigned long) output;
