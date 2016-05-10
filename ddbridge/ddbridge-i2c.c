@@ -247,7 +247,9 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 	adap->class = I2C_CLASS_TV_ANALOG;
 #endif
 #endif
-	strcpy(adap->name, "ddbridge");
+	/*strcpy(adap->name, "ddbridge");*/
+	snprintf(adap->name, I2C_NAME_SIZE, "ddbridge_%02x.%x.%x",
+		 dev->nr, i2c->link, i);
 	adap->algo = &ddb_i2c_algo;
 	adap->algo_data = (void *)i2c;
 	adap->dev.parent = dev->dev;
