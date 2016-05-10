@@ -1060,8 +1060,8 @@ static int get_frequency_offset(struct stv *state, s32 *off)
 	s32 derot;
 
 	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr2);
-	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr1);
-	read_reg(state, RSTV0910_P2_CFR2 + state->regoff, &cfr0);
+	read_reg(state, RSTV0910_P2_CFR1 + state->regoff, &cfr1);
+	read_reg(state, RSTV0910_P2_CFR0 + state->regoff, &cfr0);
 	
 	derot = ((u32) cfr2 << 16) | ((u32)cfr1 << 8) | cfr0;
 	if (derot & (1<<23))
