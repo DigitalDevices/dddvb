@@ -1,4 +1,6 @@
-all: cit citin flashprog modt ddtest setmod ddflash
+APPS = cit citin flashprog modt ddtest setmod ddflash
+
+all: $(APPS)
 
 cit: cit.c
 	gcc -o cit cit.c -lpthread
@@ -17,3 +19,6 @@ ddtest: ddtest.c
 
 ddflash: ddflash.c
 	gcc -o ddflash ddflash.c
+
+clean:
+	rm -rf $(APPS)
