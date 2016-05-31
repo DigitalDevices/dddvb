@@ -177,6 +177,15 @@ struct ddb_info {
 
 #define DMA_MAX_BUFS 32      /* hardware table limit */
 
+#ifdef SMALL_DMA_BUFS
+#define INPUT_DMA_BUFS 32
+#define INPUT_DMA_SIZE (32*47*21)
+#define INPUT_DMA_IRQ_DIV 1
+
+#define OUTPUT_DMA_BUFS 32
+#define OUTPUT_DMA_SIZE (32*47*21)
+#define OUTPUT_DMA_IRQ_DIV 1
+#else
 #define INPUT_DMA_BUFS 8
 #define INPUT_DMA_SIZE (128*47*21)
 #define INPUT_DMA_IRQ_DIV 1
@@ -184,6 +193,7 @@ struct ddb_info {
 #define OUTPUT_DMA_BUFS 8
 #define OUTPUT_DMA_SIZE (128*47*21)
 #define OUTPUT_DMA_IRQ_DIV 1
+#endif
 
 struct ddb;
 struct ddb_port;
