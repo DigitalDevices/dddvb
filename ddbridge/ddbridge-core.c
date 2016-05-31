@@ -388,9 +388,9 @@ done:
 
 static int ddb_redirect(u32 i, u32 p)
 {
-	struct ddb *idev = ddbs[(i >> 4) & 0x1f];
+	struct ddb *idev = ddbs[(i >> 4) & 0x3f];
 	struct ddb_input *input, *input2;
-	struct ddb *pdev = ddbs[(p >> 4) & 0x1f];
+	struct ddb *pdev = ddbs[(p >> 4) & 0x3f];
 	struct ddb_port *port;
 
 	if (!idev->has_dma || !pdev->has_dma)
@@ -4499,6 +4499,30 @@ static ssize_t redirect_show(struct device *device,
 }
 
 static ssize_t redirect_store(struct device *device,
+			      struct device_attribute *attr,
+			      const char *buf, size_t count)
+{
+	unsigned int i, p;
+	int res;
+
+	if (sscanf(buf, "%x %x\n", &i, &p) != 2)
+		return -EINVAL;
+	res = ddb_redirect(i, p);
+	if (res < 0)
+		return res;
+	pr_info("redirect: %02x, %02x\n", i, p);
+	return count;
+}
+
+/* A L P I  AAAAAALLPPPPPPII */
+/* AAAAAAAA LLLLLLLL PPPPPPII */
+static ssize_t redirect2_show(struct device *device,
+			     struct device_attribute *attr, char *buf)
+{
+	return 0;
+}
+
+static ssize_t redirect2_store(struct device *device,
 			      struct device_attribute *attr,
 			      const char *buf, size_t count)
 {
