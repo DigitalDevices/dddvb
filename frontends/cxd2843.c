@@ -1234,7 +1234,7 @@ static int set_parameters(struct dvb_frontend *fe)
 		fe->ops.tuner_ops.set_params(fe);
 	state->bandwidth = fe->dtv_property_cache.bandwidth_hz;
 	state->bw = (fe->dtv_property_cache.bandwidth_hz + 999999) / 1000000;
-	if (fe->dtv_property_cache.stream_id == 0xffffffff) {
+	if (fe->dtv_property_cache.stream_id == NO_STREAM_ID_FILTER) {
 		state->DataSliceID = 0xffffffff;
 		state->plp = 0xffffffff;
 	} else {
@@ -1912,7 +1912,7 @@ static int get_fe_t2(struct cxd_state *state)
 	
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x5c, ofdm, 5);
-	readregst_unlocked(state, 0x22, 0x5b, &modcod, 2);
+	readregst_unlocked(state, 0x22, 0x5b, modcod, 2);
 	unfreeze_regst(state);
 	
         switch (modcod[0] & 0x07) {

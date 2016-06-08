@@ -128,9 +128,7 @@ struct stv {
 	int   isVCM;
 	
 	u32   CurScramblingCode;
-	u32   ForceScramblingCode;
 	u32   ScramblingCode;
-	u32   DefaultInputStreamID;
 	
 	u32   LastBERNumerator;
 	u32   LastBERDenominator;
@@ -964,7 +962,6 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	u8  regDMDCFGMD;
 	u16 symb;
 	u32 ScramblingCode;
-        u32 InputStreamID;
 	
 	if (p->symbol_rate < 100000 || p->symbol_rate > 70000000)
 		return -EINVAL;
@@ -978,24 +975,26 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 
 	init_search_param(state);
 	
-#if 0
-	if (state->ForceScramblingCode != (u32) (-1) )
-		state->ScramblingCode = state->ForceScramblingCode;
-	ScramblingCode = (state->ScramblingCode & 0xFF800000 ) ? DD_PLS_DEFAULT_ROOT : state->ScramblingCode;
-	
+        if (p->scrambling_code != NO_SCRAMBLING_CODE)
+		ScramblingCode = p->scrambling_code;
+	else
+		ScramblingCode = 1;
+
         if (ScramblingCode != state->CurScramblingCode) {
-		write_reg(state, RSTV0910_P2_PLROOT0 + state->regoff, ScramblingCode & 0xff);
-		write_reg(state, RSTV0910_P2_PLROOT1 + state->regoff, (ScramblingCode >> 8) & 0xff);
-		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff, (ScramblingCode >> 16) & 0xff);
+		write_reg(state, RSTV0910_P2_PLROOT0 + state->regoff,
+			  ScramblingCode & 0xff);
+		write_reg(state, RSTV0910_P2_PLROOT1 + state->regoff,
+			  (ScramblingCode >> 8) & 0xff);
+		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff,
+			  (ScramblingCode >> 16) & 0x07);
 		state->CurScramblingCode = ScramblingCode;
         }
 
-        InputStreamID = (p->stream_id != (u32) -1) ? p->stream_id : state->DefaultInputStreamID;
-        if (InputStreamID != (u32) -1) {
-		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, InputStreamID & 0xff);
+        if (p->stream_id != NO_STREAM_ID_FILTER) {
+		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, p->stream_id & 0xff);
 		write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0xff);
         }
-#endif
+
 	if (p->symbol_rate <= 1000000) {  /*SR <=1Msps*/
 		state->DemodTimeout = 3000;
 		state->FecTimeout = 2000;
@@ -1346,7 +1345,6 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber);
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct stv *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 DmdState = 0;
 	u8 DStatus  = 0;
 	enum ReceiveMode CurReceiveMode = Mode_None;
@@ -1822,9 +1820,7 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->SearchRange = 16000000;
 	state->DEMOD = 0x10;     /* Inversion : Auto with reset to 0 */
 	state->ReceiveMode   = Mode_None;
-	state->CurScramblingCode = (u32) -1;
-	state->ForceScramblingCode = (u32) -1;
-	state->DefaultInputStreamID = (u32) -1;
+	state->CurScramblingCode = NO_SCRAMBLING_CODE;
 
 	base = match_base(i2c, cfg->adr);
 	if (base) {

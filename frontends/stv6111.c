@@ -618,7 +618,6 @@ static struct SLookup Gain_Channel_AGC_IIP3_LookUp[] = {
 	{ 1325 , 0xFF00 },
 };
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
 static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
 {
