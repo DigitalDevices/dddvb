@@ -506,6 +506,7 @@ static inline void gtlw(struct ddb_link *link)
 }
 #endif
 
+#if 0
 static u32 ddblreadl(struct ddb_link *link, u32 adr)
 {
 	if (unlikely(link->nr)) {
@@ -539,6 +540,7 @@ static void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 	}
 	writel(val, (char *) (link->dev->regs + (adr)));
 }
+#endif
 
 static u32 ddbreadl(struct ddb *dev, u32 adr)
 {

@@ -131,7 +131,6 @@ static int __init octonet_probe(struct platform_device *pdev)
 	struct ddb *dev;
 	struct resource *regs;
 	int irq;
-	int i;
 
 	dev = vzalloc(sizeof(struct ddb));
 	if (!dev)
