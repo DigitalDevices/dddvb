@@ -933,6 +933,7 @@ static size_t ddb_input_read(struct ddb_input *input,
 				input->dma->num;
 		}
 		left -= free;
+		buf += free;
 		ddbwritel(dev,
 			  (input->dma->cbuf << 11) | (input->dma->coff >> 7),
 			  DMA_BUFFER_ACK(input->dma));
