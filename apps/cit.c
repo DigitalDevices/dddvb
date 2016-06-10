@@ -9,6 +9,9 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
+#include <getopt.h>
+
+uint32_t adapter = 0, device = 0, snum = 256, rnum = 256;
 
 uint8_t fill[188]={0x47, 0x1f, 0xff, 0x10,
    0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
@@ -68,24 +71,34 @@ void proc_buf(uint8_t *buf, uint32_t *d)
 	} else {
 		if (memcmp(ts+8, buf+8, 180))
 			printf("error\n");
-		if (!(c&0xffff))
-			printf("R %08x\n", c);
+		if (!(c&0xffff)) {
+			printf("R %08x\r", c);
+			fflush(0);
+		}
 	}
 	(*d)++;
 }
 
 void *get_ts(void *a)
 {
-	uint8_t buf[188*1024];
+	uint8_t *buf;
 	int len, off;
-
-	int fdi=open("/dev/dvb/adapter2/ci0", O_RDONLY);
+	int fdi;
+	char fname[80];
 	uint32_t d=0;
 
+	buf = malloc(188*rnum);
+	if (!buf)
+		return NULL;
+	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
+	fdi = open(fname, O_RDONLY);
+
 	while (1) {
-		len=read(fdi, buf, 188*1024);
+		memset(buf, 0, 188*rnum);
+		len=read(fdi, buf, 188*rnum);
 		if (len<0)
 			continue;
+		//printf("read %u\n", len);
 		if (buf[0]!=0x47) {
 			read(fdi, buf, 1);
 			continue;
@@ -96,20 +109,23 @@ void *get_ts(void *a)
 	}	
 }
 
-#define SNUM 233
-//671
-void send(void)
+
+int send(void)
 {
-	uint8_t buf[188*SNUM], *cts;
+	uint8_t *buf, *cts;
 	int i;
 	uint32_t c=0;
 	int fdo;
-
-	fdo=open("/dev/dvb/adapter2/ci0", O_WRONLY);
-
+	char fname[80];
+	
+	buf = malloc(188*snum);
+	if (!buf)
+		return -1;
+	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
+	fdo=open(fname, O_WRONLY);
 
 	while (1) {
-		for (i=0; i<SNUM; i++) {
+		for (i=0; i<snum; i++) {
 			cts=buf+i*188;
 			memcpy(cts, ts, 188);
 			cts[4]=(c>>24);
@@ -122,15 +138,54 @@ void send(void)
 			//usleep(100000+0xffff&rand());
 			//usleep(1000);
 		}
-		write(fdo, buf, 188*SNUM);
+		write(fdo, buf, 188*snum);
 	}
 }
 
 
-int main()
+int main(int argc, char **argv)
 {
 	pthread_t th;
-
+	
+	while (1) {
+                int option_index = 0;
+		int c;
+                static struct option long_options[] = {
+			{"adapter", required_argument, 0, 'a'},
+			{"device", required_argument, 0, 'd'},
+			{"snum", required_argument, 0, 's'},
+			{"rnum", required_argument, 0, 'r'},
+			{"help", no_argument , 0, 'h'},
+			{0, 0, 0, 0}
+		};
+                c = getopt_long(argc, argv, 
+				"a:d:h",
+				long_options, &option_index);
+		if (c==-1)
+ 			break;
+		
+		switch (c) {
+		case 'd':
+			device = strtoul(optarg, NULL, 10);
+			break;
+		case 'a':
+			adapter = strtoul(optarg, NULL, 10);
+			break;
+		case 's':
+			snum = strtoul(optarg, NULL, 10);
+			break;
+		case 'r':
+			rnum = strtoul(optarg, NULL, 10);
+			break;
+		case 'h':
+		default:
+			break;
+			
+		}
+	}
+	if (optind < argc) {
+		printf("Warning: unused arguments\n");
+	}
 	memset(ts+8, 180, 0x5a);
 	pthread_create(&th, NULL, get_ts, NULL);
 	usleep(10000);
