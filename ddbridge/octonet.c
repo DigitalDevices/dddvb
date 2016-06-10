@@ -25,7 +25,11 @@
 
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
 #include <asm-generic/pci-dma-compat.h>
+#else
+#include <linux/pci-dma-compat.h>
+#endif
 
 static int adapter_alloc = 3;
 module_param(adapter_alloc, int, 0444);
