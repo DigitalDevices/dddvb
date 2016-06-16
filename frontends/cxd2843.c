@@ -1333,7 +1333,6 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr);
 
 static int get_stats(struct dvb_frontend *fe)
 {
-	struct cxd_state *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u16 val;
 
@@ -1576,7 +1575,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	u32 n, d;
+	u32 n = 0, d = 1;
 	int s = 0;
 
 	*ber = 0;
