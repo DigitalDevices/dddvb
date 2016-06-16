@@ -379,9 +379,9 @@ struct dvb_frontend_event {
 #define DTV_STAT_TOTAL_BLOCK_COUNT	69
 
 #define DTV_INPUT                       70
-#define DTV_SCRAMBLING_CODE             71
+#define DTV_PLS                         71
 
-#define DTV_MAX_COMMAND		DTV_SCRAMBLING_CODE
+#define DTV_MAX_COMMAND		DTV_PLS
 
 typedef enum fe_pilot {
 	PILOT_ON,

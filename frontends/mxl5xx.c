@@ -1067,6 +1067,7 @@ static int firmware_download(struct mxl *state, u8 *mbin, u32 mbin_len)
 	status = read_register(state, HYDRA_PRCM_ROOT_CLK_REG, &regData);
 	if (status)
 		return status;
+
 	status = do_firmware_download(state, mbin, mbin_len);
 	if (status)
 		return status;

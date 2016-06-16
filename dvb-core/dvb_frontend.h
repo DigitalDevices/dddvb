@@ -397,7 +397,7 @@ struct dtv_frontend_properties {
 
 	u32			lna;
 	s32                     input;
-	u32			scrambling_code;
+	u32			pls;
 	
 	/* statistics data */
 	struct dtv_fe_stats	strength;

@@ -865,7 +865,7 @@ static int init_search_param(struct stv *state)
 	
 	write_reg(state, RSTV0910_P2_UPLCCST0 + state->regoff, 0xe0);
 	write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0x00);
-	
+
 	read_reg(state, RSTV0910_P2_TSSTATEM + state->regoff, &tmp);
         tmp &= ~0x01;	// nosync = 0, in case next signal is standard TS
 	write_reg(state, RSTV0910_P2_TSSTATEM + state->regoff, tmp);
@@ -961,7 +961,7 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	s32 Freq;
 	u8  regDMDCFGMD;
 	u16 symb;
-	u32 ScramblingCode;
+	u32 ScramblingCode = 1;
 	
 	if (p->symbol_rate < 100000 || p->symbol_rate > 70000000)
 		return -EINVAL;
@@ -975,10 +975,18 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 
 	init_search_param(state);
 	
-        if (p->scrambling_code != NO_SCRAMBLING_CODE)
-		ScramblingCode = p->scrambling_code;
-	else
-		ScramblingCode = 1;
+        if (p->stream_id != NO_STREAM_ID_FILTER) {
+		/* Backwards compatibility to "crazy" API.
+		   PRBS X root cannot be 0, so this should always work.
+		*/
+		if (p->stream_id & 0xffffff00) 
+			ScramblingCode = p->stream_id >> 8;
+		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, p->stream_id & 0xff);
+		write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0xff);
+        }
+
+        if (p->pls != NO_SCRAMBLING_CODE)
+		ScramblingCode = p->pls;
 
         if (ScramblingCode != state->CurScramblingCode) {
 		write_reg(state, RSTV0910_P2_PLROOT0 + state->regoff,
@@ -988,11 +996,6 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff,
 			  (ScramblingCode >> 16) & 0x07);
 		state->CurScramblingCode = ScramblingCode;
-        }
-
-        if (p->stream_id != NO_STREAM_ID_FILTER) {
-		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, p->stream_id & 0xff);
-		write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0xff);
         }
 
 	if (p->symbol_rate <= 1000000) {  /*SR <=1Msps*/
@@ -1246,7 +1249,7 @@ static int get_frequency_offset(struct stv *state, s32 *off)
 	if (derot & (1<<23))
 		derot |= 0xFF000000;
         *off = - (s32) (((s64) derot * (s64) state->base->mclk) >> 24);
-	pr_info("foff = %d\n", *off);
+	//pr_info("foff = %d\n", *off);
 	return 0;
 }
 
