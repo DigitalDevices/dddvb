@@ -4895,11 +4895,7 @@ static int drxk_set_parameters (struct dvb_frontend *fe,
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
-static int drxk_c_get_frontend(struct dvb_frontend *fe, struct dvb_frontend_parameters *p)
-#else
 static int drxk_c_get_frontend(struct dvb_frontend *fe)
-#endif
 {
 	//struct drxk_state *state = fe->demodulator_priv;
 	//printk("%s\n", __FUNCTION__);
@@ -4993,11 +4989,7 @@ static int drxk_t_sleep(struct dvb_frontend* fe)
 	return 0;
 }
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
-static int drxk_t_get_frontend(struct dvb_frontend *fe, struct dvb_frontend_parameters *p)
-#else
 static int drxk_t_get_frontend(struct dvb_frontend *fe)
-#endif
 {
 	//struct drxk_state *state = fe->demodulator_priv;
 	//printk("%s\n", __FUNCTION__);
