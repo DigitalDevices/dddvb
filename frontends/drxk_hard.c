@@ -4866,9 +4866,6 @@ static int drxk_set_parameters (struct dvb_frontend *fe,
 				struct dvb_frontend_parameters *p)
 #endif
 {
-#ifndef USE_API3
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-#endif
 	struct drxk_state *state = fe->demodulator_priv;
 	u32 IF;
 
