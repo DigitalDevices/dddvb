@@ -1,3 +1,5 @@
+- General Information
+
 The caX device associated with a CI device behaves just like any other 
 caX interface. You usually use it through a library like libdvben50221 
 which is part of the dvb-apps package available at linuxtv.org.
@@ -26,6 +28,24 @@ use the new interface.
 See docs/redirect for more info.
 
 
+- Clock Speed
+
+The normal clock speed for the TS output is 72 MHz wich is the standard
+speed used for CI.
+
+Packets are sent with an adjustable gap between the packets.
+The gap size is (gap value * 2) + 4 or 0 if the gap is disabled.
+So, the standard gap value of 4 leads to a gap of 12 bytes which means
+that the effective data rate is (72*188)/200 = 67.68 MBits/s.
+
+Depending on the hardware, the clock speed can be changed with the
+ci_bitrate module parameter:
+
+- Octopus CI, Octopus CI S2 Pro : supported
+
+- old CI single flex modules: supported
+
+- new dual CI flex module: not yet supported, use the standard 72000 kHz
 
 
-
+Valid ranges for are from ... to 96000 KHz.
