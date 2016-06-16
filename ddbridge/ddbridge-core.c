@@ -547,6 +547,82 @@ static void ddb_buffers_free(struct ddb *dev)
 	}
 }
 
+static void calc_speed(struct ddb_output *output, u32 *con, u32 *con2)
+{
+	struct ddb *dev = output->port->dev;
+	u32 bitrate = output->port->obr;
+	u32 flags = 0;//pdx->OutputStream[Stream].flags;
+	u32 gap = 6;
+	u32 NCOIncrement = 0;
+	u32 Control = 0x3C; /* Turn clock on, Enable GAP, Enable NP, Phase = 1 */
+	u32 Maxbitrate = 72000;
+	
+	if (flags & 0x00000008) /* ts start */
+		Control |= 0x2000;
+	if (dev->link[0].info->type == DDB_OCTOPUS_CI && output->port->nr > 1) {
+		Control = 0x00;
+		if (flags & 0x00000004) { /* Override timing */
+			if (flags & 0x00000800)
+				Control = 0x08;    // Clock Edge
+			Control |= (flags & 0x00000700);            // Clock Delay
+		} else 
+			Control = 0x00000300;   // Rising edge 21 ns setup time
+		if (dev->link[0].ids.regmapid >= 0x10003 &&
+		    (flags & 0x00000001) == 0) {
+			if ((flags & 0x00000002) == 0) {
+				// NCO
+				Maxbitrate = 0;
+				gap = 0;
+				if (bitrate == 72000)
+					Control |= 0x24;
+				else
+					if (bitrate >= 96000)
+						Control |= 0x824;
+				else {
+					Control |= 0x1024;
+					NCOIncrement = (bitrate * 8192 + 71999) / 72000;
+				}
+			} else {
+				// Divider
+				Control |= 0x1834;
+				if (bitrate <= 64000) {
+					Maxbitrate = 64000;
+					NCOIncrement = 8;
+				} else if( bitrate <= 72000) {
+					Maxbitrate = 72000;
+					NCOIncrement = 7;
+				} else {
+					Maxbitrate = 96000;
+					NCOIncrement = 5;
+				}
+			}
+		} else {
+			if (bitrate > 72000) {
+				Control |= 0x834;        // Enable 96 MBit/s CI+ Speed
+				Maxbitrate = 96000;
+			}
+		}
+	}
+	if (Maxbitrate > 0) {
+		if (bitrate > Maxbitrate)
+			bitrate = Maxbitrate;
+		if (bitrate < 31000)
+			bitrate = 31000;
+		gap = ((Maxbitrate - bitrate) * 94) / bitrate;
+		if (gap < 2)
+			Control &= ~0x10;    // Disable gap
+		else
+			gap -= 2;
+		if (gap > 127)
+			gap = 127;
+	}
+
+	*con = Control;
+	*con2 = (NCOIncrement << 16) | gap;
+	 return;
+}
+
+
 static void ddb_output_start(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
