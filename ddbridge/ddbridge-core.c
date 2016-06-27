@@ -28,7 +28,7 @@ DEFINE_MUTEX(redirect_lock);
 
 static int ci_bitrate = 72000;
 module_param(ci_bitrate, int, 0444);
-MODULE_PARM_DESC(ci_bitrate, " Bitrate for output to CI.");
+MODULE_PARM_DESC(ci_bitrate, " Bitrate in KHz for output to CI.");
 
 static int ts_loop = -1;
 module_param(ts_loop, int, 0444);
@@ -547,89 +547,74 @@ static void ddb_buffers_free(struct ddb *dev)
 	}
 }
 
-static void calc_speed(struct ddb_output *output, u32 *con, u32 *con2)
+static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 {
 	struct ddb *dev = output->port->dev;
-	u32 bitrate = output->port->obr;
-	u32 flags = 0;//pdx->OutputStream[Stream].flags;
-	u32 gap = 6;
-	u32 NCOIncrement = 0;
-	u32 Control = 0x3C; /* Turn clock on, Enable GAP, Enable NP, Phase = 1 */
-	u32 Maxbitrate = 72000;
+	u32 bitrate = output->port->obr, max_bitrate = 72000;
+	u32 gap = 4, nco = 0;
 	
-	if (flags & 0x00000008) /* ts start */
-		Control |= 0x2000;
+	*con = 0x1C; 
+	if (output->port->gap != 0xffffffff) {
+		flags |= 1;
+		gap = output->port->gap;
+	}
 	if (dev->link[0].info->type == DDB_OCTOPUS_CI && output->port->nr > 1) {
-		Control = 0x00;
-		if (flags & 0x00000004) { /* Override timing */
-			if (flags & 0x00000800)
-				Control = 0x08;    // Clock Edge
-			Control |= (flags & 0x00000700);            // Clock Delay
-		} else 
-			Control = 0x00000300;   // Rising edge 21 ns setup time
-		if (dev->link[0].ids.regmapid >= 0x10003 &&
-		    (flags & 0x00000001) == 0) {
-			if ((flags & 0x00000002) == 0) {
-				// NCO
-				Maxbitrate = 0;
+		*con = 0x10c;
+		if (dev->link[0].ids.regmapid >= 0x10003 && !(flags & 1)) {
+			if (!(flags & 2)) {
+				/* NCO */
+				max_bitrate = 0;
 				gap = 0;
-				if (bitrate == 72000)
-					Control |= 0x24;
-				else
+				if (bitrate != 72000) {
 					if (bitrate >= 96000)
-						Control |= 0x824;
-				else {
-					Control |= 0x1024;
-					NCOIncrement = (bitrate * 8192 + 71999) / 72000;
+						*con |= 0x800;
+					else {
+						*con |= 0x1000;
+						nco = (bitrate * 8192 + 71999) / 72000;
+					}
 				}
 			} else {
-				// Divider
-				Control |= 0x1834;
+				/* Divider and gap */
+				*con |= 0x1810;
 				if (bitrate <= 64000) {
-					Maxbitrate = 64000;
-					NCOIncrement = 8;
+					max_bitrate = 64000;
+					nco = 8;
 				} else if( bitrate <= 72000) {
-					Maxbitrate = 72000;
-					NCOIncrement = 7;
+					max_bitrate = 72000;
+					nco = 7;
 				} else {
-					Maxbitrate = 96000;
-					NCOIncrement = 5;
+					max_bitrate = 96000;
+					nco = 5;
 				}
 			}
 		} else {
 			if (bitrate > 72000) {
-				Control |= 0x834;        // Enable 96 MBit/s CI+ Speed
-				Maxbitrate = 96000;
+				*con |= 0x810;  /* 96 MBit/s and gap */
+				max_bitrate = 96000;
 			}
 		}
 	}
-	if (Maxbitrate > 0) {
-		if (bitrate > Maxbitrate)
-			bitrate = Maxbitrate;
+	if (max_bitrate > 0) {
+		if (bitrate > max_bitrate)
+			bitrate = max_bitrate;
 		if (bitrate < 31000)
 			bitrate = 31000;
-		gap = ((Maxbitrate - bitrate) * 94) / bitrate;
+		gap = ((max_bitrate - bitrate) * 94) / bitrate;
 		if (gap < 2)
-			Control &= ~0x10;    // Disable gap
+			*con &= ~0x10;    /* Disable gap */
 		else
 			gap -= 2;
 		if (gap > 127)
 			gap = 127;
 	}
-
-	*con = Control;
-	*con2 = (NCOIncrement << 16) | gap;
+	*con2 = (nco << 16) | gap;
 	 return;
 }
-
 
 static void ddb_output_start(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
-	u32 con2;
-
-	con2 = ((output->port->obr << 13) + 71999) / 72000;
-	con2 = (con2 << 16) | output->port->gap;
+	u32 con = 0x11c, con2 = 0;
 
 	if (output->dma) {
 		spin_lock_irq(&output->dma->lock);
@@ -641,10 +626,14 @@ static void ddb_output_start(struct ddb_output *output)
 	if (output->port->class == DDB_PORT_MOD)
 		ddbridge_mod_output_start(output);
 	else {
+		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
+			con = (1UL << 13) | 0x14;
+		else
+			calc_con(output, &con, &con2, 0);
 		ddbwritel(dev, 0, TS_CONTROL(output));
 		ddbwritel(dev, 2, TS_CONTROL(output));
 		ddbwritel(dev, 0, TS_CONTROL(output));
-		ddbwritel(dev, 0x3c, TS_CONTROL(output));
+		ddbwritel(dev, con, TS_CONTROL(output));
 		ddbwritel(dev, con2, TS_CONTROL2(output));
 	}
 	if (output->dma) {
@@ -654,16 +643,8 @@ static void ddb_output_start(struct ddb_output *output)
 		ddbwritel(dev, 1, DMA_BASE_READ);
 		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(output->dma));
 	}
-	if (output->port->class != DDB_PORT_MOD) {
-		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
-			/*ddbwritel(dev, 0x15, TS_CONTROL(output));
-			  ddbwritel(dev, 0x45,
-			  TS_CONTROL(output));*/
-			ddbwritel(dev, (1 << 13) | 0x15,
-				  TS_CONTROL(output));
-		else
-			ddbwritel(dev, 0x11d, TS_CONTROL(output));
-	}
+	if (output->port->class != DDB_PORT_MOD)
+		ddbwritel(dev, con | 1, TS_CONTROL(output));
 	if (output->dma) {
 		output->dma->running = 1;
 		spin_unlock_irq(&output->dma->lock);
@@ -3354,7 +3335,7 @@ static void ddb_ports_init(struct ddb *dev)
 			port->nr = i;
 			port->lnr = l;
 			port->pnr = p;
-			port->gap = 4;
+			port->gap = 0xffffffff;
 			port->obr = ci_bitrate;
 			mutex_init(&port->i2c_gate_lock);
 			if (!ddb_port_match_i2c(port))
@@ -4640,6 +4621,31 @@ static ssize_t gap_store(struct device *device, struct device_attribute *attr,
 	return count;
 }
 
+static ssize_t obr_show(struct device *device,
+			struct device_attribute *attr, char *buf)
+{
+	struct ddb *dev = dev_get_drvdata(device);
+	int num = attr->attr.name[3] - 0x30;
+	
+	return sprintf(buf, "%d\n", dev->port[num].obr);
+
+}
+
+static ssize_t obr_store(struct device *device, struct device_attribute *attr,
+			 const char *buf, size_t count)
+{
+	struct ddb *dev = dev_get_drvdata(device);
+	int num = attr->attr.name[3] - 0x30;
+	unsigned int val;
+	
+	if (sscanf(buf, "%u\n", &val) != 1)
+		return -EINVAL;
+	if (val > 96000)
+		return -EINVAL;
+	dev->port[num].obr = val;
+	return count;
+}
+
 static ssize_t version_show(struct device *device,
 			    struct device_attribute *attr, char *buf)
 {
@@ -4732,6 +4738,10 @@ static struct device_attribute ddb_attrs[] = {
 	__ATTR(gap1, 0664, gap_show, gap_store),
 	__ATTR(gap2, 0664, gap_show, gap_store),
 	__ATTR(gap3, 0664, gap_show, gap_store),
+	__ATTR(obr0, 0664, obr_show, obr_store),
+	__ATTR(obr1, 0664, obr_show, obr_store),
+	__ATTR(obr2, 0664, obr_show, obr_store),
+	__ATTR(obr3, 0664, obr_show, obr_store),
 	__ATTR(vlan, 0664, vlan_show, vlan_store),
 	__ATTR(fmode0, 0664, fmode_show, fmode_store),
 	__ATTR(fmode1, 0664, fmode_show, fmode_store),
