@@ -1335,15 +1335,18 @@ static int get_stats(struct dvb_frontend *fe)
 {
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u16 val;
+	s64 str;
 
 	if (fe->ops.tuner_ops.get_rf_strength)
 		fe->ops.tuner_ops.get_rf_strength(fe, &val);
 	else
 		val = 0;
 
+	str = 1000 * (s64) (s16) val;
+	str -= 108750;
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].uvalue = 1000 * (s64) (s16) val;
+	p->strength.stat[0].uvalue = str;
 	
 	read_snr(fe, &val);
 	p->cnr.len = 1;
