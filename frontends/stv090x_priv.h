@@ -274,6 +274,7 @@ struct stv090x_state {
 
 	s32				DemodTimeout;
 	s32				FecTimeout;
+	u32                             rec_mode;
 };
 
 #endif /* __STV090x_PRIV_H */
