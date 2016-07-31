@@ -1351,7 +1351,7 @@ static int enable_tuner(struct mxl *state, u32 tuner, u32 enable)
 	if (!count)
 		return -1;
 	read_register(state, HYDRA_TUNER_ENABLE_COMPLETE, &val);
-	pr_info("mxl5xx: tuner %u ready = %u\n", tuner , (val >> tuner) & 1);
+	/*pr_info("mxl5xx: tuner %u ready = %u\n", tuner , (val >> tuner) & 1);*/
 #endif
 	
 	return 0;
