@@ -92,6 +92,32 @@ static struct ddb_regset octopus_mod_odma_buf = {
 	.size = 0x100,
 };
 
+static struct ddb_regset octopus_mod_channel = {
+	.base = 0x400,
+	.num  = 0x0a,
+	.size = 0x40,
+};
+
+/****************************************************************************/
+
+static struct ddb_regset octopus_mod_2_odma = {
+	.base = 0x400,
+	.num  = 0x18,
+	.size = 0x10,
+};
+
+static struct ddb_regset octopus_mod_2_odma_buf = {
+	.base = 0x8000,
+	.num  = 0x18,
+	.size = 0x100,
+};
+
+static struct ddb_regset octopus_mod_2_channel = {
+	.base = 0x800,
+	.num  = 0x18,
+	.size = 0x40,
+};
+
 /****************************************************************************/
 
 static struct ddb_regset octopus_input = {
@@ -249,19 +275,25 @@ static struct ddb_regmap octopro_hdin_map = {
 	.output = &octopro_output,
 };
 
-static struct ddb_regset octopus_mod_channel = {
-	.base = 0x400,
-	.num  = 0x0c,
-	.size = 0x40,
-};
-
 static struct ddb_regmap octopus_mod_map = {
 	.irq_version = 1,
 	.irq_base_odma = 8,
+	.irq_base_rate = 18,
 	.output = &octopus_output,
 	.odma = &octopus_mod_odma,
 	.odma_buf = &octopus_mod_odma_buf,
 	.channel = &octopus_mod_channel,
+};
+
+
+static struct ddb_regmap octopus_mod_2_map = {
+	.irq_version = 2,
+	.irq_base_odma = 64,
+	.irq_base_rate = 32,
+	.output = &octopus_output,
+	.odma = &octopus_mod_2_odma,
+	.odma_buf = &octopus_mod_2_odma_buf,
+	.channel = &octopus_mod_2_channel,
 };
 
 
@@ -3395,9 +3427,9 @@ static void ddb_ports_init(struct ddb *dev)
 				break;
 			case DDB_MOD:
 				ddb_output_init(port, i);
-				dev->handler[0][i + 18] =
+				dev->handler[0][i + rm->irq_base_rate] =
 					ddbridge_mod_rate_handler;
-				dev->handler_data[0][i + 18] =
+				dev->handler_data[0][i + rm->irq_base_rate] =
 					(unsigned long) &dev->output[i];
 				break;
 			default:
@@ -4845,7 +4877,7 @@ static void ddb_device_attrs_del(struct ddb *dev)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_snr[i]);
 		device_remove_file(dev->ddb_dev, &ddb_attrs_ctemp[i]);
 	}
-	for (i = 0; ddb_attrs[i].attr.name; i++)
+	for (i = 0; ddb_attrs[i].attr.name != NULL; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs[i]);
 }
 
@@ -4853,19 +4885,19 @@ static int ddb_device_attrs_add(struct ddb *dev)
 {
 	int i;
 
-	for (i = 0; ddb_attrs[i].attr.name; i++)
+	for (i = 0; ddb_attrs[i].attr.name != NULL; i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs[i]))
 			goto fail;
 	for (i = 0; i < dev->link[0].info->temp_num; i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_temp[i]))
 			goto fail;
-	for (i = 0; i < dev->link[0].info->port_num; i++)
+	for (i = 0; (i < dev->link[0].info->port_num) && (i < 10); i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_mod[i]))
 			goto fail;
 	for (i = 0; i < dev->link[0].info->fan_num; i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_fan[i]))
 			goto fail;
-	for (i = 0; i < dev->i2c_num && i < 4; i++) {
+	for (i = 0; (i < dev->i2c_num) && (i < 4); i++) {
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_snr[i]))
 			goto fail;
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_ctemp[i]))

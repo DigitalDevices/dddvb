@@ -112,6 +112,7 @@ struct ddb_regmap {
 	u32 irq_base_idma;
 	u32 irq_base_odma;
 	u32 irq_base_gtl;
+	u32 irq_base_rate;
 	
 	struct ddb_regset *i2c;
 	struct ddb_regset *i2c_buf;
@@ -144,7 +145,7 @@ struct ddb_ids {
 };
 
 struct ddb_info {
-	int   type;
+	u32   type;
 #define DDB_NONE         0
 #define DDB_OCTOPUS      1
 #define DDB_OCTOPUS_CI   2
@@ -154,6 +155,7 @@ struct ddb_info {
 #define DDB_OCTOPUS_MAX_CT  6
 #define DDB_OCTOPRO      7
 #define DDB_OCTOPRO_HDIN 8
+	u32   version;
 	char *name;
 	u32   i2c_mask;
 	u8    port_num;
@@ -167,8 +169,9 @@ struct ddb_info {
 	u8    mdio_num;
 	u8    con_clock; /* use a continuous clock */
 	u8    ts_quirks;
-#define TS_QUIRK_SERIAL   1
-#define TS_QUIRK_REVERSED 2
+#define TS_QUIRK_SERIAL    1
+#define TS_QUIRK_REVERSED  2
+#define TS_QUIRK_NO_OUTPUT 4
 	struct ddb_regmap *regmap;
 };
 
@@ -335,10 +338,21 @@ struct mod_base {
 	u32                    frequency;
 	u32                    flat_start;
 	u32                    flat_end;
+
+	spinlock_t             temp_lock;
+	int                    OverTemperatureError;
+	u8                     temp_tab[11];
 };
 
-struct mod_state {
+struct ddb_mod {
+	struct ddb_port       *port;
+	u32                    nr;
+	u32                    regs;
+	
+	u32                    frequency;
 	u32                    modulation;
+	u32                    symbolrate;
+	
 	u64                    obitrate;
 	u64                    ibitrate;
 	u32                    pcr_correction;
@@ -456,7 +470,7 @@ struct ddb {
 	u8                     tsbuf[TS_CAPTURE_LEN];
 
 	struct mod_base        mod_base;
-	struct mod_state       mod[10];
+	struct ddb_mod         mod[24];
 };
 
 static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)

@@ -468,6 +468,33 @@ static struct ddb_info ddb_mod = {
 	.temp_num = 1,
 };
 
+static struct ddb_info ddb_mod_fsm_24 = {
+	.type     = DDB_MOD,
+	.version  = 2,
+	.name     = "Digital Devices DVB-C modulator FSM-24",
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 24,
+	.temp_num = 1,
+};
+
+static struct ddb_info ddb_mod_fsm_16 = {
+	.type     = DDB_MOD,
+	.version  = 2,
+	.name     = "Digital Devices DVB-C modulator FSM-16",
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 16,
+	.temp_num = 1,
+};
+
+static struct ddb_info ddb_mod_fsm_8 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C modulator FSM-8",
+	.version  = 2,
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 8,
+	.temp_num = 1,
+};
+
 static struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
@@ -523,6 +550,9 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0013, DDVID, 0x0043, ddb_ci_s2_pro),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0001, ddb_mod_fsm_24),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0002, ddb_mod_fsm_16),
+	DDB_ID(DDVID, 0x0210, DDVID, 0x0003, ddb_mod_fsm_8),
 	/* testing on OctopusNet Pro */
 	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
 	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
