@@ -3537,8 +3537,8 @@ static enum dvbfe_search stv090x_search(struct dvb_frontend *fe, struct dvb_fron
         if ((props->stream_id != NO_STREAM_ID_FILTER) &&
 	    (props->stream_id & 0xffffff00)) 
 			pls = props->stream_id >> 8;
-        if (props->pls != NO_SCRAMBLING_CODE)
-		pls = props->pls;
+        if (props->pls != NO_SCRAMBLING_CODE) 
+		pls = props->pls | 0x40000; /* props->pls is always gold code */
 	stv090x_set_pls(state, (pls >> 18) & 3, pls & 0x3ffff);
 	stv090x_set_mis(state, props->stream_id);
 
