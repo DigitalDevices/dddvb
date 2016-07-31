@@ -983,10 +983,12 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 			ScramblingCode = p->stream_id >> 8;
 		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, p->stream_id & 0xff);
 		write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0xff);
+		//pr_info("ID=%08x\n", p->stream_id & 0xff);
         }
 
+	/* props->pls is always gold code ! */
         if (p->pls != NO_SCRAMBLING_CODE)
-		ScramblingCode = p->pls;
+		ScramblingCode = p->pls | 0x40000; 
 
         if (ScramblingCode != state->CurScramblingCode) {
 		write_reg(state, RSTV0910_P2_PLROOT0 + state->regoff,
@@ -996,6 +998,7 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff,
 			  (ScramblingCode >> 16) & 0x07);
 		state->CurScramblingCode = ScramblingCode;
+		//pr_info("PLS=%08x\n",  ScramblingCode);
         }
 
 	if (p->symbol_rate <= 1000000) {  /*SR <=1Msps*/
@@ -1737,7 +1740,6 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	else
 		*strength = 0;
 
-	//printk("pwr = %d  bb = %d  str = %u\n", Power, bbgain, *strength);
 	if (bbgain < (s32) *strength)
 		*strength -= bbgain;
 	else
@@ -1746,7 +1748,8 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
 	p->strength.stat[0].uvalue = 10 * (s64) (s16) *strength - 108750;
-
+	
+	/* *strength is in hundredth dBuv, uvalue is in thousandth dBm */
 	return 0;
 }
 
