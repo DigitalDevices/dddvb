@@ -4364,10 +4364,23 @@ static ssize_t temp_show(struct device *device,
 {
 	struct ddb *dev = dev_get_drvdata(device);
 	struct i2c_adapter *adap;
-	int temp, temp2, temp3, i;
+	s32 temp, temp2, temp3;
+	int i;
 	u8 tmp[2];
 
 	if (dev->link[0].info->type == DDB_MOD) {
+		if (dev->link[0].info->version == 2) {
+			temp = ddbreadl(dev, TEMPMON2_BOARD);
+			temp = (temp * 1000) >> 8;
+
+			temp2 = ddbreadl(dev, TEMPMON2_FPGACORE);
+			temp2 = (temp2 * 1000) >> 8;
+
+			temp3 = ddbreadl(dev, TEMPMON2_QAMCORE);
+			temp3 = (temp3 * 1000) >> 8;
+			
+			return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
+		}
 		ddbwritel(dev, 1, TEMPMON_CONTROL);
 		for (i = 0; i < 10; i++) {
 			if (0 == (1 & ddbreadl(dev, TEMPMON_CONTROL)))
