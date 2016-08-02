@@ -1527,20 +1527,17 @@ static int mod_ioctl_2(struct file *file, unsigned int cmd, void *parg)
 static int mod_init_2(struct ddb *dev, u32 Frequency)
 {
 	int status;
-	printk("mod_init_2\n");
+	int streams = dev->link[0].info->port_num;
 
 	dev->mod_base.frequency = Frequency;
 	mod_TemperatureMonitorInit(dev, 1);
 	status = mod_fsm_setup(dev, 0, 0);
-	pr_info("fsm_setup = %d\n", status);
 
-#if 0	
-	if (pdx->NumOutputStreams <= 8)
+	if (streams <= 8)
 		mod_set_vga(dev, RF_VGA_GAIN_N8);
-	else if (pdx->NumOutputStreams <= 16)
+	else if (streams <= 16)
 		mod_set_vga(dev, RF_VGA_GAIN_N16);
 	else
-#endif
 		mod_set_vga(dev, RF_VGA_GAIN_N24);
 
 	mod_set_attenuator(dev, 0);
