@@ -1,3 +1,6 @@
+0.9.24 2016.08.03
+- suport new V2 modulator cards
+
 0.9.19c 2015.07.20
 - MAX S8:
   do not turn on diseqc and tuners on init
