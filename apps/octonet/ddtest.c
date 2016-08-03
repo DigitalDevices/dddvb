@@ -145,7 +145,6 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 }
 
 
-
 int FlashDetect(int dev)
 {
 	uint8_t Cmd = 0x9F;
@@ -763,7 +762,6 @@ uint32_t   GetFPGA_ID(uint8_t * Buffer)
 
     return ID;
 }
-
 
 
 int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
@@ -1652,6 +1650,60 @@ int lic_erase(int dev, int argc, char* argv[], uint32_t Flags)
 	return err;
 }
 
+static int read_sfpd(int dev, uint8_t adr, uint8_t *val)
+{
+	uint8_t cmd[5] = { 0x5a, 0, 0, adr, 00 };     
+	int r;
+	
+	r = FlashIO(dev, cmd, 5, val, 1);
+	if (r < 0)
+		return r;
+	return 0;
+}
+
+static int read_sst_id(int dev, uint8_t *id)
+{
+	uint8_t cmd[2] = { 0x88, 0 };
+	uint8_t buf[9];
+	int r;
+	
+	r = FlashIO(dev, cmd, 2, buf, 9);
+	if (r < 0)
+		return r;
+	memcpy(id, buf + 1, 8);
+	return 0;
+}
+
+int read_id(int dev, int argc, char* argv[], uint32_t Flags)
+{
+	int Flash = FlashDetect(dev);
+	uint8_t Cmd;;
+	uint8_t Id[8];
+	uint32_t len, i, adr;
+	
+
+	switch(Flash) {
+        case SPANSION_S25FL116K:
+        case SPANSION_S25FL132K:
+        case SPANSION_S25FL164K:
+		for (i = 0; i < 8; i++)
+			read_sfpd(dev, 0xf8 + i, &Id[i]);
+		len = 8;
+		break;
+	case SSTI_SST25VF064C:
+		read_sst_id(dev, Id);
+		len = 8;
+		break;
+        default:
+		printf("Unsupported Flash\n");
+		break;
+	}
+	printf("ID: ");
+	for (i = 0; i < 8; i++)
+		printf("%02x ", Id[i]);
+	printf("\n");
+
+}
 
 struct SCommand CommandTable[] = 
 {
@@ -1661,7 +1713,7 @@ struct SCommand CommandTable[] =
 	{ "register",   GetSetRegister,     1,   "Get/Set Register     : reg <regname>|<[0x]regnum> [[0x]value(32)]" },
 	
 	{ "flashread",    ReadFlash,        1,   "Read Flash           : flashread <start> <count>" },
-	{ "flashio",      FlashIO,          1,   "Flash IO             : flashio <write data>.. <read count>" },
+	{ "flashio",      FlashIOC,          1,   "Flash IO             : flashio <write data>.. <read count>" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog <FileName> [<address>]" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog -SubVendorID <id>" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog -Jump <address>" },
@@ -1676,6 +1728,7 @@ struct SCommand CommandTable[] =
 	{ "licimport",   lic_import,       1,   "License Import           : licimport" },
 	{ "licexport",   lic_export,       1,   "License Export           : licexport" },
 	{ "licerase",    lic_erase,        1,   "License Erase            : licerase"  },
+	{ "read_id",    read_id,        1,      "Read Unique ID           : read_id"  },
  	{ NULL,NULL,0 }
 };
 

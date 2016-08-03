@@ -26,6 +26,10 @@
 
 #include <linux/compiler.h>
 
+#ifndef __user
+#define __user
+#endif
+
 typedef enum {
   // All functions return -2 on "not open"
   OSD_Close=1,    // ()

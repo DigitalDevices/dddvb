@@ -197,6 +197,7 @@ typedef enum fe_transmit_mode {
 	TRANSMISSION_MODE_32K,
 	TRANSMISSION_MODE_C1,
 	TRANSMISSION_MODE_C3780,
+	TRANSMISSION_MODE_64K,
 } fe_transmit_mode_t;
 
 #if defined(__DVB_CORE__) || !defined (__KERNEL__)
@@ -378,8 +379,9 @@ struct dvb_frontend_event {
 #define DTV_STAT_TOTAL_BLOCK_COUNT	69
 
 #define DTV_INPUT                       70
+#define DTV_PLS                         71
 
-#define DTV_MAX_COMMAND		DTV_INPUT
+#define DTV_MAX_COMMAND		DTV_PLS
 
 typedef enum fe_pilot {
 	PILOT_ON,
@@ -454,6 +456,7 @@ enum atscmh_rs_code_mode {
 };
 
 #define NO_STREAM_ID_FILTER	(~0U)
+#define NO_SCRAMBLING_CODE	(~0U)
 #define LNA_AUTO                (~0U)
 
 struct dtv_cmds_h {

@@ -50,6 +50,11 @@ struct dvb_nsd_ts {
 	__u16	 section_id;
 };
 
+struct dvb_ns_cap {
+	__u8     streams_max;
+	__u8     reserved[127];
+};
+
 #define NS_SET_NET               _IOW('o', 192, struct dvb_ns_params)
 #define NS_START                 _IO('o', 193)
 #define NS_STOP                  _IO('o', 194)
@@ -65,5 +70,7 @@ struct dvb_nsd_ts {
 #define NS_SET_PACKETS           _IOW('o', 202, struct dvb_ns_packet)
 #define NS_INSERT_PACKETS	 _IOW('o', 203, __u8)
 #define NS_SET_CI	         _IOW('o', 204, __u8)
+
+#define NS_GET_CAP               _IOR('o', 204, struct dvb_ns_cap))
 
 #endif /*_UAPI_DVBNS_H_*/

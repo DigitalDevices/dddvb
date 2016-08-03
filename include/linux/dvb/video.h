@@ -30,6 +30,10 @@
 #include <time.h>
 #endif
 
+#ifndef __user
+#define __user
+#endif
+
 typedef enum {
 	VIDEO_FORMAT_4_3,     /* Select 4:3 format */
 	VIDEO_FORMAT_16_9,    /* Select 16:9 format. */

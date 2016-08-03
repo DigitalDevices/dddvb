@@ -1,7 +1,7 @@
 /*
  * ddbridge-regs.h: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH
+ * Copyright (C) 2010-2016 Digital Devices GmbH
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -23,12 +23,11 @@
 
 /* Register Definitions */
 
-#define CUR_REGISTERMAP_VERSION     0x10003
-#define CUR_REGISTERMAP_VERSION_CI  0x10000
-#define CUR_REGISTERMAP_VERSION_MOD 0x10000
+#define CUR_REGISTERMAP_VERSION_V1  0x00010001
+#define CUR_REGISTERMAP_VERSION_V2  0x00020000
 
-#define HARDWARE_VERSION       0x00
-#define REGISTERMAP_VERSION    0x04
+#define HARDWARE_VERSION            0x00000000
+#define REGISTERMAP_VERSION         0x00000004
 
 /* ------------------------------------------------------------------------- */
 /* SPI Controller */
@@ -76,6 +75,8 @@
 
 #define INTERRUPT_STATUS (INTERRUPT_BASE + 0x20)
 #define INTERRUPT_ACK    (INTERRUPT_BASE + 0x20)
+#define INTERRUPT_ACK1      (INTERRUPT_BASE + 0x24)
+#define INTERRUPT_ACK2      (INTERRUPT_BASE + 0x28)
 
 #define INTMASK_CLOCKGEN    (0x00000001)
 #define INTMASK_TEMPMON     (0x00000002)
@@ -105,6 +106,26 @@
 #define INTMASK_TSOUTPUT4   (0x00080000)
 
 
+#define INTERRUPT_V2_CONTROL  (INTERRUPT_BASE + 0x00)
+#define INTERRUPT_V2_ENABLE_1 (INTERRUPT_BASE + 0x04)
+#define INTERRUPT_V2_ENABLE_2 (INTERRUPT_BASE + 0x08)
+#define INTERRUPT_V2_ENABLE_3 (INTERRUPT_BASE + 0x0c)
+#define INTERRUPT_V2_ENABLE_4 (INTERRUPT_BASE + 0x10)
+#define INTERRUPT_V2_ENABLE_5 (INTERRUPT_BASE + 0x14)
+#define INTERRUPT_V2_ENABLE_6 (INTERRUPT_BASE + 0x18)
+#define INTERRUPT_V2_ENABLE_7 (INTERRUPT_BASE + 0x1c)
+
+#define INTERRUPT_V2_STATUS   (INTERRUPT_BASE + 0x20)
+#define INTERRUPT_V2_STATUS_1 (INTERRUPT_BASE + 0x24)
+#define INTERRUPT_V2_STATUS_2 (INTERRUPT_BASE + 0x28)
+#define INTERRUPT_V2_STATUS_3 (INTERRUPT_BASE + 0x2c)
+#define INTERRUPT_V2_STATUS_4 (INTERRUPT_BASE + 0x30)
+#define INTERRUPT_V2_STATUS_5 (INTERRUPT_BASE + 0x34)
+#define INTERRUPT_V2_STATUS_6 (INTERRUPT_BASE + 0x38)
+#define INTERRUPT_V2_STATUS_7 (INTERRUPT_BASE + 0x3c)
+
+
+
 
 /* Modulator registers */
 
@@ -128,22 +149,45 @@
 /* Temperature Monitor ( 2x LM75A @ 0x90,0x92 I2c ) */
 #define TEMPMON_BASE        (0xA0)
 #define TEMPMON_CONTROL    (TEMPMON_BASE + 0x00)
+
+#define TEMPMON_CONTROL_SCAN        (0x00000001)
+#define TEMPMON_CONTROL_AUTOSCAN    (0x00000002)
+#define TEMPMON_CONTROL_INTENABLE   (0x00000004)
+#define TEMPMON_CONTROL_OVERTEMP    (0x00008000)
+
+
 /* SHORT Temperature in °C x 256 */
 #define TEMPMON_CORE       (TEMPMON_BASE + 0x04)
+#define TEMPMON_SENSOR0    (TEMPMON_BASE + 0x04)
 #define TEMPMON_SENSOR1    (TEMPMON_BASE + 0x08)
 #define TEMPMON_SENSOR2    (TEMPMON_BASE + 0x0C)
 
+#define TEMPMON_FANCONTROL  (TEMPMON_BASE + 0x10)
+#define TEMPMON_FANPWM      (0x00000F00)            // PWM speed in 10% steps
+#define TEMPMON_FANTACHO    (0x000000FF)            // Rotations in 100/min steps
+
+// V1 Temperature Monitor
+// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
+// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 1 : ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
+
+#define TEMPMON1_CORE       (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08)    // SHORT Temperature in °C x 256 (LM75A 0x90)
+#define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C)    // SHORT Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int)
+
+// V2 Temperature Monitor 2 ADM1032
+
+#define TEMPMON2_BOARD      (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 int)
+#define TEMPMON2_FPGACORE   (TEMPMON_SENSOR1)    // SHORT Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON2_QAMCORE    (TEMPMON_SENSOR2)    // SHORT Temperature in °C x 256 (ADM1032 ext)
+
 /* ------------------------------------------------------------------------- */
 /* I2C Master Controller */
-
-#define I2C_BASE        (0x80)  /* Byte offset */
 
 #define I2C_COMMAND     (0x00)
 #define I2C_TIMING      (0x04)
 #define I2C_TASKLENGTH  (0x08)     /* High read, low write */
 #define I2C_TASKADDRESS (0x0C)     /* High read, low write */
 #define I2C_MONITOR     (0x1C)
-
 
 #define I2C_SPEED_666   (0x02010202)
 #define I2C_SPEED_400   (0x04030404)
@@ -173,26 +217,17 @@
 #define DMA_DIAG_WAITOVERFLOWCOUNTER    (0x38)
 #define DMA_DIAG_WAITCOUNTER            (0x3C)
 
-#define TS_INPUT_BASE       (0x200)
-#define TS_INPUT_CONTROL(i)         (TS_INPUT_BASE + (i) * 0x10 + 0x00)
-#define TS_INPUT_CONTROL2(i)        (TS_INPUT_BASE + (i) * 0x10 + 0x04)
+#define TS_CONTROL(_io)         (_io->regs + 0x00)
+#define TS_CONTROL2(_io)        (_io->regs + 0x04)
 
-#define TS_OUTPUT_BASE       (0x280)
-#define TS_OUTPUT_CONTROL(i)        (TS_OUTPUT_BASE + (i) * 0x10 + 0x00)
-#define TS_OUTPUT_CONTROL2(i)       (TS_OUTPUT_BASE + (i) * 0x10 + 0x04)
 
 /* ------------------------------------------------------------------------- */
 /* DMA  Buffer */
 
-#define DMA_BUFFER_BASE     (0x300)
-
-#define DMA_BUFFER_CONTROL(i)       (DMA_BUFFER_BASE + (i) * 0x10 + 0x00)
-#define DMA_BUFFER_ACK(i)           (DMA_BUFFER_BASE + (i) * 0x10 + 0x04)
-#define DMA_BUFFER_CURRENT(i)       (DMA_BUFFER_BASE + (i) * 0x10 + 0x08)
-#define DMA_BUFFER_SIZE(i)          (DMA_BUFFER_BASE + (i) * 0x10 + 0x0c)
-
-#define DMA_BASE_ADDRESS_TABLE  (0x2000)
-#define DMA_BASE_ADDRESS_TABLE_ENTRIES (512)
+#define DMA_BUFFER_CONTROL(_dma)       (_dma->regs + 0x00)
+#define DMA_BUFFER_ACK(_dma)           (_dma->regs + 0x04)
+#define DMA_BUFFER_CURRENT(_dma)       (_dma->regs + 0x08)
+#define DMA_BUFFER_SIZE(_dma)          (_dma->regs + 0x0c)
 
 
 /* ------------------------------------------------------------------------- */
@@ -263,6 +298,8 @@
 #define CI_BLOCKIO_SEND_BUFFER(i)  \
 	(CI_BUFFER_BASE + (i) * CI_BUFFER_SIZE + CI_BLOCKIO_BUFFER_SIZE)
 
+// V1
+
 #define VCO1_BASE           (0xC0)
 #define VCO1_CONTROL        (VCO1_BASE + 0x00)
 #define VCO1_DATA           (VCO1_BASE + 0x04)  /* 24 Bit */
@@ -293,12 +330,73 @@
 /* Muxout from VCO (usually = Lock) */
 #define VCO3_CONTROL_MUXOUT (0x00000004)
 
+// V2
+
+#define MAX2871_BASE            (0xC0)
+#define MAX2871_CONTROL         (MAX2871_BASE + 0x00)
+#define MAX2871_OUTDATA         (MAX2871_BASE + 0x04)  // 32 Bit
+#define MAX2871_INDATA          (MAX2871_BASE + 0x08)  // 32 Bit
+#define MAX2871_CONTROL_WRITE   (0x00000001)   // 1 = Trigger write, resets when done
+#define MAX2871_CONTROL_CE      (0x00000002)   // 0 = Put VCO into power down
+#define MAX2871_CONTROL_MUXOUT  (0x00000004)   // Muxout from VCO 
+#define MAX2871_CONTROL_LOCK    (0x00000008)   // Lock from VCO 
+
+#define FSM_BASE                (0x200)
+#define FSM_CONTROL             (FSM_BASE + 0x00)
+
+#define FSM_CONTROL_ENABLE      (0x00000100)
+
+#define FSM_CMD_MASK            (0x00000087)
+#define FSM_CMD_STATUS          (0x00000080)
+#define FSM_CMD_RESET           (0x00000080)
+#define FSM_CMD_POWERDOWN       (0x00000081)
+#define FSM_CMD_SETUP           (0x00000082)
+
+#define FSM_STATUS              (FSM_BASE + 0x00)
+#define FSM_STATUS_READY        (0x00010000)
+#define FSM_STATUS_QAMREADY     (0x00020000)
+
+
+#define FSM_CAPACITY            (FSM_BASE + 0x04)
+#define FSM_CAPACITY_MAX        (0x3F000000)  
+#define FSM_CAPACITY_CUR        (0x003F0000)  
+#define FSM_CAPACITY_INUSE      (0x0000003F)  
+
+#define FSM_GAIN                (FSM_BASE + 0x10)
+#define FSM_GAINMASK            (0x000000FF)
+
+#define FSM_GAIN_N1             (0x000000FE)
+#define FSM_GAIN_N2             (0x000000A1)
+#define FSM_GAIN_N4             (0x00000066)
+#define FSM_GAIN_N8             (0x00000048)
+#define FSM_GAIN_N16            (0x0000002D)
+#define FSM_GAIN_N24            (0x00000029)
+#define FSM_GAIN_N96            (0x00000011)
+
+
+// Attenuator/VGA
+
+#define RF_ATTENUATOR   (0xD8)
 #define RF_ATTENUATOR   (0xD8)
 /*  0x00 =  0 dB
     0x01 =  1 dB
       ...
     0x1F = 31 dB
 */
+
+#define RF_VGA  (0xDC)
+/* Only V2 */
+/* 8 bit range 0 - 31.75 dB Gain  */
+	
+/* VGA Gain for same output level as V1 Modulator */
+#define RF_VGA_GAIN_N8          (85)
+#define RF_VGA_GAIN_N16         (117)
+#define RF_VGA_GAIN_N24         (122)
+
+#define RF_VGA_GAIN_MAX         (200)
+
+
+/* V1 only */
 
 #define RF_POWER        (0xE0)
 #define RF_POWER_BASE       (0xE0)
@@ -343,7 +441,7 @@
 #define IQOUTPUT_CONTROL_BYPASS_EQUALIZER   (0x00000010)
 
 
-/* Modulator Base */
+/* Modulator Base  V1 */
 
 #define MODULATOR_BASE          (0x200)
 #define MODULATOR_CONTROL         (MODULATOR_BASE)
@@ -361,9 +459,11 @@
 
 /* Modulator Channels */
 
-#define CHANNEL_BASE                (0x400)
+#define CHANNEL_BASE dev->link[0].info->regmap->channel->base
+
 #define CHANNEL_CONTROL(i)          (CHANNEL_BASE + (i) * 64 + 0x00)
 #define CHANNEL_SETTINGS(i)         (CHANNEL_BASE + (i) * 64 + 0x04)
+#define CHANNEL_SETTINGS2(i)        (CHANNEL_BASE + (i) * 64 + 0x08)
 #define CHANNEL_RATE_INCR(i)        (CHANNEL_BASE + (i) * 64 + 0x0C)
 #define CHANNEL_PCR_ADJUST_OUTL(i)  (CHANNEL_BASE + (i) * 64 + 0x10)
 #define CHANNEL_PCR_ADJUST_OUTH(i)  (CHANNEL_BASE + (i) * 64 + 0x14)
@@ -373,6 +473,8 @@
 #define CHANNEL_PCR_ADJUST_ACCUH(i) (CHANNEL_BASE + (i) * 64 + 0x24)
 #define CHANNEL_PKT_COUNT_OUT(i)    (CHANNEL_BASE + (i) * 64 + 0x28)
 #define CHANNEL_PKT_COUNT_IN(i)     (CHANNEL_BASE + (i) * 64 + 0x2C)
+#define CHANNEL_KF(i)               (CHANNEL_BASE + (i) * 64 + 0x30)
+#define CHANNEL_LF(i)               (CHANNEL_BASE + (i) * 64 + 0x34)
 
 #define CHANNEL_CONTROL_RESET               (0x00000001)
 #define CHANNEL_CONTROL_ENABLE_DVB          (0x00000002)
@@ -381,8 +483,17 @@
 #define CHANNEL_CONTROL_ENABLE_PCRADJUST    (0x00000010)
 #define CHANNEL_CONTROL_FREEZE_STATUS       (0x00000100)
 
+#define CHANNEL_CONTROL_CMD_MASK            (0x0000F000)
+#define CHANNEL_CONTROL_CMD_STATUS          (0x00008000)
+#define CHANNEL_CONTROL_CMD_FREE            (0x00008000)
+#define CHANNEL_CONTROL_CMD_SETUP           (0x00009000)
+#define CHANNEL_CONTROL_CMD_MUTE            (0x0000A000)
+#define CHANNEL_CONTROL_CMD_UNMUTE          (0x0000B000)
+
 #define CHANNEL_CONTROL_RESET_ERROR         (0x00010000)
-#define CHANNEL_CONTROL_BUSY                (0x01000000)
+#define CHANNEL_CONTROL_ACTIVE              (0x00400000)
+#define CHANNEL_CONTROL_BUSY                (0x00800000)
+#define CHANNEL_CONTROL_ERROR_CMD           (0x10000000)
 #define CHANNEL_CONTROL_ERROR_SYNC          (0x20000000)
 #define CHANNEL_CONTROL_ERROR_UNDERRUN      (0x40000000)
 #define CHANNEL_CONTROL_ERROR_FATAL         (0x80000000)
@@ -393,6 +504,14 @@
 #define CHANNEL_SETTINGS_QAM64              (0x00000002)
 #define CHANNEL_SETTINGS_QAM128             (0x00000003)
 #define CHANNEL_SETTINGS_QAM256             (0x00000004)
+
+#define CHANNEL_SETTINGS2_OUTPUT_MASK       (0x0000007F)
+
+#define KFLF_MAX                            (0x07FFFFFFUL)
+#define KF_INIT(Symbolrate)                 (Symbolrate)
+#define LF_INIT(Symbolrate)                 (9000000UL)
+#define MIN_SYMBOLRATE                      (1000000)
+#define MAX_SYMBOLRATE                      (7100000)
 
 
 /* OCTONET */
