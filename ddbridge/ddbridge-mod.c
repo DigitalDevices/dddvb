@@ -1070,7 +1070,8 @@ static int mod_set_modulation(struct ddb *dev, int chan, enum fe_modulation mod)
 	dev->mod[chan].modulation = mod;
 	dev->mod[chan].obitrate = 0x0061072787900000ULL * (mod + 3);
 	dev->mod[chan].ibitrate = dev->mod[chan].obitrate;
-	ddbwritel(dev, qamtab[mod], CHANNEL_SETTINGS(chan));
+	if (dev->link[0].info->version < 2) 
+		ddbwritel(dev, qamtab[mod], CHANNEL_SETTINGS(chan));
 	return 0;
 }
 
@@ -1486,7 +1487,6 @@ static int mod_ioctl_2(struct file *file, unsigned int cmd, void *parg)
 		int res;
 		u32 ri;
 
-		pr_info("set modulation\n");
 		res = mod_set_modulation(dev, output->nr, cp->modulation);
 		if (res)
 			return res;
