@@ -1,9 +1,10 @@
 /*
  * Driver for the Sony CXD2843ER DVB-T/T2/C/C2 demodulator.
- * Also supports the CXD2837ER DVB-T/T2/C and the
- * CXD2838ER ISDB-T demodulator.
+ * Also supports the CXD2837ER DVB-T/T2/C, the
+ * CXD2838ER ISDB-T demodulator and the 
+ * CXD2854 DVB-T/T2/C/C2 ISDB-T demodulator.
  *
- * Copyright (C) 2013-2015 Digital Devices GmbH
+ * Copyright (C) 2013-2016 Digital Devices GmbH
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -42,7 +43,7 @@
 
 #define USE_ALGO 1
 
-enum demod_type { CXD2843, CXD2837, CXD2838 };
+enum demod_type { CXD2843, CXD2837, CXD2838, CXD2854 };
 enum demod_state { Unknown, Shutdown, Sleep, ActiveT,
 		   ActiveT2, ActiveC, ActiveC2, ActiveIT };
 enum t2_profile { T2P_Base, T2P_Lite };
@@ -83,16 +84,17 @@ struct cxd_state {
 
 	unsigned long tune_time;
 
-	u32   LastBERNominator;
+	u32   LastBERNumerator;
 	u32   LastBERDenominator;
 	u8    BERScaleMax;
+	u8    is2k14;
+	u8    is24MHz;
 };
 
 static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
 {
 	struct i2c_msg msg = {
-		.addr = adr, .flags = 0, .buf = data, .len = len};
-
+		.addr = adr, .flags = 0, .buf = data, .len = len}; 
 	if (i2c_transfer(adap, &msg, 1) != 1) {
 		pr_err("cxd2843: i2c_write error\n");
 		return -1;
@@ -409,7 +411,8 @@ static void Active_to_Sleep(struct cxd_state *state)
 	writeregt(state, 0x00, 0x43, 0x0A); /* Disable ADC 2 */
 	writeregt(state, 0x00, 0x41, 0x0A); /* Disable ADC 1 */
 	writeregt(state, 0x00, 0x30, 0x00); /* Disable ADC Clock */
-	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF level Monitor */
+	writeregt(state, 0x00, 0x59, 0x00); /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x2C, 0x00); /* Disable Demod Clock */
 	state->state = Sleep;
 }
@@ -432,7 +435,42 @@ static void ActiveT2_to_Sleep(struct cxd_state *state)
 	writeregt(state, 0x00, 0x43, 0x0A); /* Disable ADC 2 */
 	writeregt(state, 0x00, 0x41, 0x0A); /* Disable ADC 1 */
 	writeregt(state, 0x00, 0x30, 0x00); /* Disable ADC Clock */
-	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF level Monitor */
+	writeregt(state, 0x00, 0x59, 0x00); /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF Monitor Clock */
+	writeregt(state, 0x00, 0x2C, 0x00); /* Disable Demod Clock */
+	state->state = Sleep;
+}
+
+static void ActiveIT_to_Sleep(struct cxd_state *state)
+{
+	if (state->state <= Sleep)
+		return;
+
+	writeregt(state, 0x00, 0xC3, 0x01); /* Disable TS */
+	writeregt(state, 0x00, 0x80, 0x3F); /* Enable HighZ 1 */
+	writeregt(state, 0x00, 0x81, 0xFF); /* Enable HighZ 2 */
+
+	if (state->is2k14) {
+		writebitst(state, 0x10, 0x69, 0x05, 0x07);
+		writebitst(state, 0x10, 0x6b, 0x07, 0x07);
+		writebitst(state, 0x10, 0x9d, 0x14, 0xff);
+		writebitst(state, 0x10, 0xd3, 0x00, 0x1f);
+		writebitst(state, 0x10, 0xed, 0x01, 0x01);
+		writebitst(state, 0x10, 0xe2, 0x4e, 0x80);
+		writebitst(state, 0x10, 0xf2, 0x03, 0x10);
+		writebitst(state, 0x10, 0xde, 0x32, 0x3f);
+
+		writebitst(state, 0x15, 0xde, 0x03, 0x03);
+		writebitst(state, 0x1e, 0x73, 0x00, 0xff);
+		writebitst(state, 0x63, 0x81, 0x01, 0x01);
+	}
+	
+	writeregx(state, 0x00, 0x18, 0x01); /* Disable ADC 4 */
+	writeregt(state, 0x00, 0x43, 0x0A); /* Disable ADC 2 */
+	writeregt(state, 0x00, 0x41, 0x0A); /* Disable ADC 1 */
+	writeregt(state, 0x00, 0x30, 0x00); /* Disable ADC Clock */
+	writeregt(state, 0x00, 0x59, 0x00); /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x2C, 0x00); /* Disable Demod Clock */
 	state->state = Sleep;
 }
@@ -478,7 +516,8 @@ static void ActiveC2_to_Sleep(struct cxd_state *state)
 	writeregt(state, 0x00, 0x43, 0x0A); /* Disable ADC 2 */
 	writeregt(state, 0x00, 0x41, 0x0A); /* Disable ADC 1 */
 	writeregt(state, 0x00, 0x30, 0x00); /* Disable ADC Clock */
-	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF level Monitor */
+	writeregt(state, 0x00, 0x59, 0x00); /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00); /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x2C, 0x00); /* Disable Demod Clock */
 	state->state = Sleep;
 }
@@ -582,7 +621,8 @@ static void Sleep_to_ActiveT(struct cxd_state *state, u32 iffreq)
 	ConfigureTS(state, ActiveT);
 	writeregx(state, 0x00, 0x17, 0x01);   /* Mode */
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
-	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor */
+	writeregt(state, 0x00, 0x59, 0x00);   /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 	{
@@ -678,7 +718,8 @@ static void Sleep_to_ActiveT2(struct cxd_state *state, u32 iffreq)
 
 	writeregx(state, 0x00, 0x17, 0x02);   /* Mode */
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
-	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor */
+	writeregt(state, 0x00, 0x59, 0x00);   /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
@@ -730,7 +771,8 @@ static void Sleep_to_ActiveC(struct cxd_state *state, u32 iffreq)
 
 	writeregx(state, 0x00, 0x17, 0x04);   /* Mode */
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
-	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor */
+	writeregt(state, 0x00, 0x59, 0x00);   /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
@@ -801,7 +843,8 @@ static void Sleep_to_ActiveC2(struct cxd_state *state, u32 iffreq)
 
 	writeregx(state, 0x00, 0x17, 0x05);   /* Mode */
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
-	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor */
+	writeregt(state, 0x00, 0x59, 0x00);   /* Disable RF Monitor ADC */
+	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor Clock */
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
@@ -873,9 +916,12 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 		/* Add EQ Optimisation for tuner here */
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 
-		writeregt(state, 0x10, 0xD7, 0x00);   /* System Bandwidth */
+		writebitst(state, 0x10, 0xD7, 0x00, 0x07); /* System Bandwidth */
 		/*u8 CL_data[] = { 0x13, 0xFC }; */
 		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+
+		writebitst(state, 0x12, 0x71, 0x03, 0x07);
+		writeregt(state, 0x15, 0xbe, 0x03);
 	}
 	break;
 	case 7:
@@ -887,22 +933,35 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 
-		writeregt(state, 0x10, 0xD7, 0x02);
+		writebitst(state, 0x10, 0xD7, 0x02, 0x07);
 		/*static u8 CL_data[] = { 0x1A, 0xFA };*/
 		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+
+		writebitst(state, 0x12, 0x71, 0x03, 0x07);
+		writeregt(state, 0x15, 0xbe, 0x02);
 	}
 	break;
 	case 6:
 	{
 		u8 TR_data[] = { 0x14, 0x2E, 0x00, 0x00, 0x00 };
-		u8 CL_data[] = { 0x1F, 0xEC };
 		/*u8 TR_data[] = { 0x17, 0xA0, 0x00, 0x00, 0x00 }; */
 		/*u8 CL_data[] = { 0x1F, 0x79 }; */
 
 		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
-		writeregt(state, 0x10, 0xD7, 0x04);
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		writebitst(state, 0x10, 0xD7, 0x04, 0x07);
+
+		if (state->is2k14) {
+			u8 CL_data[] = { 0x1a, 0xe2 };
+			
+			writeregst(state, 0x10, 0xDd9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x1F, 0xec };
+			
+			writeregst(state, 0x10, 0xd9, CL_data, sizeof(CL_data));
+		}
+		writebitst(state, 0x12, 0x71, 0x07, 0x07);
+		writeregt(state, 0x15, 0xbe, 0x02);
 	}
 	break;
 	}
@@ -919,8 +978,13 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 	ConfigureTS(state, ActiveIT);
 
 	/* writeregx(state, 0x00,0x17,0x01); */  /* 2838 has only one Mode */
+	if (state->is2k14)
+		writeregx(state, 0x00, 0x17, 0x06);
 	writeregt(state, 0x00, 0x2C, 0x01);   /* Demod Clock */
-	writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor */
+	if (state->is2k14) {
+		writeregt(state, 0x00, 0x59, 0x00);   /* Disable RF Monitor ADC */
+		writeregt(state, 0x00, 0x2F, 0x00);   /* Disable RF Monitor Clock */
+	}
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
@@ -932,13 +996,43 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 	}
 	writeregx(state, 0x00, 0x18, 0x00);   /* Enable ADC 4 */
 
-	writeregst(state, 0x60, 0xA8, data2, sizeof(data2));
+	
+	if (state->is2k14) {
+		writebitst(state, 0x10, 0xA5, 0x00, 0x01); /* ASCOT Off */
 
+		writebitst(state, 0x18, 0x30, 0x01, 0x01);
+		writebitst(state, 0x18, 0x31, 0x00, 0x01);
+		writebitst(state, 0x00, 0xce, 0x00, 0x01);
+		writebitst(state, 0x00, 0xcf, 0x00, 0x01);
+
+		writebitst(state, 0x10, 0x69, 0x04, 0x07);
+		writebitst(state, 0x10, 0x6b, 0x03, 0x07);
+		writebitst(state, 0x10, 0x9d, 0x50, 0xff);
+		writebitst(state, 0x10, 0xd3, 0x06, 0x1f);
+		writebitst(state, 0x10, 0xed, 0x00, 0x01);
+		writebitst(state, 0x10, 0xe2, 0xce, 0x80);
+		writebitst(state, 0x10, 0xf2, 0x13, 0x10);
+		writebitst(state, 0x10, 0xde, 0x2e, 0x3f);
+
+		writebitst(state, 0x15, 0xde, 0x02, 0x03);
+		writebitst(state, 0x1e, 0x73, 0x68, 0xff);
+		writebitst(state, 0x63, 0x81, 0x00, 0x01);
+	}
+        //if( m_is24MHz )
+        //{
+        //    static BYTE TSIF_data[2] = { 0x60,0x00 } ; // 24 MHz
+        //    CHK_ERROR(WriteRegT(0x10,0xBF,TSIF_data,sizeof(TSIF_data)));
+        //    static BYTE data[3] = { 0xB7,0x1B,0x00 };  // 24 MHz
+        //    CHK_ERROR(WriteRegT(0x60,0xA8,data,sizeof(data)));
+        //}
+        //else
 	writeregst(state, 0x10, 0xBF, TSIF_data, sizeof(TSIF_data));
-
-	writeregt(state, 0x10, 0xE2, 0xCE); /* OREG_PNC_DISABLE */
-	writebitst(state, 0x10, 0xA5, 0x00, 0x01); /* ASCOT Off */
-
+	writeregst(state, 0x60, 0xa8, data2, sizeof(data2));
+	
+	if (!state->is2k14) {
+		writeregt(state, 0x10, 0xE2, 0xCE); /* OREG_PNC_DISABLE */
+		writebitst(state, 0x10, 0xA5, 0x00, 0x01); /* ASCOT Off */
+	}
 	BandSettingIT(state, iffreq);
 
 	writeregt(state, 0x00, 0x80, 0x28); /* Disable HiZ Setting 1 */
@@ -1046,6 +1140,9 @@ static void ShutDown(struct cxd_state *state)
 	case ActiveC2:
 		ActiveC2_to_Sleep(state);
 		break;
+	case ActiveIT:
+		ActiveIT_to_Sleep(state);
+		break;
 	default:
 		Active_to_Sleep(state);
 		break;
@@ -1105,12 +1202,14 @@ static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 		newDemodState = ActiveC;
 		break;
 	case OM_DVBC2:
-		if (state->type != CXD2843)
+		if (state->type != CXD2843 && state->type != CXD2854)
 			return -EINVAL;
 		newDemodState = ActiveC2;
 		break;
 	case OM_ISDBT:
-		if (state->type != CXD2838)
+		if (state->type != CXD2838 && state->type != CXD2854)
+			return -EINVAL;
+		if (state->type == CXD2854 && !state->is24MHz && state->bw != 6)
 			return -EINVAL;
 		newDemodState = ActiveIT;
 		break;
@@ -1123,7 +1222,7 @@ static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 	state->L1PostTimeout = 0;
 	state->last_status = 0;
 	state->FirstTimeLock = 1;
-	state->LastBERNominator = 0;
+	state->LastBERNumerator = 0;
 	state->LastBERDenominator = 1;
 	state->BERScaleMax = 19;
 
@@ -1164,6 +1263,9 @@ static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 				break;
 			case ActiveC2:
 				ActiveC2_to_Sleep(state);
+				break;
+			case ActiveIT:
+				ActiveIT_to_Sleep(state);
 				break;
 			default:
 				Active_to_Sleep(state);
@@ -1474,16 +1576,16 @@ static int get_ber_t(struct cxd_state *state, u32 *n, u32 *d)
 	Scale &= 0x1F;
 
 	if (BERRegs[0] & 0x80) {
-		state->LastBERNominator = (((u32) BERRegs[0] & 0x3F) << 16) |
+		state->LastBERNumerator = (((u32) BERRegs[0] & 0x3F) << 16) |
 			(((u32) BERRegs[1]) << 8) | BERRegs[2];
 		state->LastBERDenominator = 1632 << Scale;
-		if (state->LastBERNominator < 256 &&
+		if (state->LastBERNumerator < 256 &&
 		    Scale < state->BERScaleMax) {
 			writebitst(state, 0x10, 0x60, Scale + 1, 0x1F);
-		} else if (state->LastBERNominator > 512 && Scale > 11)
+		} else if (state->LastBERNumerator > 512 && Scale > 11)
 			writebitst(state, 0x10, 0x60, Scale - 1, 0x1F);
 	}
-	*n = state->LastBERNominator;
+	*n = state->LastBERNumerator;
 	*d = state->LastBERDenominator;
 
 	return 0;
@@ -1518,16 +1620,16 @@ static int get_ber_t2(struct cxd_state *state, u32 *n, u32 *d)
 	readregst(state, 0x20, 0x72, &Scale, 1);
 	Scale &= 0x0F;
         if (BERRegs[0] & 0x01) {
-		state->LastBERNominator = (((u32) BERRegs[1] & 0x3F) << 16) |
+		state->LastBERNumerator = (((u32) BERRegs[1] & 0x3F) << 16) |
 			(((u32) BERRegs[2]) << 8) | BERRegs[3];
 		state->LastBERDenominator = nBCHBitsLookup[FECType][CodeRate] << Scale;
-		if (state->LastBERNominator < 256 &&
+		if (state->LastBERNumerator < 256 &&
 		    Scale < state->BERScaleMax) {
 			writebitst(state, 0x20, 0x72, Scale + 1, 0x0F);
-		} else if (state->LastBERNominator > 512 && Scale > 8)
+		} else if (state->LastBERNumerator > 512 && Scale > 8)
 			writebitst(state, 0x20, 0x72, Scale - 1, 0x0F);
 	}
-	*n = state->LastBERNominator;
+	*n = state->LastBERNumerator;
 	*d = state->LastBERDenominator;
 	return 0;
 }
@@ -1545,16 +1647,16 @@ static int get_ber_c(struct cxd_state *state, u32 *n, u32 *d)
 	Scale &= 0x1F;
 
 	if (BERRegs[0] & 0x80) {
-		state->LastBERNominator = (((u32) BERRegs[0] & 0x3F) << 16) |
+		state->LastBERNumerator = (((u32) BERRegs[0] & 0x3F) << 16) |
 			(((u32) BERRegs[1]) << 8) | BERRegs[2];
 		state->LastBERDenominator = 1632 << Scale;
-		if (state->LastBERNominator < 256 &&
+		if (state->LastBERNumerator < 256 &&
 		    Scale < state->BERScaleMax) {
 			writebitst(state, 0x40, 0x60, Scale + 1, 0x1F);
-		} else if (state->LastBERNominator > 512 && Scale > 11)
+		} else if (state->LastBERNumerator > 512 && Scale > 11)
 			writebitst(state, 0x40, 0x60, Scale - 1, 0x1F);
 	}
-	*n = state->LastBERNominator;
+	*n = state->LastBERNumerator;
 	*d = state->LastBERDenominator;
 
 	return 0;
@@ -2152,6 +2254,39 @@ static int get_frontend(struct dvb_frontend *fe)
 	return 0;
 }
 
+static struct dvb_frontend_ops common_ops_2854 = {
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2, SYS_ISDBT },
+	.info = {
+		.name = "CXD2854 DVB-C/C2 DVB-T/T2 ISDB-T",
+		.frequency_stepsize = 166667,	/* DVB-T only */
+		.frequency_min = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.symbol_rate_min = 870000,
+		.symbol_rate_max = 11700000,
+		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
+		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		        FE_CAN_QAM_AUTO | 
+			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+			FE_CAN_FEC_4_5 |
+			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+			FE_CAN_TRANSMISSION_MODE_AUTO |
+			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+	},
+	.release = release,
+	.sleep = sleep,
+	.i2c_gate_ctrl = gate_ctrl,
+	.set_frontend = set_parameters,
+
+	.get_tune_settings = get_tune_settings,
+	.read_status = read_status,
+	.read_ber = read_ber,
+	.read_signal_strength = read_signal_strength,
+	.read_snr = read_snr,
+	.read_ucblocks = read_ucblocks,
+	.get_frontend = get_frontend,
+};
+
 static struct dvb_frontend_ops common_ops_2843 = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2 },
 	.info = {
@@ -2291,6 +2426,12 @@ static int probe(struct cxd_state *state)
 		state->type = CXD2838;
 		memcpy(&state->frontend.ops, &common_ops_2838,
 		       sizeof(struct dvb_frontend_ops));
+		break;
+	case 0xc1:
+		state->type = CXD2854;
+		memcpy(&state->frontend.ops, &common_ops_2854,
+		       sizeof(struct dvb_frontend_ops));
+		state->is2k14 = 1;
 		break;
 	default:
 		return -1;
