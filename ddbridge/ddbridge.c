@@ -475,6 +475,7 @@ static struct ddb_info ddb_mod_fsm_24 = {
 	.regmap   = &octopus_mod_2_map,
 	.port_num = 24,
 	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
 static struct ddb_info ddb_mod_fsm_16 = {
@@ -484,6 +485,7 @@ static struct ddb_info ddb_mod_fsm_16 = {
 	.regmap   = &octopus_mod_2_map,
 	.port_num = 16,
 	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
 static struct ddb_info ddb_mod_fsm_8 = {
@@ -493,6 +495,7 @@ static struct ddb_info ddb_mod_fsm_8 = {
 	.regmap   = &octopus_mod_2_map,
 	.port_num = 8,
 	.temp_num = 1,
+	.tempmon_irq = 8,
 };
 
 static struct ddb_info ddb_octopro_hdin = {
@@ -541,15 +544,18 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0006, DDVID, 0x0032, ddb_ctv7),
 	DDB_ID(DDVID, 0x0006, DDVID, 0x0033, ddb_ctv7),
 	DDB_ID(DDVID, 0x0007, DDVID, 0x0023, ddb_s2_48),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0034, ddb_ct_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0035, ddb_ct_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0036, ddb_ct_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0034, ddb_ct2_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0035, ddb_c2t2_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0036, ddb_isdbt_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0037, ddb_c2t2i_v0_8),
+	DDB_ID(DDVID, 0x0008, DDVID, 0x0038, ddb_c2t2i_8),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0040, ddb_ci),
 	DDB_ID(DDVID, 0x0011, DDVID, 0x0041, ddb_cis),
 	DDB_ID(DDVID, 0x0012, DDVID, 0x0042, ddb_ci),
 	DDB_ID(DDVID, 0x0013, DDVID, 0x0043, ddb_ci_s2_pro),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
 	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
+	DDB_ID(DDVID, 0x0203, DDVID, 0x0001, ddb_mod),
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0001, ddb_mod_fsm_24),
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0002, ddb_mod_fsm_16),
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0003, ddb_mod_fsm_8),

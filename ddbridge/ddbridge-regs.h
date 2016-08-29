@@ -147,7 +147,7 @@
 #define DAC_CONTROL_RESET           (0x200)
 
 /* Temperature Monitor ( 2x LM75A @ 0x90,0x92 I2c ) */
-#define TEMPMON_BASE        (0xA0)
+#define TEMPMON_BASE        (0x1c0)
 #define TEMPMON_CONTROL    (TEMPMON_BASE + 0x00)
 
 #define TEMPMON_CONTROL_SCAN        (0x00000001)

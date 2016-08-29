@@ -215,12 +215,12 @@ static void mod_set_rateinc(struct ddb *dev, u32 chan)
 
 static u32 qamtab[6] = { 0x000, 0x600, 0x601, 0x602, 0x903, 0x604 };
 
-void ddbridge_mod_output_start(struct ddb_output *output)
+int ddbridge_mod_output_start(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 	u32 Channel = output->nr;
 	struct ddb_mod *mod = &dev->mod[output->nr];
-	u32 Symbolrate = 6900000;
+	u32 Symbolrate = mod->symbolrate;
 	
 	/*PCRIncrement = RoundPCR(PCRIncrement);*/
 	/*PCRDecrement = RoundPCR(PCRDecrement);*/
@@ -256,8 +256,7 @@ void ddbridge_mod_output_start(struct ddb_output *output)
 		u32 d = gcd(KF,LF);
 		u32 checkLF;
 
-		mod->modulation = QAM_256 - 1;
-		ddbwritel(dev, mod->modulation, CHANNEL_SETTINGS(Channel));
+		ddbwritel(dev, mod->modulation - 1, CHANNEL_SETTINGS(Channel));
 		ddbwritel(dev, Output, CHANNEL_SETTINGS2(Channel));
 		
 		KF = KF / d;
@@ -297,6 +296,7 @@ void ddbridge_mod_output_start(struct ddb_output *output)
 		if (mod_SendChannelCommand(dev, Channel, CHANNEL_CONTROL_CMD_UNMUTE))
 			return -EINVAL;
 	pr_info("mod_output_start %d.%d\n", dev->nr, output->nr);
+	return 0;
 }
 
 /****************************************************************************/
@@ -422,14 +422,14 @@ static int mod_get_vga(struct ddb *dev, u32 *pGain)
 	*pGain = ddbreadl(dev, RF_VGA);
 	return 0;
 }
-
-static void mod_TemperatureMonitorSetFan(struct ddb *dev)
+#if 0
+static void TemperatureMonitorSetFan(struct ddb *dev)
 {
 	u32 tqam, pwm;
 	
 	if ((ddbreadl(dev, TEMPMON_CONTROL) & TEMPMON_CONTROL_OVERTEMP ) != 0) {
 		pr_info("Over temperature condition\n");
-		dev->mod_base.OverTemperatureError = 1;
+		dev->OverTemperatureError = 1;
 	}
 	tqam  = (ddbreadl(dev, TEMPMON2_QAMCORE) >> 8) & 0xFF;
 	if (tqam & 0x80)
@@ -439,55 +439,55 @@ static void mod_TemperatureMonitorSetFan(struct ddb *dev)
 	if (pwm > 10)
 		pwm = 10;   
 	
-	if (tqam >= dev->mod_base.temp_tab[pwm]) {
-		while( pwm < 10 && tqam >= dev->mod_base.temp_tab[pwm + 1])
+	if (tqam >= dev->temp_tab[pwm]) {
+		while( pwm < 10 && tqam >= dev->temp_tab[pwm + 1])
 			pwm += 1;
 	} else {
-		while( pwm > 1 && tqam < dev->mod_base.temp_tab[pwm - 2])
+		while( pwm > 1 && tqam < dev->temp_tab[pwm - 2])
 			pwm -= 1;
 	}
 	ddbwritel(dev, (pwm << 8), TEMPMON_FANCONTROL);
 }
 
 
-static void mod_temp_handler(unsigned long data)
+static void temp_handler(unsigned long data)
 {
 	struct ddb *dev = (struct ddb *) data;
 
-	pr_info("mod_temp_handler\n");
+	pr_info("temp_handler\n");
 
-	spin_lock(&dev->mod_base.temp_lock);
-	mod_TemperatureMonitorSetFan(dev);
-	spin_unlock(&dev->mod_base.temp_lock);
+	spin_lock(&dev->temp_lock);
+	TemperatureMonitorSetFan(dev);
+	spin_unlock(&dev->temp_lock);
 }
 
-static int mod_TemperatureMonitorInit(struct ddb *dev, int FirstTime) {
+static int TemperatureMonitorInit(struct ddb *dev, int FirstTime) {
 	int status = 0;
 	
-	spin_lock_irq(&dev->mod_base.temp_lock);
+	spin_lock_irq(&dev->temp_lock);
 	if (FirstTime) {
 		static u8 TemperatureTable[11] = {30,35,40,45,50,55,60,65,70,75,80};
 		
-		memcpy(dev->mod_base.temp_tab, TemperatureTable, sizeof(TemperatureTable));
+		memcpy(dev->temp_tab, TemperatureTable, sizeof(TemperatureTable));
 	}
-	dev->handler[0][8] = mod_temp_handler;
+	dev->handler[0][8] = temp_handler;
 	dev->handler_data[0][8] = (unsigned long) dev;
 	ddbwritel(dev, (TEMPMON_CONTROL_OVERTEMP | TEMPMON_CONTROL_AUTOSCAN |
 			TEMPMON_CONTROL_INTENABLE),
 		  TEMPMON_CONTROL);
 	ddbwritel(dev, (3 << 8), TEMPMON_FANCONTROL);
 	
-	dev->mod_base.OverTemperatureError =
+	dev->OverTemperatureError =
 		((ddbreadl(dev, TEMPMON_CONTROL) & TEMPMON_CONTROL_OVERTEMP ) != 0);
-	if (dev->mod_base.OverTemperatureError)	{
+	if (dev->OverTemperatureError)	{
 		pr_info("Over temperature condition\n");
 		status = -1;
 	}
-	mod_TemperatureMonitorSetFan(dev);
-	spin_unlock_irq(&dev->mod_base.temp_lock);
+	TemperatureMonitorSetFan(dev);
+	spin_unlock_irq(&dev->temp_lock);
 	return status;
 }
-
+#endif
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -1063,12 +1063,24 @@ u32 eqtab[] = {
 	0x00001B23, 0x0000EEB7, 0x00006A28
 };
 
-static int mod_set_modulation(struct ddb *dev, int chan, enum fe_modulation mod)
+static int mod_set_modrate(struct ddb *dev, int chan,
+			   enum fe_modulation mod, u32 srate)
 {
+	u64 ofac; 
+
 	if (mod > QAM_256 || mod < QAM_16)
 		return -EINVAL;
+	if (dev->link[0].info->version < 2) {
+		if (srate != 6900000)
+			return -EINVAL;
+	} else {
+		if (srate > 7100000)
+			return -EINVAL;
+	}
+	dev->mod[chan].symbolrate = srate;
 	dev->mod[chan].modulation = mod;
-	dev->mod[chan].obitrate = 0x0061072787900000ULL * (mod + 3);
+	ofac = ((((u64) srate) << 32) * 188 ) / 204;
+	dev->mod[chan].obitrate = ofac * (mod + 3);
 	dev->mod[chan].ibitrate = dev->mod[chan].obitrate;
 	if (dev->link[0].info->version < 2) 
 		ddbwritel(dev, qamtab[mod], CHANNEL_SETTINGS(chan));
@@ -1180,9 +1192,10 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 
 		iqfreq = flash->DataSet[0].FrequencyFactor *
 			(FrequencyCH10 + (9 - i) * 8);
+		iqfreq += (dev->link[0].ids.hwid == 0x0203dd01) ? 22 : 0 ;
 		iqsteps = flash->DataSet[0].IQTableLength;
 		mod_set_iq(dev, iqsteps, i, iqfreq);
-		mod_set_modulation(dev, i, QAM_256);
+		mod_set_modrate(dev, i, QAM_256, 6900000);
 	}
 
 	mod_bypass_equalizer(dev, 1);
@@ -1391,157 +1404,26 @@ void ddbridge_mod_rate_handler(unsigned long data)
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
 
-static int mod_ioctl_1(struct file *file, unsigned int cmd, void *parg)
+static void mod_calc_rateinc(struct ddb_mod *mod)
 {
-	struct dvb_device *dvbdev = file->private_data;
-	struct ddb_output *output = dvbdev->priv;
-	struct ddb *dev = output->port->dev;
-
-	/* unsigned long arg = (unsigned long) parg; */
-	int ret = 0;
-
-	switch (cmd) {
-	case DVB_MOD_SET:
-	{
-		struct dvb_mod_params *mp = parg;
-
-		pr_info("set base freq\n");
-		if (mp->base_frequency != dev->mod_base.frequency)
-			if (set_base_frequency(dev, mp->base_frequency))
-				return -EINVAL;
-		pr_info("set attenuator\n");
-		mod_set_attenuator(dev, mp->attenuator);
-		break;
-	}
-	case DVB_MOD_CHANNEL_SET:
-	{
-		struct dvb_mod_channel_params *cp = parg;
-		int res;
-		u32 ri;
-
-		pr_info("set modulation\n");
-		res = mod_set_modulation(dev, output->nr, cp->modulation);
-		if (res)
-			return res;
-
-		if (cp->input_bitrate > dev->mod[output->nr].obitrate)
-			return -EINVAL;
-		dev->mod[output->nr].ibitrate = cp->input_bitrate;
-		dev->mod[output->nr].pcr_correction = cp->pcr_correction;
-
-		pr_info("ibitrate %llu\n", dev->mod[output->nr].ibitrate);
-		pr_info("obitrate %llu\n", dev->mod[output->nr].obitrate);
-		if (cp->input_bitrate != 0) {
-			u64 d = dev->mod[output->nr].obitrate -
-				dev->mod[output->nr].ibitrate;
-
-			d = div64_u64(d, dev->mod[output->nr].obitrate >> 24);
-			if (d > 0xfffffe)
-				ri = 0xfffffe;
-			else
-				ri = d;
-		} else
-			ri = 0;
-		dev->mod[output->nr].rate_inc = ri;
-		pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
-			dev->mod[output->nr].ibitrate >> 32,
-			dev->mod[output->nr].obitrate >> 32,
-			ri);
-		break;
-	}
-	default:
-		ret = -EINVAL;
-		break;
-	}
-	return ret;
-}
-
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-static int mod_ioctl_2(struct file *file, unsigned int cmd, void *parg)
-{
-	struct dvb_device *dvbdev = file->private_data;
-	struct ddb_output *output = dvbdev->priv;
-	struct ddb *dev = output->port->dev;
-
-	/* unsigned long arg = (unsigned long) parg; */
-	int ret = 0;
-
-	switch (cmd) {
-	case DVB_MOD_SET:
-	{
-		struct dvb_mod_params *mp = parg;
-
-		pr_info("set base freq\n");
-		dev->mod_base.frequency = mp->base_frequency;
-		pr_info("set attenuator\n");
-		mod_set_attenuator(dev, mp->attenuator);
-		break;
-	}
-	case DVB_MOD_CHANNEL_SET:
-	{
-		struct dvb_mod_channel_params *cp = parg;
-		int res;
-		u32 ri;
-
-		res = mod_set_modulation(dev, output->nr, cp->modulation);
-		if (res)
-			return res;
-
-		if (cp->input_bitrate > dev->mod[output->nr].obitrate)
-			return -EINVAL;
-		dev->mod[output->nr].ibitrate = cp->input_bitrate;
-		dev->mod[output->nr].pcr_correction = cp->pcr_correction;
-
-		pr_info("ibitrate %llu\n", dev->mod[output->nr].ibitrate);
-		pr_info("obitrate %llu\n", dev->mod[output->nr].obitrate);
-		if (cp->input_bitrate != 0) {
-			u64 d = dev->mod[output->nr].obitrate -
-				dev->mod[output->nr].ibitrate;
-
-			d = div64_u64(d, dev->mod[output->nr].obitrate >> 24);
-			if (d > 0xfffffe)
-				ri = 0xfffffe;
-			else
-				ri = d;
-		} else
-			ri = 0;
-		dev->mod[output->nr].rate_inc = ri;
-		pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
-			dev->mod[output->nr].ibitrate >> 32,
-			dev->mod[output->nr].obitrate >> 32,
-			ri);
-		break;
-	}
-	default:
-		ret = -EINVAL;
-		break;
-	}
-	return ret;
-}
-
-
-static int mod_init_2(struct ddb *dev, u32 Frequency)
-{
-	int status;
-	int streams = dev->link[0].info->port_num;
-
-	dev->mod_base.frequency = Frequency;
-	mod_TemperatureMonitorInit(dev, 1);
-	status = mod_fsm_setup(dev, 0, 0);
-
-	if (streams <= 8)
-		mod_set_vga(dev, RF_VGA_GAIN_N8);
-	else if (streams <= 16)
-		mod_set_vga(dev, RF_VGA_GAIN_N16);
-	else
-		mod_set_vga(dev, RF_VGA_GAIN_N24);
-
-	mod_set_attenuator(dev, 0);
-	return 0;
+	u32 ri;
+	
+	pr_info("ibitrate %llu\n", mod->ibitrate);
+	pr_info("obitrate %llu\n", mod->obitrate);
+	
+	if (mod->ibitrate != 0) {
+		u64 d = mod->obitrate - mod->ibitrate;
+		
+		d = div64_u64(d, mod->obitrate >> 24);
+		if (d > 0xfffffe)
+			ri = 0xfffffe;
+		else
+			ri = d;
+	} else
+		ri = 0;
+	mod->rate_inc = ri;
+	pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
+		mod->ibitrate >> 32, mod->obitrate >> 32, ri);
 }
 
 int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
@@ -1549,17 +1431,73 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	struct dvb_device *dvbdev = file->private_data;
 	struct ddb_output *output = dvbdev->priv;
 	struct ddb *dev = output->port->dev;
+
+	/* unsigned long arg = (unsigned long) parg; */
+	int ret = 0;
+
+	switch (cmd) {
+	case DVB_MOD_SET:
+	{
+		struct dvb_mod_params *mp = parg;
+
+		if (dev->link[0].info->version < 2) {
+			if (mp->base_frequency != dev->mod_base.frequency)
+				if (set_base_frequency(dev, mp->base_frequency))
+					return -EINVAL;
+		} else {
+			dev->mod_base.frequency = mp->base_frequency;
+		}
+		mod_set_attenuator(dev, mp->attenuator);
+		break;
+	}
+	case DVB_MOD_CHANNEL_SET:
+	{
+		struct dvb_mod_channel_params *cp = parg;
+		int res;
+
+		res = mod_set_modrate(dev, output->nr, cp->modulation, 6900000);
+		if (res)
+			return res;
+
+		if (cp->input_bitrate > dev->mod[output->nr].obitrate)
+			return -EINVAL;
+		dev->mod[output->nr].ibitrate = cp->input_bitrate;
+		dev->mod[output->nr].pcr_correction = cp->pcr_correction;
+
+		mod_calc_rateinc(&dev->mod[output->nr]);
+		break;
+	}
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	return ret;
+}
+
+static int mod_init_2(struct ddb *dev, u32 Frequency)
+{
+	int status, i;
+	int streams = dev->link[0].info->port_num;
+
+	dev->mod_base.frequency = Frequency;
+	status = mod_fsm_setup(dev, 0, 0);
+
+	for (i = 0; i < streams; i++)
+		mod_set_modrate(dev, i, QAM_256, 6900000);
 	
-	if (dev->link[0].info->version <= 0)
-		return mod_ioctl_1(file, cmd, parg);
-	if (dev->link[0].info->version == 2)
-		return mod_ioctl_2(file, cmd, parg);
-	return -1;
+	if (streams <= 8)
+		mod_set_vga(dev, RF_VGA_GAIN_N8);
+	else if (streams <= 16)
+		mod_set_vga(dev, RF_VGA_GAIN_N16);
+	else
+		mod_set_vga(dev, RF_VGA_GAIN_N24);
+	
+	mod_set_attenuator(dev, 0);
+	return 0;
 }
 
 int ddbridge_mod_init(struct ddb *dev)
 {
-	spin_lock_init(&dev->mod_base.temp_lock);
 	if (dev->link[0].info->version <= 1)
 		return mod_init_1(dev, 722000000);
 	if (dev->link[0].info->version == 2)

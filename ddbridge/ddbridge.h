@@ -113,7 +113,7 @@ struct ddb_regmap {
 	u32 irq_base_odma;
 	u32 irq_base_gtl;
 	u32 irq_base_rate;
-	
+
 	struct ddb_regset *i2c;
 	struct ddb_regset *i2c_buf;
 	struct ddb_regset *idma;
@@ -172,6 +172,7 @@ struct ddb_info {
 #define TS_QUIRK_SERIAL    1
 #define TS_QUIRK_REVERSED  2
 #define TS_QUIRK_NO_OUTPUT 4
+	u32 tempmon_irq;
 	struct ddb_regmap *regmap;
 };
 
@@ -338,10 +339,6 @@ struct mod_base {
 	u32                    frequency;
 	u32                    flat_start;
 	u32                    flat_end;
-
-	spinlock_t             temp_lock;
-	int                    OverTemperatureError;
-	u8                     temp_tab[11];
 };
 
 struct ddb_mod {
@@ -424,6 +421,10 @@ struct ddb_link {
 	struct ddb_lnb         lnb;
 	struct tasklet_struct  tasklet;
 	struct ddb_ids         ids;
+
+	spinlock_t             temp_lock;
+	int                    OverTemperatureError;
+	u8                     temp_tab[11];
 };
 
 struct ddb {
@@ -471,6 +472,7 @@ struct ddb {
 
 	struct mod_base        mod_base;
 	struct ddb_mod         mod[24];
+
 };
 
 static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)
@@ -520,7 +522,7 @@ static inline void gtlw(struct ddb_link *link)
 }
 #endif
 
-#if 0
+
 static u32 ddblreadl(struct ddb_link *link, u32 adr)
 {
 	if (unlikely(link->nr)) {
@@ -554,7 +556,6 @@ static void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 	}
 	writel(val, (char *) (link->dev->regs + (adr)));
 }
-#endif
 
 static u32 ddbreadl(struct ddb *dev, u32 adr)
 {
@@ -744,7 +745,7 @@ struct DDMOD_FLASH {
 int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
 int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
-void ddbridge_mod_output_start(struct ddb_output *output);
+int ddbridge_mod_output_start(struct ddb_output *output);
 void ddbridge_mod_rate_handler(unsigned long data);
 
 
