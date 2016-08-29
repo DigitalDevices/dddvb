@@ -4953,7 +4953,8 @@ static void ddb_device_attrs_del(struct ddb *dev)
 	int i;
 
 	for (i = 0; i < 4; i++)
-		if (dev->link[i].info->tempmon_irq)
+		if (dev->link[i].info &&
+		    dev->link[i].info->tempmon_irq)
 			device_remove_file(dev->ddb_dev, &ddb_attrs_fanspeed[i]);
 	for (i = 0; i < dev->link[0].info->temp_num; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_temp[i]);
