@@ -569,6 +569,10 @@ int main(int argc, char **argv)
 		type = 6;
 	if (ddbid.device == 0x12)
 		type = 7;
+	if (ddbid.device == 0x08)
+		type = 8;
+	if (ddbid.device == 0x210)
+		type = 9;
 	
 	if (!SectorSize)
 		return 0;
@@ -632,7 +636,11 @@ int main(int argc, char **argv)
 			printf("Octopus 35\n");
 			break;
 		case 4:
-			fname="DVBBridgeV2A_DD01_0007_MXL.bit";
+			fname="DVBBridgeV2A_DD01_0007_MXL.fpga";
+			printf("Octopus 4/8\n");
+			break;
+		case 8:
+			fname="DVBBridgeV2A_DD01_0008_CXD.fpga";
 			printf("Octopus 4/8\n");
 			break;
 		case 6:
@@ -642,6 +650,10 @@ int main(int argc, char **argv)
 		case 7:
 			fname="DVBBridgeV2B_DD01_0012_STD.fpga";
 			printf("Octopus CI\n");
+			break;
+		case 9:
+			fname="DVBModulatorV2A_DD01_0210.fpga";
+			printf("Modulator V2\n");
 			break;
 		default:
 			printf("UNKNOWN\n");
