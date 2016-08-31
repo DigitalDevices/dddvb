@@ -5144,69 +5144,6 @@ static int stv090x_get_frontend(struct dvb_frontend *fe)
 	return 0;
 }
 
-static int get_frontend(struct dvb_frontend *fe)
-{
-	struct stv090x_state *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	u8 tmp;
-	u32 reg = 0;
-	
-	if (state->rec_mode == 2) {
-		u32 mc;
-		enum fe_modulation modcod2mod[0x20] = {
-			QPSK, QPSK, QPSK, QPSK,
-			QPSK, QPSK, QPSK, QPSK,
-			QPSK, QPSK, QPSK, QPSK,
-			PSK_8, PSK_8, PSK_8, PSK_8,
-			PSK_8, PSK_8, APSK_16, APSK_16,
-			APSK_16, APSK_16, APSK_16, APSK_16,
-			APSK_32, APSK_32, APSK_32, APSK_32,
-			APSK_32, 
-		};
-		enum fe_code_rate modcod2fec[0x20] = {
-			FEC_NONE, FEC_1_4, FEC_1_3, FEC_2_5,
-			FEC_1_2, FEC_3_5, FEC_2_3, FEC_3_4,
-			FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
-			FEC_3_5, FEC_2_3, FEC_3_4, FEC_5_6,
-			FEC_8_9, FEC_9_10, FEC_2_3, FEC_3_4,
-			FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
-			FEC_3_4, FEC_4_5, FEC_5_6, FEC_8_9,
-			FEC_9_10
-		};		
-		mc = state->modcod;
-		p->pilot = (state->pilots & 0x01) ? PILOT_ON : PILOT_OFF;
-		p->modulation = modcod2mod[mc];
-		p->fec_inner = modcod2fec[mc];	
-        } else if (state->rec_mode == 1) {
-		reg = STV090x_READ_DEMOD(state, VITCURPUN);
-		switch( reg & 0x1F ) {
-                case 0x0d:
-			p->fec_inner = FEC_1_2;
-			break;
-                case 0x12:
-			p->fec_inner = FEC_2_3;
-			break;
-                case 0x15:
-			p->fec_inner = FEC_3_4;
-			break;
-                case 0x18:
-			p->fec_inner = FEC_5_6;
-			break;
-                case 0x1a:
-			p->fec_inner = FEC_7_8;
-			break;
-		default:
-			p->fec_inner = FEC_NONE;
-			break;
-		}
-		p->rolloff = ROLLOFF_35;
-	} else {
-		
-	}
-	
-	return 0;
-}
-
 static struct dvb_frontend_ops stv090x_ops = {
 #ifndef USE_API3
         .delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
