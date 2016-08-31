@@ -362,7 +362,7 @@ static int read_t2_ofdm_info(struct cxd_state *state, u8 *ofdm)
 	return 0;
 }
 
-/* Read DVBT2 QAM, 
+/* Read DVBT2 QAM,
    Data PLP
   0  [7:0]        L1POST_PLP_ID[7:0]
   1  [2:0]        L1POST_PLP_TYPE[2:0]
@@ -1347,7 +1347,7 @@ static int get_stats(struct dvb_frontend *fe)
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
 	p->strength.stat[0].uvalue = str;
-	
+
 	read_snr(fe, &val);
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
@@ -1393,7 +1393,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		}
 		if (*status == 0x1f && state->FirstTimeLock) {
 			u8 tps[7];
-			
+
 			read_tps(state, tps);
 			state->BERScaleMax =
 				(((tps[0] >> 6) & 0x03) < 2 ) ? 17 : 18;
@@ -1500,13 +1500,13 @@ static int get_ber_t2(struct cxd_state *state, u32 *n, u32 *d)
 		{7200,  9720,  10800, 11880, 12600, 13320, 5400,  6480}, /* 16K FEC */
 		{32400, 38880, 43200, 48600, 51840, 54000, 21600, 25920} /* 64k FEC */
 	};
-	
+
 	*n = 0;
 	*d = 1;
 	freeze_regst(state);
-	readregst(state, 0x24, 0x40, BERRegs, 4);
-	readregst(state, 0x22, 0x5e, &FECType, 1);
-	readregst(state, 0x22, 0x5b, &CodeRate, 1);
+	readregst_unlocked(state, 0x24, 0x40, BERRegs, 4);
+	readregst_unlocked(state, 0x22, 0x5e, &FECType, 1);
+	readregst_unlocked(state, 0x22, 0x5b, &CodeRate, 1);
 
 	FECType &= 0x03;
 	CodeRate &= 0x07;
@@ -1514,10 +1514,9 @@ static int get_ber_t2(struct cxd_state *state, u32 *n, u32 *d)
 	if (FECType > 1)
 		return 0;
 
-
 	readregst(state, 0x20, 0x72, &Scale, 1);
 	Scale &= 0x0F;
-        if (BERRegs[0] & 0x01) {
+	if (BERRegs[0] & 0x01) {
 		state->LastBERNominator = (((u32) BERRegs[1] & 0x3F) << 16) |
 			(((u32) BERRegs[2]) << 8) | BERRegs[3];
 		state->LastBERDenominator = nBCHBitsLookup[FECType][CodeRate] << Scale;
@@ -1529,6 +1528,7 @@ static int get_ber_t2(struct cxd_state *state, u32 *n, u32 *d)
 	}
 	*n = state->LastBERNominator;
 	*d = state->LastBERDenominator;
+
 	return 0;
 }
 
@@ -1603,7 +1603,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	}
 	if (s)
 		return s;
-	
+
 	p->pre_bit_error.len = 1;
 	p->pre_bit_error.stat[0].scale = FE_SCALE_COUNTER;
 	p->pre_bit_error.stat[0].uvalue = n;
@@ -1633,13 +1633,13 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
      if( m_DemodState != ActiveT2 ) return STATUS_NOT_IMPLEMENTED;
 -    if( m_LastLockStatus < TSLock || m_LastLockStatus == Unlock ) return status;
 +    if( m_LastLockStatus < TSLock ) return status;
- 
+
      do
      {
 +        BYTE tmp;
 +
          CHK_ERROR(FreezeRegsT());
- 
+
 +        CHK_ERROR(ReadRegT(0x20,0x5C,&tmp)); // OFDM Info
 +
 +        if( tmp & 0x20 ) pT2_PLPIDS->Flags |= DD_T2_PLPIDS_FEF;
@@ -1657,12 +1657,12 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 +
          BYTE nPids = 0;
          CHK_ERROR(ReadRegT(0x22,0x7F,&nPids));
- 
+
 -        pValues[0] = nPids;
 -        if( nPids >= nValues ) nPids = BYTE(nValues-1);
 +        pT2_PLPIDS->NumPLPS = nPids;
 +        CHK_ERROR(ReadRegT(0x22,0x80,&pT2_PLPIDS->PLPList[0], nPids > 128 ? 128 : nPids));
- 
+
 -        CHK_ERROR(ReadRegT(0x22,0x80,&pValues[1], nPids > 128 ? 128 : nPids));
 -
          if( nPids > 128 )
@@ -1670,7 +1670,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 -            CHK_ERROR(ReadRegT(0x23,0x10,&pValues[129], nPids - 128));
 +            CHK_ERROR(ReadRegT(0x23,0x10,&pT2_PLPIDS->PLPList[128], nPids - 128));
          }
- 
+
 -        *pReturned = nPids + 1;
 +
      }
@@ -1720,7 +1720,7 @@ static void GetSignalToNoiseIT(struct cxd_state *state, u32 *SignalToNoise)
 	reg = (Data[0] << 8) | Data[1];
 	if (reg > 51441)
 		reg = 51441;
-	
+
 	if (state->bw == 8) {
 		if (reg > 1143)
 			reg = 1143;
@@ -1845,7 +1845,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	*snr = SNR;
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].uvalue = 10 * (s64) SNR; 
+	p->cnr.stat[0].uvalue = 10 * (s64) SNR;
 	return 0;
 }
 
@@ -1911,12 +1911,12 @@ static int get_fe_t2(struct cxd_state *state)
 	struct dvb_frontend *fe = &state->frontend;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 ofdm[5], modcod[2];
-	
+
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x5c, ofdm, 5);
 	readregst_unlocked(state, 0x22, 0x5b, modcod, 2);
 	unfreeze_regst(state);
-	
+
         switch (modcod[0] & 0x07) {
 	case 0:
 		p->fec_inner = FEC_1_2;
@@ -1943,7 +1943,7 @@ static int get_fe_t2(struct cxd_state *state)
 		p->fec_inner = FEC_2_5;
 		break;
 	}
-	
+
         switch (modcod[1] & 0x07) {
 	case 0:
 		p->modulation = QPSK;
@@ -1958,7 +1958,7 @@ static int get_fe_t2(struct cxd_state *state)
 		p->modulation = QAM_256;
 		break;
 	}
-	
+
 	switch (ofdm[0] & 0x07) {
 	case 0:
 		p->transmission_mode = TRANSMISSION_MODE_2K;
@@ -2006,7 +2006,7 @@ static int get_fe_t2(struct cxd_state *state)
 		p->guard_interval = GUARD_INTERVAL_19_256;
 		break;
 	}
-	
+
 	return 0;
 }
 
@@ -2163,7 +2163,7 @@ static struct dvb_frontend_ops common_ops_2843 = {
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
 		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
-		        FE_CAN_QAM_AUTO | 
+		        FE_CAN_QAM_AUTO |
 			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
 			FE_CAN_FEC_4_5 |
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
@@ -2201,7 +2201,7 @@ static struct dvb_frontend_ops common_ops_2837 = {
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
 		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
-		        FE_CAN_QAM_AUTO | 
+		        FE_CAN_QAM_AUTO |
 			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
 			FE_CAN_FEC_4_5 |
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
