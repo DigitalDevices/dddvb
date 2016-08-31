@@ -1139,6 +1139,9 @@ static int probe(struct stv *state)
 	write_reg(state, RSTV0910_CFGEXT,    0x02);  /* CFGEXT */
 	write_reg(state, RSTV0910_GENCFG,    0x15);  /* GENCFG */
 
+	write_reg(state, RSTV0910_P1_TNRCFG2, 0x02);  /* IQSWAP = 0 */
+	write_reg(state, RSTV0910_P2_TNRCFG2, 0x82);  /* IQSWAP = 1 */
+
 	write_reg(state, RSTV0910_P1_CAR3CFG, 0x02);
 	write_reg(state, RSTV0910_P2_CAR3CFG, 0x02);
 	write_reg(state, RSTV0910_P1_DMDCFG4, 0x04);
@@ -1251,7 +1254,7 @@ static int get_frequency_offset(struct stv *state, s32 *off)
 	derot = ((u32) cfr2 << 16) | ((u32)cfr1 << 8) | cfr0;
 	if (derot & (1<<23))
 		derot |= 0xFF000000;
-        *off = - (s32) (((s64) derot * (s64) state->base->mclk) >> 24);
+        *off = (s32) (((s64) derot * (s64) state->base->mclk) >> 24);
 	//pr_info("foff = %d\n", *off);
 	return 0;
 }
