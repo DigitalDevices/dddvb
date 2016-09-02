@@ -9,6 +9,9 @@ modt: modt.c
 setmod: setmod.c
 	gcc -o setmod setmod.c -I../include/
 
+setmod2: setmod2.c
+	gcc -o setmod2 setmod2.c -I../include/
+
 flashprog: flashprog.c
 	gcc -o flashprog flashprog.c
 
