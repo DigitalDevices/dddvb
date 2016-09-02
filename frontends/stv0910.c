@@ -1362,6 +1362,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	u32 ber;
 	s32 foff;
 
+	*status = 0;
 	get_frequency_offset(state, &foff);
 	
 	read_signal_strength(fe, &val);
@@ -1381,7 +1382,6 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	if (CurReceiveMode == Mode_None) {
 		set_vth(state);
 		//if( Time >= m_DemodTimeout ) *pLockStatus = NEVER_LOCK;
-		*status = 0;
 		return 0;
 	}
 	*status |= 0x0f;
