@@ -213,7 +213,94 @@ static void mod_set_rateinc(struct ddb *dev, u32 chan)
 	mod_busy(dev, chan);
 }
 
+static void mod_calc_rateinc(struct ddb_mod *mod)
+{
+	u32 ri;
+	
+	pr_info("ibitrate %llu\n", mod->ibitrate);
+	pr_info("obitrate %llu\n", mod->obitrate);
+	
+	if (mod->ibitrate != 0) {
+		u64 d = mod->obitrate - mod->ibitrate;
+		
+		d = div64_u64(d, mod->obitrate >> 24);
+		if (d > 0xfffffe)
+			ri = 0xfffffe;
+		else
+			ri = d;
+	} else
+		ri = 0;
+	mod->rate_inc = ri;
+	pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
+		mod->ibitrate >> 32, mod->obitrate >> 32, ri);
+}
+
+static int mod_calc_obitrate(struct ddb_mod *mod)
+{
+	struct ddb *dev = mod->port->dev;
+	u64 ofac; 
+
+	ofac = (((u64) mod->symbolrate) << 32) * 188;
+	ofac = div_u64(ofac, 204);
+	mod->obitrate = ofac * (mod->modulation + 3);
+	return 0;
+}
+
+static int mod_set_symbolrate(struct ddb_mod *mod, u32 srate)
+{
+	struct ddb *dev = mod->port->dev;
+	u64 ofac; 
+
+	if (dev->link[0].info->version < 2) {
+		if (srate != 6900000)
+			return -EINVAL;
+	} else {
+		if (srate > 7100000)
+			return -EINVAL;
+	}
+	mod->symbolrate = srate;
+	mod_calc_obitrate(mod);
+	return 0;
+}
+
 static u32 qamtab[6] = { 0x000, 0x600, 0x601, 0x602, 0x903, 0x604 };
+
+static int mod_set_modulation(struct ddb_mod *mod, enum fe_modulation modulation)
+{
+	struct ddb *dev = mod->port->dev;
+	u64 ofac; 
+
+	if (modulation > QAM_256 || modulation < QAM_16)
+		return -EINVAL;
+	mod->modulation = modulation;
+	if (dev->link[0].info->version < 2) 
+		ddbwritel(dev, qamtab[modulation], CHANNEL_SETTINGS(mod->nr));
+	mod_calc_obitrate(mod);
+	return 0;
+}
+
+static int mod_set_frequency(struct ddb_mod *mod, u32 frequency)
+{
+	u32 freq = frequency / 1000000;
+	
+	if (frequency % 1000000)
+		return -EINVAL;
+	if ((freq - 114) % 8)
+		return -EINVAL;
+	if ((freq < 114) || (freq > 874))
+		return -EINVAL;
+	mod->frequency = frequency;
+	return 0;
+}
+
+static int mod_set_ibitrate(struct ddb_mod *mod, u64 ibitrate)
+{
+	if (ibitrate > mod->obitrate)
+		return -EINVAL;
+	mod->ibitrate = ibitrate;
+	mod_calc_rateinc(mod);
+	return 0;
+}
 
 int ddbridge_mod_output_start(struct ddb_output *output)
 {
@@ -221,7 +308,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	u32 Channel = output->nr;
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	u32 Symbolrate = mod->symbolrate;
-	
+
+	mod_calc_rateinc(mod);
 	/*PCRIncrement = RoundPCR(PCRIncrement);*/
 	/*PCRDecrement = RoundPCR(PCRDecrement);*/
 
@@ -250,7 +338,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	pr_info("CHANNEL_BASE = %08x\n", CHANNEL_BASE);
 	pr_info("CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
 	if (dev->link[0].info->version == 2) {
-		u32 Output = ((dev->mod_base.frequency - 114000000)/8000000 + Channel) % 96;
+		//u32 Output = ((dev->mod_base.frequency - 114000000)/8000000 + Channel) % 96;
+		u32 Output = (mod->frequency - 114000000) / 8000000;
 		u32 KF = Symbolrate;
 		u32 LF = 9000000UL;
 		u32 d = gcd(KF,LF);
@@ -1063,30 +1152,6 @@ u32 eqtab[] = {
 	0x00001B23, 0x0000EEB7, 0x00006A28
 };
 
-static int mod_set_modrate(struct ddb *dev, int chan,
-			   enum fe_modulation mod, u32 srate)
-{
-	u64 ofac; 
-
-	if (mod > QAM_256 || mod < QAM_16)
-		return -EINVAL;
-	if (dev->link[0].info->version < 2) {
-		if (srate != 6900000)
-			return -EINVAL;
-	} else {
-		if (srate > 7100000)
-			return -EINVAL;
-	}
-	dev->mod[chan].symbolrate = srate;
-	dev->mod[chan].modulation = mod;
-	ofac = ((((u64) srate) << 32) * 188 ) / 204;
-	dev->mod[chan].obitrate = ofac * (mod + 3);
-	dev->mod[chan].ibitrate = dev->mod[chan].obitrate;
-	if (dev->link[0].info->version < 2) 
-		ddbwritel(dev, qamtab[mod], CHANNEL_SETTINGS(chan));
-	return 0;
-}
-
 static void mod_set_channelsumshift(struct ddb *dev, u32 shift)
 {
 	ddbwritel(dev, (shift & 3) << 2, MODULATOR_CONTROL);
@@ -1188,6 +1253,9 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 	mod_set_down(dev, DownFrequency, 8, Ext);
 
 	for (i = 0; i < 10; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+
+		mod->port = &dev->port[i];
 		ddbwritel(dev, 0, CHANNEL_CONTROL(i));
 
 		iqfreq = flash->DataSet[0].FrequencyFactor *
@@ -1195,7 +1263,8 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 		iqfreq += (dev->link[0].ids.hwid == 0x0203dd01) ? 22 : 0 ;
 		iqsteps = flash->DataSet[0].IQTableLength;
 		mod_set_iq(dev, iqsteps, i, iqfreq);
-		mod_set_modrate(dev, i, QAM_256, 6900000);
+		mod_set_modulation(mod, QAM_256);
+		mod_set_symbolrate(mod, 6900000);
 	}
 
 	mod_bypass_equalizer(dev, 1);
@@ -1404,26 +1473,27 @@ void ddbridge_mod_rate_handler(unsigned long data)
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
 
-static void mod_calc_rateinc(struct ddb_mod *mod)
+static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
-	u32 ri;
-	
-	pr_info("ibitrate %llu\n", mod->ibitrate);
-	pr_info("obitrate %llu\n", mod->obitrate);
-	
-	if (mod->ibitrate != 0) {
-		u64 d = mod->obitrate - mod->ibitrate;
-		
-		d = div64_u64(d, mod->obitrate >> 24);
-		if (d > 0xfffffe)
-			ri = 0xfffffe;
-		else
-			ri = d;
-	} else
-		ri = 0;
-	mod->rate_inc = ri;
-	pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
-		mod->ibitrate >> 32, mod->obitrate >> 32, ri);
+	struct ddb *dev = mod->port->dev;
+
+	switch(tvp->cmd) {
+	case MOD_SYMBOL_RATE:
+		return mod_set_symbolrate(mod, tvp->u.data);
+
+	case MOD_MODULATION:
+		return mod_set_modulation(mod, tvp->u.data);
+
+	case MOD_FREQUENCY:
+		return mod_set_frequency(mod, tvp->u.data);
+
+	case MOD_ATTENUATOR:
+		return mod_set_attenuator(mod->port->dev, tvp->u.data);
+
+	case MOD_INPUT_BITRATE:
+		return mod_set_ibitrate(mod, tvp->u.data);
+	}
+	return 0;
 }
 
 int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
@@ -1431,11 +1501,38 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	struct dvb_device *dvbdev = file->private_data;
 	struct ddb_output *output = dvbdev->priv;
 	struct ddb *dev = output->port->dev;
-
-	/* unsigned long arg = (unsigned long) parg; */
+	struct ddb_mod *mod = &dev->mod[output->nr];
 	int ret = 0;
 
 	switch (cmd) {
+	case FE_SET_PROPERTY:
+	{
+		struct dtv_properties *tvps = (struct dtv_properties __user *) parg;
+		struct dtv_property *tvp = NULL;
+		int i;
+		
+		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
+			return -EINVAL;
+		
+		tvp = kmalloc(tvps->num * sizeof(struct dtv_property), GFP_KERNEL);
+		if (!tvp) {
+			ret = -ENOMEM;
+			goto out;
+		}
+		if (copy_from_user(tvp, tvps->props, tvps->num *
+				   sizeof(struct dtv_property))) {
+			ret = -EFAULT;
+			goto out;
+		}
+		for (i = 0; i < tvps->num; i++) {
+			if ((ret = mod_prop_proc(mod, tvp + i)) < 0)
+				goto out;
+			(tvp + i)->result = ret;
+		}
+	out:
+		kfree(tvp);
+		return ret;
+	}
 	case DVB_MOD_SET:
 	{
 		struct dvb_mod_params *mp = parg;
@@ -1453,18 +1550,16 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	case DVB_MOD_CHANNEL_SET:
 	{
 		struct dvb_mod_channel_params *cp = parg;
+		struct ddb_mod *mod = &dev->mod[output->nr];
 		int res;
 
-		res = mod_set_modrate(dev, output->nr, cp->modulation, 6900000);
+		res = mod_set_modulation(mod, cp->modulation);
 		if (res)
 			return res;
-
-		if (cp->input_bitrate > dev->mod[output->nr].obitrate)
-			return -EINVAL;
-		dev->mod[output->nr].ibitrate = cp->input_bitrate;
-		dev->mod[output->nr].pcr_correction = cp->pcr_correction;
-
-		mod_calc_rateinc(&dev->mod[output->nr]);
+		res = mod_set_ibitrate(mod, cp->input_bitrate);
+		if (res)
+			return res;
+		mod->pcr_correction = cp->pcr_correction;
 		break;
 	}
 	default:
@@ -1482,9 +1577,14 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 	dev->mod_base.frequency = Frequency;
 	status = mod_fsm_setup(dev, 0, 0);
 
-	for (i = 0; i < streams; i++)
-		mod_set_modrate(dev, i, QAM_256, 6900000);
-	
+	for (i = 0; i < streams; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+
+		mod->port = &dev->port[i];
+		mod_set_modulation(mod, QAM_256);
+		mod_set_symbolrate(mod, 6900000);
+		mod_set_frequency(mod, 114000000 + i * 8000000);
+	}
 	if (streams <= 8)
 		mod_set_vga(dev, RF_VGA_GAIN_N8);
 	else if (streams <= 16)
