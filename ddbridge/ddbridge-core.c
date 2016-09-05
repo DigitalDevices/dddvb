@@ -26,7 +26,7 @@
 
 DEFINE_MUTEX(redirect_lock);
 
-static int ci_bitrate = 72000;
+static int ci_bitrate = 70000;
 module_param(ci_bitrate, int, 0444);
 MODULE_PARM_DESC(ci_bitrate, " Bitrate in KHz for output to CI.");
 
