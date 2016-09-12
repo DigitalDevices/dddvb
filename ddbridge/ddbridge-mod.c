@@ -1542,7 +1542,18 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 				if (set_base_frequency(dev, mp->base_frequency))
 					return -EINVAL;
 		} else {
+			int i, streams = dev->link[0].info->port_num;
+
 			dev->mod_base.frequency = mp->base_frequency;
+			for (i = 0; i < streams; i++) {
+				struct ddb_mod *mod = &dev->mod[i];
+
+				mod->port = &dev->port[i];
+				mod_set_modulation(mod, QAM_256);
+				mod_set_symbolrate(mod, 6900000);
+				mod_set_frequency(mod, dev->mod_base.frequency +
+						  i * 8000000);
+			}
 		}
 		mod_set_attenuator(dev, mp->attenuator);
 		break;
