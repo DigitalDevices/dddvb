@@ -1478,19 +1478,19 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	struct ddb *dev = mod->port->dev;
 
 	switch(tvp->cmd) {
-	case MOD_SYMBOL_RATE:
+	case MODULATOR_SYMBOL_RATE:
 		return mod_set_symbolrate(mod, tvp->u.data);
 
-	case MOD_MODULATION:
+	case MODULATOR_MODULATION:
 		return mod_set_modulation(mod, tvp->u.data);
 
-	case MOD_FREQUENCY:
+	case MODULATOR_FREQUENCY:
 		return mod_set_frequency(mod, tvp->u.data);
 
-	case MOD_ATTENUATOR:
+	case MODULATOR_ATTENUATOR:
 		return mod_set_attenuator(mod->port->dev, tvp->u.data);
 
-	case MOD_INPUT_BITRATE:
+	case MODULATOR_INPUT_BITRATE:
 		return mod_set_ibitrate(mod, tvp->u.data);
 	}
 	return 0;
