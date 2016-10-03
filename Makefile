@@ -15,6 +15,6 @@ install: all
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules_install
 
 clean:
-	rm -rf */*.o */*.ko */*.mod.c */.*.cmd .tmp_versions Module* modules*
+	rm -rf */*.o */*.ko */*.mod.c */.*.cmd */.*.o.d .tmp_versions Module* modules*
 
 
