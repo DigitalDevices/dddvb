@@ -459,6 +459,7 @@ int main(int argc, char **argv)
 
 	int ddbnum = 0;
 	int force = 0;
+	char *fname = NULL;
 
         while (1) {
                 int option_index = 0;
@@ -470,12 +471,15 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"d:n:s:o:l:dfhj",
+				"d:n:s:o:l:dfhjb:",
 				long_options, &option_index);
 		if (c==-1)
 			break;
 
 		switch (c) {
+		case 'b':
+			fname = optarg;
+			break;
 		case 'd':
 			dump = strtoul(optarg, NULL, 16);
 			break;
@@ -553,27 +557,6 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	if (ddbid.device == 0x0011)
-		type = 1;
-	if (ddbid.device == 0x0201)
-		type = 2;
-	if (ddbid.device == 0x02)
-		type = 3;
-	if (ddbid.device == 0x03)
-		type = 0;
-	if (ddbid.device == 0x07)
-		type = 4;
-	if (ddbid.device == 0x320)
-		type = 5;
-	if (ddbid.device == 0x13)
-		type = 6;
-	if (ddbid.device == 0x12)
-		type = 7;
-	if (ddbid.device == 0x08)
-		type = 8;
-	if (ddbid.device == 0x210)
-		type = 9;
-	
 	if (!SectorSize)
 		return 0;
 	
@@ -616,42 +599,46 @@ int main(int argc, char **argv)
 	} else {
 		int fh, i;
 		int fsize;
-		char *fname;
 
-		switch (type) {
-		case 0:
-			fname="DVBBridgeV1B_DVBBridgeV1B.bit";
-			printf("Octopus\n");
-			break;
-		case 1:
-			fname="CIBridgeV1B_CIBridgeV1B.bit";
-			printf("Octopus CI\n");
-			break;
-		case 2:
-			fname="DVBModulatorV1B_DVBModulatorV1B.bit";
-			printf("Modulator\n");
-			break;
-		case 3:
+		if (!fname) 
+		switch (ddbid.device) {
+		case 0x0002:
 			fname="DVBBridgeV1A_DVBBridgeV1A.bit";
 			printf("Octopus 35\n");
 			break;
-		case 4:
+		case 0x0003:
+			fname="DVBBridgeV1B_DVBBridgeV1B.bit";
+			printf("Octopus\n");
+			break;
+		case 0x0007:
 			fname="DVBBridgeV2A_DD01_0007_MXL.fpga";
 			printf("Octopus 4/8\n");
 			break;
-		case 8:
+		case 0x0008:
 			fname="DVBBridgeV2A_DD01_0008_CXD.fpga";
 			printf("Octopus 4/8\n");
 			break;
-		case 6:
-			fname="DVBBridgeV2B_DD01_0013_PRO.fpga";
-			printf("Octopus PRO\n");
+		case 0x0011:
+			fname="CIBridgeV1B_CIBridgeV1B.bit";
+			printf("Octopus CI\n");
 			break;
-		case 7:
+		case 0x0012:
 			fname="DVBBridgeV2B_DD01_0012_STD.fpga";
 			printf("Octopus CI\n");
 			break;
-		case 9:
+		case 0x0013:
+			fname="DVBBridgeV2B_DD01_0013_PRO.fpga";
+			printf("Octopus PRO\n");
+			break;
+		case 0x0201:
+			fname="DVBModulatorV1B_DVBModulatorV1B.bit";
+			printf("Modulator\n");
+			break;
+		case 0x0203:
+			fname="DVBModulatorV1B_DD01_0203.fpga";
+			printf("Modulator Test\n");
+			break;
+		case 0x0210:
 			fname="DVBModulatorV2A_DD01_0210.fpga";
 			printf("Modulator V2\n");
 			break;
@@ -661,7 +648,7 @@ int main(int argc, char **argv)
 		}
 		fh = open(fname, O_RDONLY);
 		if (fh < 0 ) {
-			printf("File not found \n");
+			printf("File %s not found \n", fname);
 			return 0;
 		}
 		printf("Using bitstream %s\n", fname);
