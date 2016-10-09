@@ -125,11 +125,19 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 	uint32_t Start;
 	uint32_t Len;
 	uint8_t *Buffer;
+	int fd;
 
 	if (argc < 2 ) 
 		return -1;
 	Start = strtoul(argv[0],NULL,16);
 	Len   = strtoul(argv[1],NULL,16);
+	if (argc == 3) {
+		fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC);
+		if (fd < 0) {
+			printf("Could not open file %s\n", argv[2]);
+			return -1;
+		}
+	}
 	
 	Buffer = malloc(Len);
 	if (flashread(ddb, Buffer, Start, Len) < 0) {
@@ -138,8 +146,38 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 		return 0;
 	}
 	
-	Dump(Buffer,Start,Len);
+	if (argc == 3) {
+		write(fd, Buffer, Len);
+		close(fd);
+	} else
+		Dump(Buffer,Start,Len);
 	
+	free(Buffer);
+	return 0;
+}
+
+
+int ReadSave(int ddb, int argc, char *argv[], uint32_t Flags)
+{
+	uint32_t Start;
+	uint32_t Len;
+	uint8_t *Buffer;
+	int fd;
+
+	if (argc < 3 ) 
+		return -1;
+	Start = strtoul(argv[0],NULL,16);
+	Len   = strtoul(argv[1],NULL,16);
+		
+	Buffer = malloc(Len);
+	if (flashread(ddb, Buffer, Start, Len) < 0) {
+		printf("flashread error\n");
+		free(Buffer);
+		return 0;
+	}
+
+	
+		
 	free(Buffer);
 	return 0;
 }
@@ -1712,13 +1750,13 @@ struct SCommand CommandTable[] =
 	{ "memwrite",   WriteDeviceMemory,  1,   "Write Device Memory  : memwrite <start> <values(8)> .." },
 	{ "register",   GetSetRegister,     1,   "Get/Set Register     : reg <regname>|<[0x]regnum> [[0x]value(32)]" },
 	
-	{ "flashread",    ReadFlash,        1,   "Read Flash           : flashread <start> <count>" },
+	{ "flashread",    ReadFlash,        1,   "Read Flash           : flashread <start> <count> [<Filename>]" },
 	{ "flashio",      FlashIOC,          1,   "Flash IO             : flashio <write data>.. <read count>" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog <FileName> [<address>]" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog -SubVendorID <id>" },
 	{ "flashprog",    FlashProg,        1,   "Flash Programming    : flashprog -Jump <address>" },
 	{ "flashverify",  FlashVerify,      1,   "Flash Verify         : flashverify <FileName>  [<address>]" },
-	{ "flasherase",   FlashErase,       1,   "FlashErase           : flasherase" },
+	//{ "flasherase",   FlashErase,       1,   "FlashErase           : flasherase" },
 	//{ "flashtest",    FlashTest,        1,   "FlashTest            : flashtest" },
 
 
