@@ -147,7 +147,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	int stat;
 	int irq_flag = IRQF_SHARED;
 
-	pr_info("init type 2 IRQ hardware block\n");
+	pr_info("DDBridge: init type 2 IRQ hardware block\n");
 
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
@@ -268,7 +268,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	dev->link[0].dev = dev;
 	dev->link[0].info = (struct ddb_info *) id->driver_data;
-	pr_info("DDBridge driver detected: %s\n", dev->link[0].info->name);
+	pr_info("DDBridge: device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
@@ -313,11 +313,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	ddb_irq_disable(dev);
 fail0:
-	pr_err("fail0\n");
+	pr_err("DDBridge: fail0\n");
 	if (dev->msi)
 		pci_disable_msi(dev->pdev);
 fail:
-	pr_err("fail\n");
+	pr_err("DDBridge: fail\n");
 
 	ddb_unmap(dev);
 	pci_set_drvdata(pdev, NULL);
@@ -591,7 +591,7 @@ static __init int module_init_ddbridge(void)
 {
 	int stat = -1;
 
-	pr_info("Digital Devices PCIE bridge driver "
+	pr_info("DDBridge: Digital Devices PCIE bridge driver "
 		DDBRIDGE_VERSION
 		", Copyright (C) 2010-16 Digital Devices GmbH\n");
 	if (ddb_class_create() < 0)

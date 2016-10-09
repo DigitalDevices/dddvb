@@ -177,9 +177,9 @@ static int __init octonet_probe(struct platform_device *pdev)
 	else
 		dev->link[0].info = &ddb_octonet_tbd;
 
-	pr_info("HW  %08x REGMAP %08x\n",
+	pr_info("DDBridge: HW  %08x REGMAP %08x\n",
 		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
-	pr_info("MAC %08x DEVID  %08x\n",
+	pr_info("DDBridge: MAC %08x DEVID  %08x\n",
 		dev->link[0].ids.mac, dev->link[0].ids.devid);
 
 	ddbwritel(dev, 0, ETHER_CONTROL);
@@ -233,7 +233,7 @@ static __init int init_octonet(void)
 {
 	int res;
 
-	pr_info("Digital Devices OctopusNet driver " DDBRIDGE_VERSION
+	pr_info("DDBridge: Digital Devices OctopusNet driver " DDBRIDGE_VERSION
 		", Copyright (C) 2010-16 Digital Devices GmbH\n");
 	res = ddb_class_create();
 	if (res)

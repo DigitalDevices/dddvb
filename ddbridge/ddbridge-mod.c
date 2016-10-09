@@ -182,7 +182,7 @@ void ddbridge_mod_output_stop(struct ddb_output *output)
 	ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));
 #endif
 	mod_busy(dev, output->nr);
-	pr_info("mod_output_stop %d.%d\n", dev->nr, output->nr);
+	pr_info("DDBridge: mod_output_stop %d.%d\n", dev->nr, output->nr);
 }
 
 static void mod_set_incs(struct ddb_output *output)
@@ -217,8 +217,8 @@ static void mod_calc_rateinc(struct ddb_mod *mod)
 {
 	u32 ri;
 	
-	pr_info("ibitrate %llu\n", mod->ibitrate);
-	pr_info("obitrate %llu\n", mod->obitrate);
+	pr_info("DDBridge: ibitrate %llu\n", mod->ibitrate);
+	pr_info("DDBridge: obitrate %llu\n", mod->obitrate);
 	
 	if (mod->ibitrate != 0) {
 		u64 d = mod->obitrate - mod->ibitrate;
@@ -231,7 +231,7 @@ static void mod_calc_rateinc(struct ddb_mod *mod)
 	} else
 		ri = 0;
 	mod->rate_inc = ri;
-	pr_info("ibr=%llu, obr=%llu, ri=0x%06x\n",
+	pr_info("DDBridge: ibr=%llu, obr=%llu, ri=0x%06x\n",
 		mod->ibitrate >> 32, mod->obitrate >> 32, ri);
 }
 
@@ -335,8 +335,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	udelay(10);
 	ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));
 
-	pr_info("CHANNEL_BASE = %08x\n", CHANNEL_BASE);
-	pr_info("CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
+	pr_info("DDBridge: CHANNEL_BASE = %08x\n", CHANNEL_BASE);
+	pr_info("DDBridge: CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
 	if (dev->link[0].info->version == 2) {
 		//u32 Output = ((dev->mod_base.frequency - 114000000)/8000000 + Channel) % 96;
 		u32 Output = (mod->frequency - 114000000) / 8000000;
@@ -362,7 +362,7 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 		if (checkLF <= 1)
 			return -EINVAL;
 
-		pr_info("KF=%u LF=%u Output=%u mod=%u\n", KF, LF, Output, mod->modulation);
+		pr_info("DDBridge: KF=%u LF=%u Output=%u mod=%u\n", KF, LF, Output, mod->modulation);
 		ddbwritel(dev, KF, CHANNEL_KF(Channel));
 		ddbwritel(dev, LF, CHANNEL_LF(Channel));
 		
@@ -384,7 +384,7 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	if (dev->link[0].info->version == 2)
 		if (mod_SendChannelCommand(dev, Channel, CHANNEL_CONTROL_CMD_UNMUTE))
 			return -EINVAL;
-	pr_info("mod_output_start %d.%d\n", dev->nr, output->nr);
+	pr_info("DDBridge: mod_output_start %d.%d\n", dev->nr, output->nr);
 	return 0;
 }
 
@@ -477,7 +477,7 @@ static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan, u32 MaxUsedChannels
 	if (MaxUsedChannels == 0)
 		MaxUsedChannels = (Capacity & FSM_CAPACITY_CUR) >> 16;
 
-	pr_info("max used chan = %u\n", MaxUsedChannels);
+	pr_info("DDBridge: max used chan = %u\n", MaxUsedChannels);
 	if (MaxUsedChannels <= 1 )
 		ddbwritel(dev, FSM_GAIN_N1, FSM_GAIN);
 	else if (MaxUsedChannels <= 2)
@@ -517,7 +517,7 @@ static void TemperatureMonitorSetFan(struct ddb *dev)
 	u32 tqam, pwm;
 	
 	if ((ddbreadl(dev, TEMPMON_CONTROL) & TEMPMON_CONTROL_OVERTEMP ) != 0) {
-		pr_info("Over temperature condition\n");
+		pr_info("DDBridge: Over temperature condition\n");
 		dev->OverTemperatureError = 1;
 	}
 	tqam  = (ddbreadl(dev, TEMPMON2_QAMCORE) >> 8) & 0xFF;
@@ -543,7 +543,7 @@ static void temp_handler(unsigned long data)
 {
 	struct ddb *dev = (struct ddb *) data;
 
-	pr_info("temp_handler\n");
+	pr_info("DDBridge: temp_handler\n");
 
 	spin_lock(&dev->temp_lock);
 	TemperatureMonitorSetFan(dev);
@@ -569,7 +569,7 @@ static int TemperatureMonitorInit(struct ddb *dev, int FirstTime) {
 	dev->OverTemperatureError =
 		((ddbreadl(dev, TEMPMON_CONTROL) & TEMPMON_CONTROL_OVERTEMP ) != 0);
 	if (dev->OverTemperatureError)	{
-		pr_info("Over temperature condition\n");
+		pr_info("DDBridge: Over temperature condition\n");
 		status = -1;
 	}
 	TemperatureMonitorSetFan(dev);
@@ -727,7 +727,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 		mod_si598_readreg(dev, 11, &Data[4]);
 		mod_si598_readreg(dev, 12, &Data[5]);
 
-		pr_info(" Data = %02x %02x %02x %02x %02x %02x\n",
+		pr_info("DDBridge:  Data = %02x %02x %02x %02x %02x %02x\n",
 			Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
 		RFreq = (((u64)Data[1] & 0x3F) << 32) | ((u64)Data[2] << 24) |
 			((u64)Data[3] << 16) | ((u64)Data[4] << 8) |
@@ -741,12 +741,12 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 		     ((u32)(Data[1] & 0xE0) >> 6)) + 1;
 		fDCO = fOut * (u64)(HSDiv * N);
 		m_fXtal = fDCO << 28;
-		pr_info("fxtal %016llx  rfreq %016llx\n", m_fXtal, RFreq);
+		pr_info("DDBridge: fxtal %016llx  rfreq %016llx\n", m_fXtal, RFreq);
 
 		m_fXtal += RFreq >> 1;
 		m_fXtal = div64_u64(m_fXtal, RFreq);
 
-		pr_info("fOut = %d fXtal = %d fDCO = %d HDIV = %2d, N = %3d\n",
+		pr_info("DDBridge: fOut = %d fXtal = %d fDCO = %d HDIV = %2d, N = %3d\n",
 			(u32) fOut, (u32) m_fXtal, (u32) fDCO, (u32) HSDiv, N);
 	}
 
@@ -757,7 +757,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 
 	if (Div < MinDiv)
 		Div = Div + 1;
-	pr_info(" fOut = %u MinDiv = %llu MaxDiv = %llu StartDiv = %llu\n",
+	pr_info("DDBridge:  fOut = %u MinDiv = %llu MaxDiv = %llu StartDiv = %llu\n",
 		fOut, MinDiv, MaxDiv, Div);
 
 	if (Div <= 11) {
@@ -776,7 +776,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 				if (N > 128)
 					break;
 			}
-			pr_info(" %3d: %llu %llu %llu %u\n",
+			pr_info("DDBridge:  %3d: %llu %llu %llu %u\n",
 				retry, Div, HSDiv * N, HSDiv, N);
 			if (HSDiv * N < MinDiv)
 				Div = Div + 2;
@@ -787,7 +787,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 			retry = retry - 1;
 		}
 		if (retry == 0) {
-			pr_err(" FAIL\n");
+			pr_err("DDBridge:  FAIL\n");
 			return -EINVAL;
 		}
 	}
@@ -802,16 +802,16 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 
 
 	fDCO = (u64)fOut * (u64)N * (u64)HSDiv;
-	pr_info("fdco %16llx\n", fDCO);
+	pr_info("DDBridge: fdco %16llx\n", fDCO);
 	RFreq = fDCO<<28;
-	pr_info("%16llx %16llx\n", fDCO, RFreq);
+	pr_info("DDBridge: %16llx %16llx\n", fDCO, RFreq);
 
 	fxtal = m_fXtal;
 	do_div(RFreq, fxtal);
-	pr_info("%16llx %d\n", RFreq, fxtal);
+	pr_info("DDBridge: %16llx %d\n", RFreq, fxtal);
 	RF = RFreq;
 
-	pr_info("fOut = %u fXtal = %llu fDCO = %llu HSDIV = %llu, N = %u, RFreq = %llu\n",
+	pr_info("DDBridge: fOut = %u fXtal = %llu fDCO = %llu HSDIV = %llu, N = %u, RFreq = %llu\n",
 		fOut, m_fXtal, fDCO, HSDiv, N, RFreq);
 
 	Data[0] = (u8)(((HSDiv - 4) << 5) | ((N - 1) >> 2));
@@ -821,7 +821,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 	Data[4] = (u8)((RF >>  8) & 0xFF);
 	Data[5] = (u8)((RF)       & 0xFF);
 
-	pr_info(" Data = %02x %02x %02x %02x %02x %02x\n",
+	pr_info("DDBridge:  Data = %02x %02x %02x %02x %02x %02x\n",
 		Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
 	mod_si598_writereg(dev, 7, Data[0]);
 	mod_si598_writereg(dev, 8, Data[1]);
@@ -955,11 +955,11 @@ static int mod_init_dac_input(struct ddb *dev)
 	}
 
 	if (Sample1 == 0xFF || Sample2 == 0xFF) {
-		pr_err(" No valid window found\n");
+		pr_err("DDBridge:  No valid window found\n");
 		return -EINVAL;
 	}
 
-	pr_err(" Window = %d - %d\n", Sample1, Sample2);
+	pr_err("DDBridge:  Window = %d - %d\n", Sample1, Sample2);
 
 	for (Sample = Sample1; Sample < Sample2; Sample += 1) {
 		if (SetTable[Sample] < HldTable[Sample]) {
@@ -970,15 +970,15 @@ static int mod_init_dac_input(struct ddb *dev)
 		}
 	}
 
-	pr_info("Select Sample %d\n", SelectSample);
+	pr_info("DDBridge: Select Sample %d\n", SelectSample);
 
 	if (SelectSample == 0xFF) {
-		pr_err("No valid sample found\n");
+		pr_err("DDBridge: No valid sample found\n");
 		return -EINVAL;
 	}
 
 	if (HldTable[SelectSample] + SetTable[SelectSample] < 8) {
-		pr_err("Too high jitter\n");
+		pr_err("DDBridge: Too high jitter\n");
 		return -EINVAL;
 	}
 
@@ -993,10 +993,10 @@ static int mod_init_dac_input(struct ddb *dev)
 	mod_read_dac_register(dev, 0x06, &ReadSeek);
 	Seek &= ReadSeek;
 	if ((Seek & 0x01) == 0) {
-		pr_err("Insufficient timing margin\n");
+		pr_err("DDBridge: Insufficient timing margin\n");
 		return -EINVAL;
 	}
-	pr_info("Done\n");
+	pr_info("DDBridge: Done\n");
 	return 0;
 }
 
@@ -1053,7 +1053,7 @@ static int mod_set_dac_clock(struct ddb *dev, u32 Frequency)
 		ddbwritel(dev, DAC_CONTROL_RESET, DAC_CONTROL);
 		msleep(20);
 		if (mod_set_si598(dev, Frequency)) {
-			pr_err("mod_set_si598 failed\n");
+			pr_err("DDBridge: mod_set_si598 failed\n");
 			return -1;
 		}
 		msleep(50);
@@ -1068,7 +1068,7 @@ static int mod_set_dac_clock(struct ddb *dev, u32 Frequency)
 			break;
 		msleep(100);
 	}
-	pr_info("mod_set_dac_clock OK\n");
+	pr_info("DDBridge: mod_set_dac_clock OK\n");
 	return hr;
 }
 
@@ -1174,18 +1174,18 @@ static int set_base_frequency(struct ddb *dev, u32 freq)
 	u32 UP2Frequency = 1896;
 	u32 down, freq10;
 
-	pr_info("set base to %u\n", freq);
+	pr_info("DDBridge: set base to %u\n", freq);
 	dev->mod_base.frequency = freq;
 	freq /= 1000000;
 	freq10 = dev->mod_base.flat_start + 4;
 	down = freq + 9 * 8 + freq10 + UP1Frequency + UP2Frequency;
 
 	if ((freq10 + 9 * 8) > (dev->mod_base.flat_end - 4)) {
-		pr_err("Frequency out of range %d\n", freq10);
+		pr_err("DDBridge: Frequency out of range %d\n", freq10);
 		return -EINVAL;
 	}
 	if (down % 8) {
-		pr_err(" Invalid Frequency %d\n", down);
+		pr_err("DDBridge:  Invalid Frequency %d\n", down);
 		return -EINVAL;
 	}
 	return mod_set_down(dev, down, 8, Ext);
@@ -1214,12 +1214,12 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 		stat = -EINVAL;
 		goto fail;
 	}
-	pr_info("srate = %d\n", flash->DataSet[0].Symbolrate * 1000);
+	pr_info("DDBridge: srate = %d\n", flash->DataSet[0].Symbolrate * 1000);
 
 	mod_output_enable(dev, 0);
 	stat = mod_set_dac_clock(dev, flash->DataSet[0].DACFrequency * 1000);
 	if (stat < 0) {
-		pr_err("setting DAC clock failed\n");
+		pr_err("DDBridge: setting DAC clock failed\n");
 		goto fail;
 	}
 	mod_set_dac_current(dev, 512, 512);
@@ -1236,16 +1236,16 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 	FrequencyCH10 = flash->DataSet[0].FlatStart + 4;
 	DownFrequency = Frequency + 9 * 8 + FrequencyCH10 +
 		UP1Frequency + UP2Frequency;
-	pr_info("CH10 = %d, Down = %d\n", FrequencyCH10, DownFrequency);
+	pr_info("DDBridge: CH10 = %d, Down = %d\n", FrequencyCH10, DownFrequency);
 
 	if ((FrequencyCH10 + 9 * 8) > (flash->DataSet[0].FlatEnd - 4)) {
-		pr_err("Frequency out of range %d\n", FrequencyCH10);
+		pr_err("DDBridge: Frequency out of range %d\n", FrequencyCH10);
 		stat = -EINVAL;
 		goto fail;
 	}
 
 	if (DownFrequency % 8 != 0) {
-		pr_err(" Invalid Frequency %d\n", DownFrequency);
+		pr_err("DDBridge:  Invalid Frequency %d\n", DownFrequency);
 		stat = -EINVAL;
 		goto fail;
 	}
@@ -1260,7 +1260,7 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 
 		iqfreq = flash->DataSet[0].FrequencyFactor *
 			(FrequencyCH10 + (9 - i) * 8);
-		iqfreq += (dev->link[0].ids.hwid == 0x0203dd01) ? 22 : 0 ;
+		iqfreq += (dev->link[0].ids.hwid == 0x0203dd01) ? 22 : 0;
 		iqsteps = flash->DataSet[0].IQTableLength;
 		mod_set_iq(dev, iqsteps, i, iqfreq);
 		mod_set_modulation(mod, QAM_256);
@@ -1274,7 +1274,7 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 			 flash->DataSet[0].PostScaleQ);
 	mod_pre_eq_gain(dev, flash->DataSet[0].PreScale);
 	/*mod_pre_eq_gain(dev, 0x0680);*/
-	pr_info("prescaler %04x\n", flash->DataSet[0].PreScale);
+	pr_info("DDBridge: prescaler %04x\n", flash->DataSet[0].PreScale);
 	mod_set_channelsumshift(dev, 2);
 	mod_output_enable(dev, 1);
 
@@ -1398,7 +1398,7 @@ void ddbridge_mod_rate_handler(unsigned long data)
 
 	case CM_ADJUST:
 		if (InPacketDiff < mod->MinInputPackets) {
-			pr_info("PCR Adjust reset  IN: %u  Min: %u\n",
+			pr_info("DDBridge: PCR Adjust reset  IN: %u  Min: %u\n",
 				InPacketDiff, mod->MinInputPackets);
 			mod->InPacketsSum = 0;
 			mod->OutPacketsSum = 0;
@@ -1439,7 +1439,7 @@ void ddbridge_mod_rate_handler(unsigned long data)
 
 		mod->PCRIncrement += PCRIncrementDiff;
 		pcr = ConvertPCR(mod->PCRIncrement);
-		pr_info("outl %016llx\n", pcr);
+		pr_info("DDBridge: outl %016llx\n", pcr);
 		ddbwritel(dev,	pcr & 0xffffffff,
 			  CHANNEL_PCR_ADJUST_OUTL(output->nr));
 		ddbwritel(dev,	(pcr >> 32) & 0xffffffff,
@@ -1466,9 +1466,9 @@ void ddbridge_mod_rate_handler(unsigned long data)
 
 	spin_unlock(&dma->lock);
 
-	pr_info("chan %d out %016llx in %016llx indiff %08x\n",
+	pr_info("DDBridge: chan %d out %016llx in %016llx indiff %08x\n",
 		chan, OutPackets, InPackets, InPacketDiff);
-	pr_info("cnt  %d pcra %016llx pcraext %08x pcraextfrac %08x pcrcorr %08x pcri %016llx\n",
+	pr_info("DDBridge: cnt  %d pcra %016llx pcraext %08x pcraextfrac %08x pcrcorr %08x pcri %016llx\n",
 		mod->StateCounter, PCRAdjust, PCRAdjustExt,
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
