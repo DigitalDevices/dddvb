@@ -183,11 +183,11 @@ struct ddb_info {
 
 #ifdef SMALL_DMA_BUFS
 #define INPUT_DMA_BUFS 32
-#define INPUT_DMA_SIZE (32*47*21)
+#define INPUT_DMA_SIZE (128*47*5)
 #define INPUT_DMA_IRQ_DIV 1
 
 #define OUTPUT_DMA_BUFS 32
-#define OUTPUT_DMA_SIZE (32*47*21)
+#define OUTPUT_DMA_SIZE (128*47*5)
 #define OUTPUT_DMA_IRQ_DIV 1
 #else
 #define INPUT_DMA_BUFS 8
