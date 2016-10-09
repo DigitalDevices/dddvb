@@ -1815,11 +1815,14 @@ static void GetSignalToNoiseIT(struct cxd_state *state, u32 *SignalToNoise)
 	u8 Data[2];
 	u32 reg;
 
+	*SignalToNoise = 0;
 	freeze_regst(state);
 	readregst_unlocked(state, 0x60, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
 
 	reg = (Data[0] << 8) | Data[1];
+	if (reg == 0)
+		return;
 	if (reg > 51441)
 		reg = 51441;
 	
@@ -1837,11 +1840,14 @@ static void GetSignalToNoiseC2(struct cxd_state *state, u32 *SignalToNoise)
 	u8 Data[2];
 	u32 reg;
 
+	*SignalToNoise = 0;
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
 
 	reg = (Data[0] << 8) | Data[1];
+	if (reg == 0)
+		return;
 	if (reg > 51441)
 		reg = 51441;
 
@@ -1854,11 +1860,14 @@ static void GetSignalToNoiseT2(struct cxd_state *state, u32 *SignalToNoise)
 	u8 Data[2];
 	u32 reg;
 
+	*SignalToNoise = 0;
 	freeze_regst(state);
 	readregst_unlocked(state, 0x20, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
 
 	reg = (Data[0] << 8) | Data[1];
+	if (reg == 0)
+		return;
 	if (reg > 10876)
 		reg = 10876;
 
@@ -1870,11 +1879,14 @@ static void GetSignalToNoiseT(struct cxd_state *state, u32 *SignalToNoise)
 	u8 Data[2];
 	u32 reg;
 
+	*SignalToNoise = 0;
 	freeze_regst(state);
 	readregst_unlocked(state, 0x10, 0x28, Data, sizeof(Data));
 	unfreeze_regst(state);
 
 	reg = (Data[0] << 8) | Data[1];
+	if (reg == 0)
+		return;
 	if (reg > 4996)
 		reg = 4996;
 
@@ -1888,7 +1900,6 @@ static void GetSignalToNoiseC(struct cxd_state *state, u32 *SignalToNoise)
 	u32 reg;
 
 	*SignalToNoise = 0;
-
 	freeze_regst(state);
 	readregst_unlocked(state, 0x40, 0x19, &Constellation, 1);
 	readregst_unlocked(state, 0x40, 0x4C, Data, sizeof(Data));
