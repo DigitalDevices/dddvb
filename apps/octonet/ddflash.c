@@ -58,7 +58,6 @@ static int reboot(uint32_t off)
 struct ddflash {
 	int fd;
 	struct ddb_id id;
-	uint32_t type;
 	uint32_t version;
 
 	uint32_t flash_type;
@@ -68,73 +67,8 @@ struct ddflash {
 	uint32_t bufsize;
 	uint32_t block_erase;
 
-	uint8_t * buffer;
+	uint8_t *buffer;
 };
-
-int flashio(int ddb, uint8_t *wbuf, uint32_t wlen, uint8_t *rbuf, uint32_t rlen)
-{
-	struct ddb_flashio fio = {
-		.write_buf=wbuf,
-		.write_len=wlen,
-		.read_buf=rbuf,
-		.read_len=rlen,
-		.link=0,
-	};
-	
-	return ioctl(ddb, IOCTL_DDB_FLASHIO, &fio);
-}
-
-enum {
-	UNKNOWN_FLASH = 0,
-	ATMEL_AT45DB642D = 1,
-	SSTI_SST25VF016B = 2,
-	SSTI_SST25VF032B = 3,
-	SSTI_SST25VF064C = 4,
-	SPANSION_S25FL116K = 5,
-	SPANSION_S25FL132K = 6,
-	SPANSION_S25FL164K = 7,
-};
-
-static int flashread(int ddb, uint8_t *buf, uint32_t addr, uint32_t len)
-{
-	uint8_t cmd[4]= {0x03, (addr >> 16) & 0xff, 
-			 (addr >> 8) & 0xff, addr & 0xff};
-	
-	return flashio(ddb, cmd, 4, buf, len);
-}
-
-static int flashdump(struct ddflash *ddf, uint32_t addr, uint32_t len)
-{
-	int i, j;
-	uint8_t buf[32];
-	int bl = sizeof(buf);
-	
-	for (j = 0; j < len; j += bl, addr += bl) {
-		flashread(ddf->fd, buf, addr, bl);
-		for (i = 0; i < bl; i++) {
-			printf("%02x ", buf[i]);
-		}
-		printf("\n");
-	}
-}
-
-void dump(const uint8_t *b, int l)
-{
-	int i, j;
-	
-	for (j = 0; j < l; j += 16, b += 16) { 
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				printf("%02x ", b[i]);
-			else
-				printf("   ");
-		printf(" | ");
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
-		printf("\n");
-	}
-}
 
 int flashwrite_pagemode(struct ddflash *ddf, int dev, uint32_t FlashOffset,
 			uint8_t LockBits, uint32_t fw_off)
@@ -500,172 +434,6 @@ static int flash_detect(struct ddflash *ddf)
 }
 
 
-int FlashWriteAtmel(int dev,uint32_t FlashOffset, uint8_t *Buffer,int BufferSize)
-{
-    int err = 0;
-    int BlockErase = BufferSize >= 8192;
-    int i;
-    
-    if (BlockErase) {
-	    for (i = 0; i < BufferSize; i += 8192 ) {
-		    uint8_t cmd[4];
-		    if ((i & 0xFFFF) == 0 )
-			    printf(" Erase    %08x\n",FlashOffset + i);
-		    cmd[0] = 0x50; // Block Erase
-		    cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
-		    cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
-		    cmd[3] = 0x00;
-		    err = flashio(dev,cmd,4,NULL,0);
-		    if (err < 0 ) break;
-		    
-		    while( 1 )
-		    {
-			    cmd[0] = 0xD7;  // Read Status register
-			    err = flashio(dev,cmd,1,&cmd[0],1);
-			    if (err < 0 ) break;
-			    if ((cmd[0] & 0x80) == 0x80 ) break;
-		    }
-	    }
-    }
-    
-    for (i = 0; i < BufferSize; i += 1024) {
-        uint8_t cmd[4 + 1024];
-        if ((i & 0xFFFF) == 0 )
-        {
-            printf(" Program  %08x\n",FlashOffset + i);
-        }
-        cmd[0] = 0x84; // Buffer 1
-        cmd[1] = 0x00;
-        cmd[2] = 0x00;
-        cmd[3] = 0x00;
-        memcpy(&cmd[4],&Buffer[i],1024);
-
-        err = flashio(dev,cmd,4 + 1024,NULL,0);
-        if (err < 0 ) break;
-
-        cmd[0] = BlockErase ? 0x88 : 0x83; // Buffer to Main Memory (with Erase)
-        cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
-        cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
-        cmd[3] = 0x00;
-
-        err = flashio(dev,cmd,4,NULL,0);
-        if (err < 0 ) break;
-
-        while( 1 )
-        {
-		cmd[0] = 0xD7;  // Read Status register
-		err = flashio(dev,cmd,1,&cmd[0],1);
-            if (err < 0 ) break;
-            if ((cmd[0] & 0x80) == 0x80 ) break;
-        }
-        if (err < 0 ) break;
-    }
-    return err;
-}
-
-int FlashWriteSSTI(int dev, uint32_t FlashOffset, uint8_t *Buffer, int BufferSize)
-{
-    int err = 0;
-    uint8_t cmd[6];
-    int i, j;
-
-    // Must be multiple of sector size
-    if ((BufferSize % 4096) != 0 ) 
-	    return -1;   
-    
-    do {
-	    cmd[0] = 0x50;  // EWSR
-	    err = flashio(dev,cmd,1,NULL,0);
-	    if (err < 0 ) 
-		    break;
-
-	    cmd[0] = 0x01;  // WRSR
-	    cmd[1] = 0x00;  // BPx = 0, Unlock all blocks
-	    err = flashio(dev,cmd,2,NULL,0);
-	    if (err < 0 )
-		    break;
-	    
-	    for (i = 0; i < BufferSize; i += 4096 ) {
-		    if ((i & 0xFFFF) == 0 )
-			    printf(" Erase    %08x\n",FlashOffset + i);
-		    cmd[0] = 0x06;  // WREN
-		    err = flashio(dev,cmd,1,NULL,0);
-		    if (err < 0 )
-			    break;
-		    
-		    cmd[0] = 0x20;  // Sector erase ( 4Kb)
-		    cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
-		    cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
-		    cmd[3] = 0x00;
-		    err = flashio(dev,cmd,4,NULL,0);
-		    if (err < 0 )
-			    break;
-		    
-		    while(1) {
-			    cmd[0] = 0x05;  // RDRS
-			    err = flashio(dev,cmd,1,&cmd[0],1);
-			    if (err < 0 ) break;
-			    if ((cmd[0] & 0x01) == 0 ) break;
-		    }
-		    if (err < 0 ) break;
-	    }
-	    if (err < 0 ) 
-		    break;
-	    for (j = BufferSize - 4096; j >= 0; j -= 4096 ) {
-		    if ((j & 0xFFFF) == 0 )
-			    printf(" Program  %08x\n",FlashOffset + j);
-		    
-		    for (i = 0; i < 4096; i += 2 ) {
-			    if (i == 0 ) {
-				    cmd[0] = 0x06;  // WREN
-				    err = flashio(dev,cmd,1,NULL,0);
-				    if (err < 0 ) 
-					    break;
-				    
-				    cmd[0] = 0xAD;  // AAI
-				    cmd[1] = ( (( FlashOffset + j ) >> 16) & 0xFF );
-				    cmd[2] = ( (( FlashOffset + j ) >>  8) & 0xFF );
-				    cmd[3] = 0x00;
-				    cmd[4] = Buffer[j+i];
-				    cmd[5] = Buffer[j+i+1];
-				    err = flashio(dev,cmd,6,NULL,0);
-			    } else {
-				    cmd[0] = 0xAD;  // AAI
-				    cmd[1] = Buffer[j+i];
-				    cmd[2] = Buffer[j+i+1];
-				    err = flashio(dev,cmd,3,NULL,0);
-			    }
-			    if (err < 0 ) 
-				    break;
-			    
-			    while(1) {
-				    cmd[0] = 0x05;  // RDRS
-				    err = flashio(dev,cmd,1,&cmd[0],1);
-				    if (err < 0 ) break;
-				    if ((cmd[0] & 0x01) == 0 ) break;
-			    }
-			    if (err < 0 ) break;
-		    }
-		    if (err < 0 ) break;
-		    
-		    cmd[0] = 0x04;  // WDIS
-		    err = flashio(dev,cmd,1,NULL,0);
-		    if (err < 0 ) break;
-		    
-	    }
-	    if (err < 0 ) break;
-	    
-	    cmd[0] = 0x50;  // EWSR
-	    err = flashio(dev,cmd,1,NULL,0);
-	    if (err < 0 ) break;
-	    
-	    cmd[0] = 0x01;  // WRSR
-	    cmd[1] = 0x1C;  // BPx = 0, Lock all blocks
-	    err = flashio(dev,cmd,2,NULL,0);
-    } while(0);
-    return err;
-}
-
 static int get_id(struct ddflash *ddf) {
 	uint8_t id[4];
 
@@ -677,19 +445,6 @@ static int get_id(struct ddflash *ddf) {
 	       ddf->id.subvendor, ddf->id.subdevice,
 	       ddf->id.hw, ddf->id.regmap);
 #endif	
-	if (ddf->id.device == 0x0011)
-		ddf->type = 1;
-	if (ddf->id.device == 0x0201)
-		ddf->type = 2;
-	if (ddf->id.device == 0x02)
-		ddf->type = 3;
-	if (ddf->id.device == 0x03)
-		ddf->type = 0;
-	if (ddf->id.device == 0x0300)
-		ddf->type = 4;
-	if (ddf->id.device == 0x0320)
-		ddf->type = 5;
-
 	return 0;
 }
 
