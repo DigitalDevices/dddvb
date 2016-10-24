@@ -628,6 +628,29 @@ static void ddb_buffers_free(struct ddb *dev)
 	}
 }
 
+/*
+* Control:
+* 
+* Bit 0 - Enable TS
+*     1 - Reset
+*     2 - clock enable
+*     3 - clock phase
+*     4 - gap enable
+*     5 - send null packets on underrun
+*     6 - enable clock gating
+*     7 - set error bit on inserted null packets
+*     8-10 - fine adjust clock delay
+*     11- HS (high speed), if NCO mode=0: 0=72MHz 1=96Mhz
+*     12- enable NCO mode
+* 
+* Control 2:
+* 
+* Bit 0-6  : gap_size, Gap = (gap_size * 2) + 4
+*     16-31: HS = 0: Speed = 72 * Value / 8192 MBit/s
+*            HS = 1: Speed = 72 * 8 / (Value + 1) MBit/s (only bit 19-16 used)
+* 
+*/
+
 static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 {
 	struct ddb *dev = output->port->dev;
@@ -3317,8 +3340,8 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 		dma->div = INPUT_DMA_IRQ_DIV;
 	}
 	ddbwritel(io->port->dev, 0, DMA_BUFFER_ACK(dma));
-	pr_info("DDBridge: init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
-		io->port->lnr, io->nr, nr, dma->regs, dma->bufregs); 
+	pr_debug("DDBridge: init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
+		io->port->lnr, io->nr, nr, dma->regs, dma->bufregs);
 }
 
 static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
@@ -3333,7 +3356,7 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 	rm = io_regmap(input, 1);
 	input->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->input->base + rm->input->size * nr);
-	pr_info("DDBridge: init link %u, input %u, regs %08x\n", port->lnr, nr, input->regs); 
+	pr_debug("DDBridge: init link %u, input %u, regs %08x\n", port->lnr, nr, input->regs); 
 	if (dev->has_dma) {
 		struct ddb_regmap *rm0 = io_regmap(input, 0);
 		u32 base = rm0->irq_base_idma;
@@ -3342,7 +3365,8 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 		if (port->lnr)
 			dma_nr += 32 + (port->lnr - 1) * 8;
 		
-		pr_info("DDBridge: init link %u, input %u, handler %u\n", port->lnr, nr, dma_nr + base); 
+		pr_debug("DDBridge: init link %u, input %u, handler %u\n",
+			 port->lnr, nr, dma_nr + base); 
 		dev->handler[0][dma_nr + base] = input_handler;
 		dev->handler_data[0][dma_nr + base] = (unsigned long) input;
 		ddb_dma_init(input, dma_nr, 0);
@@ -3361,7 +3385,8 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	rm = io_regmap(output, 1);
 	output->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->output->base + rm->output->size * nr);
-	pr_info("DDBridge: init link %u, output %u, regs %08x\n", port->lnr, nr, output->regs); 
+	pr_debug("DDBridge: init link %u, output %u, regs %08x\n",
+		 port->lnr, nr, output->regs); 
 	if (dev->has_dma) {
 		struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
