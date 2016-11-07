@@ -96,7 +96,7 @@ static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
 	struct i2c_msg msg = {
 		.addr = adr, .flags = 0, .buf = data, .len = len}; 
 	if (i2c_transfer(adap, &msg, 1) != 1) {
-		pr_err("cxd2843: i2c_write error\n");
+		pr_err("cxd2843: i2c_write error adr %02x data %02x\n", adr, data[0]);
 		return -1;
 	}
 	return 0;
@@ -508,8 +508,12 @@ static void ActiveC2_to_Sleep(struct cxd_state *state)
 	writebitst(state, 0x2B, 0x2B, 0x00, 0x1F);
 	{
 		u8 data[2] = { 0x75, 0x75 };
+		u8 data24[2] = { 0x89, 0x89 };
 
-		writeregst(state, 0x2D, 0x24, data, sizeof(data));
+		if (state->is24MHz) 
+			writeregst(state, 0x2D, 0x24, data24, sizeof(data24));
+		else
+			writeregst(state, 0x2D, 0x24, data, sizeof(data));
 	}
 
 	writeregx(state, 0x00, 0x18, 0x01); /* Disable ADC 4 */
@@ -554,62 +558,115 @@ static int ConfigureTS(struct cxd_state *state,
 	return status;
 }
 
+#if 0
+static int set_tr(struct cxd_state *state, u32 bw, u32 osc24)
+{
+	u64 tr = 7 *(osc24 ? 0x1800000000 : 0x1480000000);
+
+	div64_32(tr, bw);
+	printk("TR %016llx\n", tr);	
+	return 0;
+}
+#endif
+
 static void BandSettingT(struct cxd_state *state, u32 iffreq)
 {
 	u8 IF_data[3] = { (iffreq >> 16) & 0xff,
 			  (iffreq >> 8) & 0xff, iffreq & 0xff};
+	u8 data[] = { 0x01, 0x14 };
 
+	writeregst(state, 0x13, 0x9c, data, sizeof(data));
 	switch (state->bw) {
 	default:
 	case 8:
 	{
-		u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
-		u8 CL_data[] = { 0x01, 0xE0 };
 		u8 NF_data[] = { 0x01, 0x02 };
 
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x15, 0x00, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x00, 0x07);
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x15, 0x28 };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x01, 0xE0 };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 		writeregst(state, 0x17, 0x38, NF_data, sizeof(NF_data));
 		break;
 	}
 	case 7:
 	{
-		u8 TR_data[] = { 0x14, 0x80, 0x00, 0x00, 0x00 };
-		u8 CL_data[] = { 0x12, 0xF8 };
 		u8 NF_data[] = { 0x00, 0x03 };
 
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x18, 0x00, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x14, 0x80, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x02, 0x07);
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x1f, 0xf8 };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x12, 0xF8 };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 		writeregst(state, 0x17, 0x38, NF_data, sizeof(NF_data));
 		break;
 	}
 	case 6:
 	{
-		u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
-		u8 CL_data[] = { 0x1F, 0xDC };
 		u8 NF_data[] = { 0x00, 0x03 };
 
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x1c, 0x00, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x04, 0x07);
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x25, 0x4c };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x1F, 0xDC };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 		writeregst(state, 0x17, 0x38, NF_data, sizeof(NF_data));
 		break;
 	}
 	case 5:
 	{
-		static u8 TR_data[] = { 0x1C, 0xB3, 0x33, 0x33, 0x33 };
-		static u8 CL_data[] = { 0x26, 0x3C };
 		static u8 NF_data[] = { 0x00, 0x03 };
 
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x21, 0x99, 0x99, 0x99, 0x99 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			static u8 TR_data[] = { 0x1C, 0xB3, 0x33, 0x33, 0x33 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x06, 0x07);
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			static u8 CL_data[] = { 0x2c, 0xc2 };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			static u8 CL_data[] = { 0x26, 0x3C };
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 		writeregst(state, 0x17, 0x38, NF_data, sizeof(NF_data));
 		break;
 	}
@@ -626,7 +683,7 @@ static void Sleep_to_ActiveT(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x00, 0x30, 0x00);   /* Enable ADC Clock */
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 	{
-		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz */
+		u8 data[2] = { 0x09, 0x54 };  /* 20.5/24 MHz */
 		/*u8 data[2] = { 0x0A, 0xD4 }; */  /* 41 MHz */
 
 		writeregst(state, 0x00, 0x43, data, 2);   /* Enable ADC 2+3 */
@@ -634,7 +691,7 @@ static void Sleep_to_ActiveT(struct cxd_state *state, u32 iffreq)
 	writeregx(state, 0x00, 0x18, 0x00);   /* Enable ADC 4 */
 
 	writebitst(state, 0x10, 0xD2, 0x0C, 0x1F); /* IF AGC Gain */
-	writeregt(state, 0x11, 0x6A, 0x48); /* BB AGC Target Level */
+	writeregt(state, 0x11, 0x6A, 0x50); /* BB AGC Target Level */
 
 	writebitst(state, 0x10, 0xA5, 0x00, 0x01); /* ASCOT Off */
 
@@ -645,6 +702,13 @@ static void Sleep_to_ActiveT(struct cxd_state *state, u32 iffreq)
 	writebitst(state, 0x00, 0xCE, 0x01, 0x01); /* TSIF ONOPARITY */
 	writebitst(state, 0x00, 0xCF, 0x01, 0x01);/*TSIF ONOPARITY_MANUAL_ON*/
 
+	if (state->is24MHz) {
+		u8 data[3] = { 0xdc, 0x6c, 0x00 };
+
+		writeregt(state, 0x10, 0xbf, 0x60);
+		writeregst(state, 0x18, 0x24, data, 3);
+	}
+	
 	BandSettingT(state, iffreq);
 
 	writebitst(state, 0x10, 0x60, 0x11, 0x1f); /* BER scaling */
@@ -662,10 +726,16 @@ static void BandSettingT2(struct cxd_state *state, u32 iffreq)
 	default:
 	case 8:
 	{
-		u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
-
 		/* Timing recovery */
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x15, 0x00, 0x00, 0x00, 0x00 };
+
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
+				
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		/* Add EQ Optimisation for tuner here */
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		/* System Bandwidth */
@@ -674,36 +744,60 @@ static void BandSettingT2(struct cxd_state *state, u32 iffreq)
 	break;
 	case 7:
 	{
-		u8 TR_data[] = { 0x14, 0x80, 0x00, 0x00, 0x00 };
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x18, 0x00, 0x00, 0x00, 0x00 };
 
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x14, 0x80, 0x00, 0x00, 0x00 };
+
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x02, 0x07);
 	}
 	break;
 	case 6:
 	{
-		u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x1c, 0x00, 0x00, 0x00, 0x00 };
 
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
+
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x04, 0x07);
 	}
 	break;
 	case 5:
 	{
-		u8 TR_data[] = { 0x1C, 0xB3, 0x33, 0x33, 0x33 };
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x21, 0x99, 0x99, 0x99, 0x99 };
 
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x1C, 0xB3, 0x33, 0x33, 0x33 };
+
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x06, 0x07);
 	}
 	break;
 	case 2: /* 1.7 MHz */
 	{
-		u8 TR_data[] = { 0x58, 0xE2, 0xAF, 0xE0, 0xBC };
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x68, 0x0f, 0xa2, 0x32, 0xd0 };
 
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x58, 0xE2, 0xAF, 0xE0, 0xBC };
+
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x03, 0x07);
 	}
@@ -724,7 +818,7 @@ static void Sleep_to_ActiveT2(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
 	{
-		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz */
+		u8 data[2] = { 0x09, 0x54 };  /* 20.5/24 MHz */
 		/*u8 data[2] = { 0x0A, 0xD4 }; */  /* 41 MHz */
 
 		writeregst(state, 0x00, 0x43, data, 2);   /* Enable ADC 2+3 */
@@ -737,6 +831,7 @@ static void Sleep_to_ActiveT2(struct cxd_state *state, u32 iffreq)
 
 	writeregt(state, 0x20, 0x8B, 0x3C); /* SNR Good count */
 	writebitst(state, 0x2B, 0x76, 0x20, 0x70); /* Noise Gain ACQ */
+	writebitst(state, 0x23, 0xe6, 0x00, 0x03);
 
 	writebitst(state, 0x00, 0xCE, 0x01, 0x01); /* TSIF ONOPARITY */
 	writebitst(state, 0x00, 0xCF, 0x01, 0x01);/*TSIF ONOPARITY_MANUAL_ON*/
@@ -745,7 +840,34 @@ static void Sleep_to_ActiveT2(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x13, 0x86, 0x34);
 	writebitst(state, 0x13, 0x9E, 0x09, 0x0F);
 	writeregt(state, 0x13, 0x9F, 0xD8);
+	writebitst(state, 0x23, 0x11, 0x20, 0x3F);
 
+
+	if (state->is24MHz ) {
+		static u8 data1[] = { 0xEB, 0x03, 0x3B };
+		static u8 data2[] = { 0x5E, 0x5E, 0x47 };
+		static u8 data3[] = { 0x3F, 0xFF };
+		static u8 data4[] = { 0x0B, 0x72 };
+		static u8 data5[] = { 0x93, 0xF3, 0x00 };
+		static u8 data6[] = { 0x05, 0xB8, 0xD8 };
+		static u8 data7[] = { 0x89, 0x89  };
+		static u8 data8[] = { 0x24, 0x95  };
+		
+		writeregst(state, 0x11, 0x33, data1, sizeof(data1));
+		writeregst(state, 0x20, 0x95, data2, sizeof(data2));
+		writeregt(state, 0x20, 0x99, 0x18);
+		writeregst(state, 0x20, 0xD9, data3, sizeof(data3));
+		writeregst(state, 0x24, 0x34, data4, sizeof(data4));
+		writeregst(state, 0x24, 0xD2, data5, sizeof(data5));
+		writeregst(state, 0x24, 0xDD, data6, sizeof(data6));
+		writeregt(state, 0x24, 0xE0, 0x00);
+		writeregt(state, 0x25, 0xED, 0x60);
+		writeregt(state, 0x27, 0xFA, 0x34);
+		writeregt(state, 0x2B, 0x4B, 0x2F);
+		writeregt(state, 0x2B, 0x9E, 0x0E);
+		writeregst(state, 0x2D, 0x24, data7, sizeof(data7));
+		writeregst(state, 0x5E, 0x8C, data8, sizeof(data8));
+        }
 	BandSettingT2(state, iffreq);
 
 	writebitst(state, 0x20, 0x72, 0x08, 0x0f); /* BER scaling */
@@ -777,7 +899,7 @@ static void Sleep_to_ActiveC(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
 	{
-		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz */
+		u8 data[2] = { 0x09, 0x54 };  /* 20.5/24 MHz */
 		/*u8 data[2] = { 0x0A, 0xD4 }; */  /* 41 MHz */
 
 		writeregst(state, 0x00, 0x43, data, 2);   /* Enable ADC 2+3 */
@@ -793,6 +915,18 @@ static void Sleep_to_ActiveC(struct cxd_state *state, u32 iffreq)
 	writebitst(state, 0x00, 0xCE, 0x01, 0x01); /* TSIF ONOPARITY */
 	writebitst(state, 0x00, 0xCF, 0x01, 0x01);/*TSIF ONOPARITY_MANUAL_ON*/
 
+        if (state->is24MHz) {
+		u8 data1[2] = { 0x29, 0x09 };
+		u8 data2[4] = { 0x08, 0x38, 0x83, 0x0E };
+		u8 data3[3] = { 0xDC, 0x6C, 0x00 };
+		u8 data4[2] = { 0x77, 0x00 };
+		
+		writeregst(state,0x40,0x54,data1,2);
+		writeregst(state,0x40,0x8b,data2,4);
+		writeregt(state,0x40,0xBF,0x60);
+		writeregst(state,0x48,0x24,data3,2);
+		writeregst(state,0x49,0x11,data4,2);
+        }
 	BandSettingC(state, iffreq);
 
 	writebitst(state, 0x40, 0x60, 0x11, 0x1f); /* BER scaling */
@@ -810,28 +944,57 @@ static void BandSettingC2(struct cxd_state *state, u32 iffreq)
 	default:
 	case 8:
 	{
-		u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
-		u8 data[2] = { 0x11, 0x9E };
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x15, 0x00, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x11, 0xF0, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
+		writebitst(state, 0x27, 0x7a, 0x00, 0x0f);
 
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x00, 0x07);
-		writeregst(state, 0x50, 0xEC, data, sizeof(data));
-		writeregt(state, 0x50, 0xEF, 0x11);
-		writeregt(state, 0x50, 0xF1, 0x9E);
+
+		if (state->is24MHz) {
+			u8 data[2] = { 0x14, 0xa0 };
+
+			writeregst(state, 0x50, 0xEC, data, sizeof(data));
+			writeregt(state, 0x50, 0xEF, 0x14);
+			writeregt(state, 0x50, 0xF1, 0xa0);
+		} else {
+			u8 data[2] = { 0x11, 0x9E };
+
+			writeregst(state, 0x50, 0xEC, data, sizeof(data));
+			writeregt(state, 0x50, 0xEF, 0x11);
+			writeregt(state, 0x50, 0xF1, 0x9E);
+		}
 	}
 	break;
 	case 6:
 	{
-		u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
-		u8 data[2] = { 0x17, 0x70 };
-
-		writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x1c, 0x00, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x17, 0xEA, 0xAA, 0xAA, 0xAA };
+			writeregst(state, 0x20, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x04, 0x07);
-		writeregst(state, 0x50, 0xEC, data, sizeof(data));
-		writeregt(state, 0x50, 0xEF, 0x17);
-		writeregt(state, 0x50, 0xF1, 0x70);
+		if (state->is24MHz) {
+			u8 data[2] = { 0x1b, 0x70 };
+
+			writeregst(state, 0x50, 0xEC, data, sizeof(data));
+			writeregt(state, 0x50, 0xEF, 0x1b);
+			writeregt(state, 0x50, 0xF1, 0x70);
+		} else {
+			u8 data[2] = { 0x17, 0x70 };
+
+			writeregst(state, 0x50, 0xEC, data, sizeof(data));
+			writeregt(state, 0x50, 0xEF, 0x17);
+			writeregt(state, 0x50, 0xF1, 0x70);
+		}
 	}
 	break;
 	}
@@ -849,7 +1012,7 @@ static void Sleep_to_ActiveC2(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
 	{
-		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz */
+		u8 data[2] = { 0x09, 0x54 };  /* 20.5/24 MHz */
 		/*u8 data[2] = { 0x0A, 0xD4 }; */  /* 41 MHz */
 
 		writeregst(state, 0x00, 0x43, data, sizeof(data));
@@ -891,7 +1054,23 @@ static void Sleep_to_ActiveC2(struct cxd_state *state, u32 iffreq)
 
 		writeregst(state, 0x2D, 0x24, data, sizeof(data));
 	}
-
+        if (state->is24MHz) {
+		u8 data1[3] = { 0xEB, 0x03, 0x3B };
+		u8 data2[2] = { 0x3F, 0xFF };
+		u8 data3[2] = { 0x0B, 0x72 };
+		u8 data4[3] = { 0x93, 0xF3, 0x00 };
+		u8 data5[4] = { 0x05, 0xB8, 0xD8, 0x00 };
+		u8 data6[9] = { 0x18, 0x1E, 0x71, 0x5D, 0xA9, 0x5D, 0xA9, 0x46, 0x3F };
+		
+		writeregst(state,0x11,0x33,data1,sizeof(data1));
+		writeregst(state,0x20,0xD9,data2,sizeof(data2));
+		writeregst(state,0x24,0x34,data3,sizeof(data3));
+		writeregst(state,0x24,0xD2,data4,sizeof(data4));
+		writeregst(state,0x24,0xDD,data5,sizeof(data5));
+		writeregt(state,0x25,0xED,0x60);
+		writeregst(state,0x5E,0xDB,data6,sizeof(data6));
+        }
+	
 	BandSettingC2(state, iffreq);
 
 	writeregt(state, 0x00, 0x80, 0x28); /* Disable HiZ Setting 1 */
@@ -908,34 +1087,51 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 	default:
 	case 8:
 	{
-		u8 TR_data[] = { 0x0F, 0x22, 0x80, 0x00, 0x00 }; /* 20.5/41 */
-		u8 CL_data[] = { 0x15, 0xA8 };
-
-		/*u8 TR_data[] = { 0x11, 0xB8, 0x00, 0x00, 0x00 }; */ /* 24 */
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x11, 0xb8, 0x00, 0x00, 0x00 }; /* 24 */
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x0F, 0x22, 0x80, 0x00, 0x00 }; /* 20.5/41 */
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		/* Add EQ Optimisation for tuner here */
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 
 		writebitst(state, 0x10, 0xD7, 0x00, 0x07); /* System Bandwidth */
-		/*u8 CL_data[] = { 0x13, 0xFC }; */
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x13, 0xfc };
 
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x15, 0xA8 };
+		
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 		writebitst(state, 0x12, 0x71, 0x03, 0x07);
 		writeregt(state, 0x15, 0xbe, 0x03);
 	}
 	break;
 	case 7:
 	{
-		u8 TR_data[] = { 0x11, 0x4c, 0x00, 0x00, 0x00 };
-		u8 CL_data[] = { 0x1B, 0x5D };
-
-		/*u8 TR_data[] = { 0x14, 0x40, 0x00, 0x00, 0x00 }; */
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x14, 0x40, 0x00, 0x00, 0x00 }; /* 24 */
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x11, 0x4c, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 
 		writebitst(state, 0x10, 0xD7, 0x02, 0x07);
-		/*static u8 CL_data[] = { 0x1A, 0xFA };*/
-		writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x1a, 0xfa };
+
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		} else {
+			u8 CL_data[] = { 0x1B, 0x5D };
+		
+			writeregst(state, 0x10, 0xD9, CL_data, sizeof(CL_data));
+		}
 
 		writebitst(state, 0x12, 0x71, 0x03, 0x07);
 		writeregt(state, 0x15, 0xbe, 0x02);
@@ -943,22 +1139,30 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 	break;
 	case 6:
 	{
-		u8 TR_data[] = { 0x14, 0x2E, 0x00, 0x00, 0x00 };
-		/*u8 TR_data[] = { 0x17, 0xA0, 0x00, 0x00, 0x00 }; */
-		/*u8 CL_data[] = { 0x1F, 0x79 }; */
-
-		writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		if (state->is24MHz) {
+			u8 TR_data[] = { 0x17, 0xa0, 0x00, 0x00, 0x00 }; /* 24 */
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		} else {
+			u8 TR_data[] = { 0x14, 0x2E, 0x00, 0x00, 0x00 };
+			writeregst(state, 0x10, 0x9F, TR_data, sizeof(TR_data));
+		}
 		writeregst(state, 0x10, 0xB6, IF_data, sizeof(IF_data));
 		writebitst(state, 0x10, 0xD7, 0x04, 0x07);
 
-		if (state->is2k14) {
-			u8 CL_data[] = { 0x1a, 0xe2 };
-			
-			writeregst(state, 0x10, 0xDd9, CL_data, sizeof(CL_data));
-		} else {
-			u8 CL_data[] = { 0x1F, 0xec };
+		if (state->is24MHz) {
+			u8 CL_data[] = { 0x1f, 0x79 };
 			
 			writeregst(state, 0x10, 0xd9, CL_data, sizeof(CL_data));
+		} else {
+			if (state->is2k14) {
+				u8 CL_data[] = { 0x1a, 0xe2 };
+				
+				writeregst(state, 0x10, 0xd9, CL_data, sizeof(CL_data));
+			} else {
+				u8 CL_data[] = { 0x1F, 0xec };
+				
+				writeregst(state, 0x10, 0xd9, CL_data, sizeof(CL_data));
+			}
 		}
 		writebitst(state, 0x12, 0x71, 0x07, 0x07);
 		writeregt(state, 0x15, 0xbe, 0x02);
@@ -969,12 +1173,6 @@ static void BandSettingIT(struct cxd_state *state, u32 iffreq)
 
 static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 {
-	u8 data2[3] = { 0xB9, 0xBA, 0x63 };  /* 20.5/41 MHz */
-	/*u8 data2[3] = { 0xB7,0x1B,0x00 }; */  /* 24 MHz */
-	u8 TSIF_data[2] = { 0x61, 0x60 } ; /* 20.5/41 MHz */
-	/*u8 TSIF_data[2] = { 0x60,0x00 } ; */ /* 24 MHz */
-
-
 	ConfigureTS(state, ActiveIT);
 
 	/* writeregx(state, 0x00,0x17,0x01); */  /* 2838 has only one Mode */
@@ -989,7 +1187,7 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 	writeregt(state, 0x00, 0x41, 0x1A);   /* Enable ADC1 */
 
 	{
-		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz, 24 MHz */
+		u8 data[2] = { 0x09, 0x54 };  /* 20.5 MHz/24 MHz */
 		/*u8 data[2] = { 0x0A, 0xD4 }; */  /* 41 MHz */
 
 		writeregst(state, 0x00, 0x43, data, 2);   /* Enable ADC 2+3 */
@@ -998,6 +1196,9 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 
 	
 	if (state->is2k14) {
+		writebitst(state, 0x10, 0xd2, 0x0c, 0x1f);
+		writeregt(state, 0x11, 0x6a, 0x50);
+
 		writebitst(state, 0x10, 0xA5, 0x00, 0x01); /* ASCOT Off */
 
 		writebitst(state, 0x18, 0x30, 0x01, 0x01);
@@ -1018,16 +1219,19 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 		writebitst(state, 0x1e, 0x73, 0x68, 0xff);
 		writebitst(state, 0x63, 0x81, 0x00, 0x01);
 	}
-        //if( m_is24MHz )
-        //{
-        //    static BYTE TSIF_data[2] = { 0x60,0x00 } ; // 24 MHz
-        //    CHK_ERROR(WriteRegT(0x10,0xBF,TSIF_data,sizeof(TSIF_data)));
-        //    static BYTE data[3] = { 0xB7,0x1B,0x00 };  // 24 MHz
-        //    CHK_ERROR(WriteRegT(0x60,0xA8,data,sizeof(data)));
-        //}
-        //else
-	writeregst(state, 0x10, 0xBF, TSIF_data, sizeof(TSIF_data));
-	writeregst(state, 0x60, 0xa8, data2, sizeof(data2));
+        if (state->is24MHz) {
+		static u8 TSIF_data[2] = { 0x60,0x00 } ; // 24 MHz
+		static u8 data[3] = { 0xB7,0x1B,0x00 };  // 24 MHz
+		
+		writeregst(state, 0x10, 0xBF, TSIF_data, sizeof(TSIF_data));
+		writeregst(state, 0x60, 0xA8, data, sizeof(data));
+        } else {
+		u8 TSIF_data[2] = { 0x61, 0x60 } ; /* 20.5/41 MHz */
+		u8 data[3] = { 0xB9, 0xBA, 0x63 };  /* 20.5/41 MHz */
+
+		writeregst(state, 0x10, 0xBF, TSIF_data, sizeof(TSIF_data));
+		writeregst(state, 0x60, 0xa8, data, sizeof(data));
+	}
 	
 	if (!state->is2k14) {
 		writeregt(state, 0x10, 0xE2, 0xCE); /* OREG_PNC_DISABLE */
@@ -1042,11 +1246,11 @@ static void Sleep_to_ActiveIT(struct cxd_state *state, u32 iffreq)
 static void T2_SetParameters(struct cxd_state *state)
 {
 	u8 Profile = 0x01;    /* Profile Base */
-	u8 notT2time = 12;    /* early unlock detection time */
+	u8 notT2time = state->is24MHz ? 24 : 12;    /* early unlock detection time */
 
 	if (state->T2Profile == T2P_Lite) {
 		Profile = 0x05;
-		notT2time = 40;
+		notT2time = state->is24MHz ? 46 : 40;
 	}
 
 	if (state->plp != 0xffffffff) {
@@ -1182,7 +1386,7 @@ static int Start(struct cxd_state *state, u32 IntermediateFrequency)
 	if (state->state < Sleep)
 		return -EINVAL;
 
-	iffreq = MulDiv32(IntermediateFrequency, 16777216, 41000000);
+	iffreq = MulDiv32(IntermediateFrequency, 16777216, state->is24MHz ? 48000000 : 41000000);
 
 	switch (state->omode) {
 	case OM_DVBT:
@@ -1368,9 +1572,16 @@ static void init(struct cxd_state *state)
 
 	writeregx(state, 0x00, 0x10, 0x01);
 
-	writeregsx(state, 0x00, 0x13, data, 2);
 	writeregx(state, 0x00, 0x15, 0x00);
 	usleep_range(3000, 4000);
+
+	writeregsx(state, 0x00, 0x13, data, 0);
+	if (state->is24MHz)
+		writeregx(state, 0x00, 0x12, 0x00);
+
+	writeregx(state, 0x00, 0x14, state->is24MHz ? 0x03 : 0x00);
+
+	
 	writeregx(state, 0x00, 0x10, 0x00);
 	usleep_range(2000, 3000);
 
@@ -1382,6 +1593,12 @@ static void init(struct cxd_state *state)
 	if (state->type == CXD2838)
 		writeregt(state, 0x60, 0x5A, 0x00);
 
+	if (state->type == CXD2854) {
+		writeregt(state, 0x00, 0x63, 0x16);
+		writeregt(state, 0x00, 0x65, 0x27);
+		writeregt(state, 0x00, 0x69, 0x06);
+	}
+	
 	writebitst(state, 0x10, 0xCB, 0x00, 0x40);
 	writeregt(state, 0x10, 0xCD, state->IF_FS);
 
@@ -1416,6 +1633,8 @@ static void init_state(struct cxd_state *state, struct cxd2843_cfg *cfg)
 		cfg->ts_clock :  1; /* 1 = fastest (82 MBit/s), 5 = slowest */
 	/* IF Fullscale 0x50 = 1.4V, 0x39 = 1V, 0x28 = 0.7V */
 	state->IF_FS = 0x50;
+	state->is24MHz = (cfg->osc == 24000000) ? 1 : 0;
+	printk("is24Mhz = %u\n", state->is24MHz);
 }
 
 static int get_tune_settings(struct dvb_frontend *fe,
@@ -1738,7 +1957,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
  
      do
      {
-+        BYTE tmp;
++        u8 tmp;
 +
          CHK_ERROR(FreezeRegsT());
  
@@ -1757,11 +1976,11 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 +            pT2_PLPIDS->CommonPLPID = tmp;
 +        }
 +
-         BYTE nPids = 0;
+         u8 nPids = 0;
          CHK_ERROR(ReadRegT(0x22,0x7F,&nPids));
  
 -        pValues[0] = nPids;
--        if( nPids >= nValues ) nPids = BYTE(nValues-1);
+-        if( nPids >= nValues ) nPids = nValues - 1;
 +        pT2_PLPIDS->NumPLPS = nPids;
 +        CHK_ERROR(ReadRegT(0x22,0x80,&pT2_PLPIDS->PLPList[0], nPids > 128 ? 128 : nPids));
  
@@ -2415,13 +2634,12 @@ static int probe(struct cxd_state *state)
 	int status;
 
 	status = readregst(state, 0x00, 0xFD, &ChipID, 1);
-
 	if (status)
 		status = readregsx(state, 0x00, 0xFD, &ChipID, 1);
 	if (status)
 		return status;
 
-	/*printk("ChipID  = %02X\n", ChipID);*/
+	printk("ChipID  = %02X\n", ChipID);
 	switch (ChipID) {
 	case 0xa4:
 		state->type = CXD2843;
@@ -2456,6 +2674,7 @@ struct dvb_frontend *cxd2843_attach(struct i2c_adapter *i2c,
 {
 	struct cxd_state *state = NULL;
 
+	pr_info("attach\n");
 	state = kzalloc(sizeof(struct cxd_state), GFP_KERNEL);
 	if (!state)
 		return NULL;

@@ -324,7 +324,7 @@ struct ddb_port {
 #define DDB_TUNER_ISDBT_SONY     (DDB_TUNER_XO2 + 2)
 #define DDB_TUNER_DVBC2T2_SONY   (DDB_TUNER_XO2 + 3)
 #define DDB_TUNER_ATSC_ST        (DDB_TUNER_XO2 + 4)
-#define DDB_TUNER_DVBC2T2_ST     (DDB_TUNER_XO2 + 5)
+#define DDB_TUNER_DVBC2T2I_SONY  (DDB_TUNER_XO2 + 5)
 
 	struct ddb_input      *input[2];
 	struct ddb_output     *output;
@@ -751,6 +751,6 @@ void ddbridge_mod_rate_handler(unsigned long data);
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.26"
+#define DDBRIDGE_VERSION "0.9.28"
 
 #endif
