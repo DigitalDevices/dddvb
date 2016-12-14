@@ -4454,13 +4454,13 @@ static ssize_t temp_show(struct device *device,
 	
 	if (dev->link[0].info->type == DDB_MOD) {
 		if (dev->link[0].info->version == 2) {
-			temp = ddbreadl(dev, TEMPMON2_BOARD);
+			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
 			temp = (temp * 1000) >> 8;
 
-			temp2 = ddbreadl(dev, TEMPMON2_FPGACORE);
+			temp2 = 0xffff & ddbreadl(dev, TEMPMON2_FPGACORE);
 			temp2 = (temp2 * 1000) >> 8;
 
-			temp3 = ddbreadl(dev, TEMPMON2_QAMCORE);
+			temp3 = 0xffff & ddbreadl(dev, TEMPMON2_QAMCORE);
 			temp3 = (temp3 * 1000) >> 8;
 			
 			return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
