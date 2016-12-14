@@ -352,7 +352,7 @@ static struct ddb_info ddb_c2t2i_v0_8 = {
 	.i2c_mask = 0x0f,
 	.board_control   = 0x0ff,
 	.board_control_2 = 0xf00,
-	.ts_quirks = TS_QUIRK_SERIAL,
+	.ts_quirks = TS_QUIRK_SERIAL | TS_QUIRK_ALT_OSC,
 	.tempmon_irq = 24,
 };
 
@@ -2212,7 +2212,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	struct ddb_port *port = input->port;
 	struct dvb_adapter *adap = dvb->adap;
 	struct dvb_demux *dvbdemux = &dvb->demux;
-	int par = 0;
+	int par = 0, osc24 = 0;
 
 	dvb->attached = 0x01;
 
@@ -2292,6 +2292,12 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
+	case DDB_TUNER_DVBC2T2I_SONY_P:
+		if (input->port->dev->link[input->port->lnr].info->ts_quirks &
+		    TS_QUIRK_ALT_OSC)
+			osc24 = 0;
+		else
+			osc24 = 1;
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
@@ -2300,16 +2306,17 @@ static int dvb_input_attach(struct ddb_input *input)
 			par = 0;
 		else
 			par = 1;
-	case DDB_TUNER_DVBCT2_SONY:
-	case DDB_TUNER_DVBC2T2_SONY:
-	case DDB_TUNER_ISDBT_SONY:
-		if (demod_attach_cxd2843(input, par, 0) < 0)
+		if (demod_attach_cxd2843(input, par, osc24) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBC2T2I_SONY:
-		if (demod_attach_cxd2843(input, par, 1) < 0)
+		osc24 = 1;
+	case DDB_TUNER_DVBCT2_SONY:
+	case DDB_TUNER_DVBC2T2_SONY:
+	case DDB_TUNER_ISDBT_SONY:
+		if (demod_attach_cxd2843(input, 0, osc24) < 0)
 			return -ENODEV;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;

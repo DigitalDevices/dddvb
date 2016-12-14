@@ -172,6 +172,7 @@ struct ddb_info {
 #define TS_QUIRK_SERIAL    1
 #define TS_QUIRK_REVERSED  2
 #define TS_QUIRK_NO_OUTPUT 4
+#define TS_QUIRK_ALT_OSC   8
 	u32 tempmon_irq;
 	struct ddb_regmap *regmap;
 };
@@ -317,6 +318,7 @@ struct ddb_port {
 #define DDB_CI_EXTERNAL_XO2      12
 #define DDB_CI_EXTERNAL_XO2_B    13
 #define DDB_TUNER_DVBS_STV0910_PR 14
+#define DDB_TUNER_DVBC2T2I_SONY_P 15
 
 #define DDB_TUNER_XO2            32
 #define DDB_TUNER_DVBS_STV0910   (DDB_TUNER_XO2 + 0)
