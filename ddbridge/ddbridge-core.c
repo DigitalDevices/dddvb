@@ -66,6 +66,10 @@ static int no_init;
 module_param(no_init, int, 0444);
 MODULE_PARM_DESC(no_init, "do not initialize most devices");
 
+static int stv0910_single;
+module_param(stv0910_single, int, 0444);
+MODULE_PARM_DESC(no_init, "use stv0910 cards as single demods");
+
 #define DDB_MAX_ADAPTER 64
 static struct ddb *ddbs[DDB_MAX_ADAPTER];
 
@@ -1573,6 +1577,8 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct stv0910_cfg cfg = stv0910_p;
 
+	if (stv0910_single)
+		cfg.single = 1;
 	if (type)
 		cfg.parallel = 2;
 	dvb->fe = dvb_attach(stv0910_attach, i2c, &cfg, (input->nr & 1));
