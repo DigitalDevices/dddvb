@@ -171,10 +171,10 @@ void ddbridge_mod_output_stop(struct ddb_output *output)
 	struct ddb_mod *mod = &dev->mod[output->nr];
 
 	mod->State = CM_IDLE;
-	mod->Control = 0;
+	mod->Control &= 0xfffffff0;
 	if (dev->link[0].info->version == 2)
 		mod_SendChannelCommand(dev, output->nr, CHANNEL_CONTROL_CMD_FREE);
-	ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));
+	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
 #if 0
 	udelay(10);
 	ddbwritel(dev, CHANNEL_CONTROL_RESET, CHANNEL_CONTROL(output->nr));
@@ -308,7 +308,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	u32 Channel = output->nr;
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	u32 Symbolrate = mod->symbolrate;
-
+	u32 ctrl;
+	
 	mod_calc_rateinc(mod);
 	/*PCRIncrement = RoundPCR(PCRIncrement);*/
 	/*PCRDecrement = RoundPCR(PCRDecrement);*/
@@ -328,12 +329,16 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 
 	mod->State = CM_STARTUP;
 	mod->StateCounter = CM_STARTUP_DELAY;
-
-	ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));
+	
+	if (dev->link[0].info->version == 3)
+		mod->Control = 0xfffffff0 & ddbreadl(dev, CHANNEL_CONTROL(output->nr));
+	else
+		mod->Control = 0;
+	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
 	udelay(10);
-	ddbwritel(dev, CHANNEL_CONTROL_RESET, CHANNEL_CONTROL(output->nr));
+	ddbwritel(dev, mod->Control | CHANNEL_CONTROL_RESET, CHANNEL_CONTROL(output->nr));
 	udelay(10);
-	ddbwritel(dev, 0, CHANNEL_CONTROL(output->nr));
+	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
 
 	pr_info("DDBridge: CHANNEL_BASE = %08x\n", CHANNEL_BASE);
 	pr_info("DDBridge: CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
@@ -368,23 +373,25 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 		
 		if (mod_SendChannelCommand(dev, Channel, CHANNEL_CONTROL_CMD_SETUP))
 			return -EINVAL;
-		mod->Control = CHANNEL_CONTROL_ENABLE_DVB;
+		mod->Control |= CHANNEL_CONTROL_ENABLE_DVB;
 	} else {
 		/* QAM: 600 601 602 903 604 = 16 32 64 128 256 */
 		/* ddbwritel(dev, 0x604, CHANNEL_SETTINGS(output->nr)); */
 		ddbwritel(dev, qamtab[mod->modulation], CHANNEL_SETTINGS(output->nr));
-		mod->Control = (CHANNEL_CONTROL_ENABLE_IQ | CHANNEL_CONTROL_ENABLE_DVB);
+		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ | CHANNEL_CONTROL_ENABLE_DVB);
 	}
-	mod_set_rateinc(dev, output->nr);
-	mod_set_incs(output);
-
+	if (dev->link[0].info->version < 3) {
+		mod_set_rateinc(dev, output->nr);
+		mod_set_incs(output);
+	}
 	mod->Control |= CHANNEL_CONTROL_ENABLE_SOURCE;
 
 	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
 	if (dev->link[0].info->version == 2)
 		if (mod_SendChannelCommand(dev, Channel, CHANNEL_CONTROL_CMD_UNMUTE))
 			return -EINVAL;
-	pr_info("DDBridge: mod_output_start %d.%d\n", dev->nr, output->nr);
+	pr_info("DDBridge: mod_output_start %d.%d ctrl=%08x\n",
+		dev->nr, output->nr, mod->Control);
 	return 0;
 }
 
@@ -1607,11 +1614,21 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 	return 0;
 }
 
+static int mod_init_3(struct ddb *dev, u32 Frequency)
+{
+	int status, i;
+
+	printk("%s\n", __func__);
+	return 0;
+}
+
 int ddbridge_mod_init(struct ddb *dev)
 {
 	if (dev->link[0].info->version <= 1)
 		return mod_init_1(dev, 722000000);
 	if (dev->link[0].info->version == 2)
 		return mod_init_2(dev, 114000000);
+	if (dev->link[0].info->version == 3)
+		return mod_init_3(dev, 114000000);
 	return -1;
 }

@@ -299,6 +299,16 @@ static struct ddb_regmap octopus_mod_2_map = {
 	.channel = &octopus_mod_2_channel,
 };
 
+static struct ddb_regmap octopus_sdr_map = {
+	.irq_version = 2,
+	.irq_base_odma = 64,
+	.irq_base_rate = 32,
+	.output = &octopus_output,
+	.odma = &octopus_mod_2_odma,
+	.odma_buf = &octopus_mod_2_odma_buf,
+	.channel = &octopus_mod_2_channel,
+};
+
 
 /****************************************************************************/
 
@@ -4459,7 +4469,7 @@ static ssize_t temp_show(struct device *device,
 	u8 tmp[2];
 	
 	if (dev->link[0].info->type == DDB_MOD) {
-		if (dev->link[0].info->version == 2) {
+		if (dev->link[0].info->version >= 2) {
 			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
 			temp = (temp * 1000) >> 8;
 

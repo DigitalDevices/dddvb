@@ -498,6 +498,16 @@ static struct ddb_info ddb_mod_fsm_8 = {
 	.tempmon_irq = 8,
 };
 
+static struct ddb_info ddb_sdr = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices SDR",
+	.version  = 3,
+	.regmap   = &octopus_sdr_map,
+	.port_num = 10,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
 static struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
@@ -560,6 +570,7 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0001, ddb_mod_fsm_24),
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0002, ddb_mod_fsm_16),
 	DDB_ID(DDVID, 0x0210, DDVID, 0x0003, ddb_mod_fsm_8),
+	DDB_ID(DDVID, 0x0220, DDVID, 0x0001, ddb_sdr),
 	/* testing on OctopusNet Pro */
 	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
 	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
@@ -574,9 +585,18 @@ static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0007, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0008, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0011, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0012, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0013, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0201, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0203, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0210, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0220, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0328, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_ID(DDVID, 0x0329, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
 	{0}
 };
 MODULE_DEVICE_TABLE(pci, ddb_id_tbl);
