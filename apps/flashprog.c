@@ -249,6 +249,10 @@ int main(int argc, char **argv)
 			fname="DVBModulatorV2A_DD01_0210.fpga";
 			printf("Modulator V2\n");
 			break;
+		case 0x0220:
+			fname="SDRModulatorV1A_DD01_0220.fpga";
+			printf("SDRModulator\n");
+			break;
 		default:
 			printf("UNKNOWN\n");
 			break;
@@ -314,6 +318,7 @@ int main(int argc, char **argv)
 		err = FlashWritePageMode(ddb,FlashOffset,buffer,BufferSize,0x3C);
 		break;
         case SPANSION_S25FL116K:
+        case SPANSION_S25FL164K:
 		err = FlashWritePageMode(ddb,FlashOffset,buffer,BufferSize,0x1C);
 		break;            
 	}
