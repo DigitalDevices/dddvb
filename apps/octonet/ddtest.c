@@ -1310,10 +1310,10 @@ int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 		break;
         default:
 		printf("Unsupported Flash\n");
-		break;
+		return -1;
 	}
 	printf("ID: ");
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < len; i++)
 		printf("%02x ", Id[i]);
 	printf("\n");
 
