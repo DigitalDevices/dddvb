@@ -374,10 +374,12 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 		if (mod_SendChannelCommand(dev, Channel, CHANNEL_CONTROL_CMD_SETUP))
 			return -EINVAL;
 		mod->Control |= CHANNEL_CONTROL_ENABLE_DVB;
-	} else {
+	} else 	if (dev->link[0].info->version == 1) {
 		/* QAM: 600 601 602 903 604 = 16 32 64 128 256 */
 		/* ddbwritel(dev, 0x604, CHANNEL_SETTINGS(output->nr)); */
 		ddbwritel(dev, qamtab[mod->modulation], CHANNEL_SETTINGS(output->nr));
+		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ | CHANNEL_CONTROL_ENABLE_DVB);
+	} else if (dev->link[0].info->version == 3) {
 		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ | CHANNEL_CONTROL_ENABLE_DVB);
 	}
 	if (dev->link[0].info->version < 3) {
@@ -1618,7 +1620,7 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 {
 	int status, i;
 
-	printk("%s\n", __func__);
+	//printk("%s\n", __func__);
 	return 0;
 }
 

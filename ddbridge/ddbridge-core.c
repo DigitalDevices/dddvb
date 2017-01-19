@@ -5254,13 +5254,13 @@ static void tempmon_setfan(struct ddb_link *link)
 			pwm -= 1;
 	}
 	ddblwritel(link, (pwm << 8), TEMPMON_FANCONTROL);
- }
+}
 
 
 static void temp_handler(unsigned long data)
 {
 	struct ddb_link *link = (struct ddb_link *) data;
-
+	
 	spin_lock(&link->temp_lock);
 	tempmon_setfan(link);
 	spin_unlock(&link->temp_lock);
@@ -5308,7 +5308,6 @@ static int ddb_init_tempmon(struct ddb_link *link)
 		if (link->ids.regmapid < 0x00010002)
 			return;
 	spin_lock_init(&link->temp_lock);
-	printk("init_tempmon\n");
 	tempmon_init(link, 1);
 }
 
