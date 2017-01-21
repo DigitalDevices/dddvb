@@ -111,11 +111,11 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 #define __devinitdata
 #endif
 
-static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
+#ifdef CONFIG_PCI_MSI
+static void __devinit ddb_irq_msi(struct ddb *dev, int nr)
 {
 	int stat;
 
-#ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 		stat = pci_enable_msi_range(dev->pdev, 1, nr);
@@ -139,8 +139,8 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 			pr_info("DDBridge: MSI not available.\n");
 #endif
 	}
-	return stat;
 }
+#endif
 
 static int __devinit ddb_irq_init2(struct ddb *dev)
 {
@@ -158,9 +158,11 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_6);
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_7);
 
+#ifdef CONFIG_PCI_MSI
 	ddb_irq_msi(dev, 1);
 	if (dev->msi)
 		irq_flag = 0;
+#endif
 
 	stat = request_irq(dev->pdev->irq, irq_handler_v2,
 			   irq_flag, "ddbridge", (void *) dev);
@@ -195,6 +197,7 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 	ddbwritel(dev, 0x00000000, MSI6_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI7_ENABLE);
 
+#ifdef CONFIG_PCI_MSI
 	ddb_irq_msi(dev, 2);
 
 	if (dev->msi)
