@@ -310,9 +310,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	u32 Symbolrate = mod->symbolrate;
 	u32 ctrl;
 	
-	mod_calc_rateinc(mod);
-	/*PCRIncrement = RoundPCR(PCRIncrement);*/
-	/*PCRDecrement = RoundPCR(PCRDecrement);*/
+	if (dev->link[0].info->version < 3)
+		mod_calc_rateinc(mod);
 
 	mod->LastInPacketCount = 0;
 	mod->LastOutPacketCount = 0;
@@ -415,12 +414,55 @@ static int mod_write_max2871(struct ddb *dev, u32 val)
 	return 0;
 }
 
+static u8 max2871_fsm[6] = {
+	0x00730040, 0x600080A1, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005,
+};
+
+static u8 max2871_sdr[6] = {
+	0x007A8098, 0x600080C9, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005
+};
+
+static int mod_setup_max2871_2(struct ddb *dev, u8 *reg)
+{
+	int status = 0;
+	int i, j;
+	u32 val;
+	
+	ddbwritel(dev, MAX2871_CONTROL_CE, MAX2871_CONTROL);
+	msleep(30);
+	for (i = 0; i < 2; i++) {
+		for (j = 5; j >= 0; j--) {
+			val = reg[j];
+			
+			if (j ==4)
+				val &= 0xFFFFFEDF;
+			status = mod_write_max2871(dev, reg[j]);
+			if (status)
+				break;
+			msleep(30);
+		}
+	}
+	if (status == 0) {
+		u32 ControlReg;
+
+		if (reg[3] & (1 << 24))
+			msleep(100);
+		ControlReg = ddbreadl(dev, MAX2871_CONTROL);
+
+		if ((ControlReg & MAX2871_CONTROL_LOCK) == 0)
+			status = -EIO;
+		status = mod_write_max2871(dev, reg[4]);
+	}
+	return status;
+}
+
 static int mod_setup_max2871(struct ddb *dev)
 {
 	int status = 0;
 	int i;
 	
 	ddbwritel(dev, MAX2871_CONTROL_CE, MAX2871_CONTROL);
+	msleep(30);
 	for (i = 0; i < 2; i++) {
 		status = mod_write_max2871(dev, 0x00440005);
 		if (status)
@@ -441,11 +483,11 @@ static int mod_setup_max2871(struct ddb *dev)
 		if (status)
 			break;
 		msleep(30);
-	} while(0);
+	}
 
 	if (status == 0) {
 		u32 ControlReg = ddbreadl(dev, MAX2871_CONTROL);
-		
+
 		if ((ControlReg & MAX2871_CONTROL_LOCK) == 0)
 			status = -EIO;
 	}
@@ -461,7 +503,7 @@ static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan, u32 MaxUsedChannels
 	u32 tmp = ddbreadl(dev, FSM_STATUS);
 	
 	if ((tmp & FSM_STATUS_READY) == 0) {
-		status = mod_setup_max2871(dev);
+		status = mod_setup_max2871_2(dev, max2871_fsm);
 		if (status)
 			return status;
 		ddbwritel(dev, FSM_CMD_RESET, FSM_CONTROL);
@@ -1484,8 +1526,6 @@ void ddbridge_mod_rate_handler(unsigned long data)
 
 static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
-	struct ddb *dev = mod->port->dev;
-
 	switch(tvp->cmd) {
 	case MODULATOR_SYMBOL_RATE:
 		return mod_set_symbolrate(mod, tvp->u.data);
@@ -1597,6 +1637,11 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 	dev->mod_base.frequency = Frequency;
 	status = mod_fsm_setup(dev, 0, 0);
 
+	if (status) {
+		pr_err("FSM setup failed!\n");
+		return -1;
+	}
+	
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
@@ -1618,10 +1663,13 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 
 static int mod_init_3(struct ddb *dev, u32 Frequency)
 {
-	int status, i;
+	int status, i, ret = 0;
 
-	//printk("%s\n", __func__);
-	return 0;
+	mod_set_vga(dev, 64);
+	ret = mod_setup_max2871_2(dev, max2871_sdr);
+	if (ret)
+		pr_err("DDBridge: PLL setup failed\n");
+	return ret;
 }
 
 int ddbridge_mod_init(struct ddb *dev)
