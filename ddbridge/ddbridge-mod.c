@@ -414,15 +414,15 @@ static int mod_write_max2871(struct ddb *dev, u32 val)
 	return 0;
 }
 
-static u8 max2871_fsm[6] = {
+static u32 max2871_fsm[6] = {
 	0x00730040, 0x600080A1, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005,
 };
 
-static u8 max2871_sdr[6] = {
+static u32 max2871_sdr[6] = {
 	0x007A8098, 0x600080C9, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005
 };
 
-static int mod_setup_max2871_2(struct ddb *dev, u8 *reg)
+static int mod_setup_max2871_2(struct ddb *dev, u32 *reg)
 {
 	int status = 0;
 	int i, j;
