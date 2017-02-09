@@ -122,6 +122,12 @@ static struct ddb_regset octopus_mod_2_channel = {
 	.size = 0x40,
 };
 
+static struct ddb_regset octopus_sdr_output = {
+	.base = 0x240,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
 /****************************************************************************/
 
 static struct ddb_regset octopus_input = {
@@ -303,7 +309,7 @@ static struct ddb_regmap octopus_sdr_map = {
 	.irq_version = 2,
 	.irq_base_odma = 64,
 	.irq_base_rate = 32,
-	.output = &octopus_output,
+	.output = &octopus_sdr_output,
 	.odma = &octopus_mod_2_odma,
 	.odma_buf = &octopus_mod_2_odma_buf,
 	.channel = &octopus_mod_2_channel,
@@ -734,6 +740,7 @@ static void ddb_output_start(struct ddb_output *output)
 	struct ddb *dev = output->port->dev;
 	u32 con = 0x11c, con2 = 0;
 
+	printk("Channel Base = %08x\n", output->regs);
 	if (output->dma) {
 		spin_lock_irq(&output->dma->lock);
 		output->dma->cbuf = 0;
@@ -4468,8 +4475,8 @@ static ssize_t temp_show(struct device *device,
 	int i;
 	u8 tmp[2];
 	
-	if (dev->link[0].info->type == DDB_MOD) {
-		if (dev->link[0].info->version >= 2) {
+	if (link->info->type == DDB_MOD) {
+		if (link->info->version >= 2) {
 			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
 			temp = (temp * 1000) >> 8;
 
@@ -4498,14 +4505,14 @@ static ssize_t temp_show(struct device *device,
 		}
 		return sprintf(buf, "%d %d\n", temp, temp2);
 	}
-	if (!dev->link[0].info->temp_num)
+	if (!link->info->temp_num)
 		return sprintf(buf, "no sensor\n");
-	adap = &dev->i2c[dev->link[0].info->temp_bus].adap;
+	adap = &dev->i2c[link->info->temp_bus].adap;
 	if (i2c_read_regs(adap, 0x48, 0, tmp, 2) < 0)
 		return sprintf(buf, "read_error\n");
 	temp = (tmp[0] << 3) | (tmp[1] >> 5);
 	temp *= 125;
-	if (dev->link[0].info->temp_num == 2) {
+	if (link->info->temp_num == 2) {
 		if (i2c_read_regs(adap, 0x49, 0, tmp, 2) < 0)
 			return sprintf(buf, "read_error\n");
 		temp2 = (tmp[0] << 3) | (tmp[1] >> 5);
@@ -5298,17 +5305,16 @@ static int tempmon_init(struct ddb_link *link, int FirstTime)
 
 static int ddb_init_tempmon(struct ddb_link *link)
 {
-	struct ddb *dev = link->dev;
 	struct ddb_info *info = link->info;
 	
 	if (!info->tempmon_irq)
-		return;
+		return 0;
 	if (info->type == DDB_OCTOPUS_MAX ||
 	     info->type == DDB_OCTOPUS_MAX_CT)
 		if (link->ids.regmapid < 0x00010002)
-			return;
+			return 0;
 	spin_lock_init(&link->temp_lock);
-	tempmon_init(link, 1);
+	return tempmon_init(link, 1);
 }
 
 /****************************************************************************/
@@ -5373,12 +5379,8 @@ static int ddb_init(struct ddb *dev)
 		pr_info("DDBridge: Could not allocate buffer memory\n");
 		goto fail2;
 	}
-#if 0
 	if (ddb_ports_attach(dev) < 0)
 		goto fail3;
-#else
-	ddb_ports_attach(dev);
-#endif
 	ddb_nsd_attach(dev);
 
 	ddb_device_create(dev);

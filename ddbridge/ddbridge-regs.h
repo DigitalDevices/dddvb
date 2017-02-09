@@ -25,6 +25,7 @@
 
 #define CUR_REGISTERMAP_VERSION_V1  0x00010001
 #define CUR_REGISTERMAP_VERSION_V2  0x00020000
+#define CUR_REGISTERMAP_VERSION_022X  0x00020001
 
 #define HARDWARE_VERSION            0x00000000
 #define REGISTERMAP_VERSION         0x00000004
@@ -179,6 +180,7 @@
 #define TEMPMON2_BOARD      (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 int)
 #define TEMPMON2_FPGACORE   (TEMPMON_SENSOR1)    // SHORT Temperature in °C x 256 (ADM1032 ext)
 #define TEMPMON2_QAMCORE    (TEMPMON_SENSOR2)    // SHORT Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON2_DACCORE    (TEMPMON_SENSOR2)    // SHORT Temperature in °C x 256 (ADM1032 ext)
 
 /* ------------------------------------------------------------------------- */
 /* I2C Master Controller */
@@ -551,4 +553,78 @@
 #define PID_FILTER_PID(i, j)     (PID_FILTER_BASE + (i) * 0x20 + (j) * 4)
 
 
+
+// V2
+
+// MAX2871 same as DVB Modulator V2
+
+#define RFDAC_BASE                (0x200)
+#define RFDAC_CONTROL             (RFDAC_BASE + 0x00)
+
+#define RFDAC_CMD_MASK            (0x00000087)
+#define RFDAC_CMD_STATUS          (0x00000080)
+#define RFDAC_CMD_RESET           (0x00000080)
+#define RFDAC_CMD_POWERDOWN       (0x00000081)
+#define RFDAC_CMD_SETUP           (0x00000082)
+
+#define RFDAC_STATUS              (RFDAC_BASE + 0x00)
+#define RFDAC_STATUS_READY        (0x00010000)
+#define RFDAC_STATUS_DACREADY     (0x00020000)
+
+#define RFDAC_FCW                 (RFDAC_BASE + 0x10)
+
+//
+// --------------------------------------------------------------------------
+//
+
+#define JESD204B_BASE             (0x280)
+
+// Additional Status Bits
+
+#define DMA_PCIE_LANES_MASK       ( 0x00070000 )
+
+
+// --------------------------------------------------------------------------
+// Modulator Channels, partially compatible to DVB Modulator V1
+
+#define SDR_CHANNEL_BASE            (0x800)
+
+#define SDR_CHANNEL_CONTROL(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x00)
+#define SDR_CHANNEL_CONFIG(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x04)
+#define SDR_CHANNEL_CFCW(i)         ((SDR_CHANNEL_BASE) + (i) * 64 + 0x08)
+#define SDR_CHANNEL_ARICW(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x0C)
+#define SDR_CHANNEL_RGAIN(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x10)
+#define SDR_CHANNEL_SETFIR(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x14)
+
+#define SDR_CHANNEL_FMDCW(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x20)
+#define SDR_CHANNEL_FM1FCW(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x24)
+#define SDR_CHANNEL_FM2FCW(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x28)
+#define SDR_CHANNEL_FM1GAIN(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x2C)
+#define SDR_CHANNEL_FM2GAIN(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x30)
+
+// Control and status bits
+#define SDR_CONTROL_ENABLE_CHANNEL  (0x00000004)
+#define SDR_CONTROL_ENABLE_DMA      (0x00000008)
+#define SDR_STATUS_DMA_UNDERRUN     (0x00010000)
+
+// Config
+#define SDR_CONFIG_ENABLE_FM1       (0x00000002)
+#define SDR_CONFIG_ENABLE_FM2       (0x00000004)
+#define SDR_CONFIG_DISABLE_ARI      (0x00000010)
+#define SDR_CONFIG_DISABLE_VSB      (0x00000020)
+
+// SET FIR
+#define SDR_FIR_COEFF_MASK          (0x00000FFF)
+#define SDR_FIR_TAP_MASK            (0x001F0000)
+#define SDR_FIR_SELECT_MASK         (0x00C00000)
+#define SDR_VSB_LENGTH_MASK         (0x01000000)
+
+#define SDR_SET_FIR(select,tap,coeff,vsblen)	\
+	(\ 
+(((select)<<22)&SDR_FIR_SELECT_MASK)|					\
+(((tap)<<16)&SDR_FIR_TAP_MASK)|						\
+((coeff)&SDR_FIR_COEFF_MASK)|						\
+(((vsblen)<<24)&SDR_VSB_LENGTH_MASK)|					\
+0									\
+)
 

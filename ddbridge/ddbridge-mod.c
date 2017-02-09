@@ -237,7 +237,6 @@ static void mod_calc_rateinc(struct ddb_mod *mod)
 
 static int mod_calc_obitrate(struct ddb_mod *mod)
 {
-	struct ddb *dev = mod->port->dev;
 	u64 ofac; 
 
 	ofac = (((u64) mod->symbolrate) << 32) * 188;
@@ -249,7 +248,6 @@ static int mod_calc_obitrate(struct ddb_mod *mod)
 static int mod_set_symbolrate(struct ddb_mod *mod, u32 srate)
 {
 	struct ddb *dev = mod->port->dev;
-	u64 ofac; 
 
 	if (dev->link[0].info->version < 2) {
 		if (srate != 6900000)
@@ -268,7 +266,6 @@ static u32 qamtab[6] = { 0x000, 0x600, 0x601, 0x602, 0x903, 0x604 };
 static int mod_set_modulation(struct ddb_mod *mod, enum fe_modulation modulation)
 {
 	struct ddb *dev = mod->port->dev;
-	u64 ofac; 
 
 	if (modulation > QAM_256 || modulation < QAM_16)
 		return -EINVAL;
@@ -308,8 +305,7 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	u32 Channel = output->nr;
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	u32 Symbolrate = mod->symbolrate;
-	u32 ctrl;
-	
+
 	if (dev->link[0].info->version < 3)
 		mod_calc_rateinc(mod);
 
@@ -339,8 +335,8 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	udelay(10);
 	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
 
-	pr_info("DDBridge: CHANNEL_BASE = %08x\n", CHANNEL_BASE);
-	pr_info("DDBridge: CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
+	//pr_info("DDBridge: CHANNEL_BASE = %08x\n", CHANNEL_BASE);
+	///pr_info("DDBridge: CHANNEL_CONTROL = %08x\n", CHANNEL_CONTROL(Channel));
 	if (dev->link[0].info->version == 2) {
 		//u32 Output = ((dev->mod_base.frequency - 114000000)/8000000 + Channel) % 96;
 		u32 Output = (mod->frequency - 114000000) / 8000000;
@@ -422,7 +418,7 @@ static u32 max2871_sdr[6] = {
 	0x007A8098, 0x600080C9, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005
 };
 
-static int mod_setup_max2871_2(struct ddb *dev, u32 *reg)
+static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 {
 	int status = 0;
 	int i, j;
@@ -456,46 +452,6 @@ static int mod_setup_max2871_2(struct ddb *dev, u32 *reg)
 	return status;
 }
 
-static int mod_setup_max2871(struct ddb *dev)
-{
-	int status = 0;
-	int i;
-	
-	ddbwritel(dev, MAX2871_CONTROL_CE, MAX2871_CONTROL);
-	msleep(30);
-	for (i = 0; i < 2; i++) {
-		status = mod_write_max2871(dev, 0x00440005);
-		if (status)
-			break;
-		status = mod_write_max2871(dev, 0x6199003C);
-		if (status)
-			break;
-		status = mod_write_max2871(dev, 0x000000CB);
-		if (status)
-			break;
-		status = mod_write_max2871(dev, 0x510061C2);
-		if (status)
-			break;
-		status = mod_write_max2871(dev, 0x600080A1);
-		if (status)
-			break;
-		status = mod_write_max2871(dev, 0x00730040);
-		if (status)
-			break;
-		msleep(30);
-	}
-
-	if (status == 0) {
-		u32 ControlReg = ddbreadl(dev, MAX2871_CONTROL);
-
-		if ((ControlReg & MAX2871_CONTROL_LOCK) == 0)
-			status = -EIO;
-	}
-
-	return status;
-}
-
-
 static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan, u32 MaxUsedChannels)
 {
 	int status = 0;
@@ -503,7 +459,7 @@ static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan, u32 MaxUsedChannels
 	u32 tmp = ddbreadl(dev, FSM_STATUS);
 	
 	if ((tmp & FSM_STATUS_READY) == 0) {
-		status = mod_setup_max2871_2(dev, max2871_fsm);
+		status = mod_setup_max2871(dev, max2871_fsm);
 		if (status)
 			return status;
 		ddbwritel(dev, FSM_CMD_RESET, FSM_CONTROL);
@@ -557,12 +513,13 @@ static int mod_set_vga(struct ddb *dev, u32 Gain)
 	return 0;
 }
 
+#if 0
 static int mod_get_vga(struct ddb *dev, u32 *pGain)
 {
 	*pGain = ddbreadl(dev, RF_VGA);
 	return 0;
 }
-#if 0
+
 static void TemperatureMonitorSetFan(struct ddb *dev)
 {
 	u32 tqam, pwm;
@@ -1663,10 +1620,10 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 
 static int mod_init_3(struct ddb *dev, u32 Frequency)
 {
-	int status, i, ret = 0;
+	int ret = 0;
 
 	mod_set_vga(dev, 64);
-	ret = mod_setup_max2871_2(dev, max2871_sdr);
+	ret = mod_setup_max2871(dev, max2871_sdr);
 	if (ret)
 		pr_err("DDBridge: PLL setup failed\n");
 	return ret;
