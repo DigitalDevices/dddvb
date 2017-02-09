@@ -426,7 +426,7 @@ static int flash_detect(struct ddflash *ddf)
 	}
 	if (ddf->sector_size) {
 		ddf->buffer = malloc(ddf->sector_size);
-		printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);
+		//printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);
 		if (!ddf->buffer)
 			return -1;
 	}
