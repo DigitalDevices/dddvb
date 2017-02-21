@@ -620,11 +620,10 @@
 #define SDR_VSB_LENGTH_MASK         (0x01000000)
 
 #define SDR_SET_FIR(select,tap,coeff,vsblen)	\
-	(\ 
-(((select)<<22)&SDR_FIR_SELECT_MASK)|					\
-(((tap)<<16)&SDR_FIR_TAP_MASK)|						\
-((coeff)&SDR_FIR_COEFF_MASK)|						\
-(((vsblen)<<24)&SDR_VSB_LENGTH_MASK)|					\
-0									\
-)
+	((((select)<<22)&SDR_FIR_SELECT_MASK)|			\
+	 (((tap)<<16)&SDR_FIR_TAP_MASK)|				\
+	 ((coeff)&SDR_FIR_COEFF_MASK)|					\
+	 (((vsblen)<<24)&SDR_VSB_LENGTH_MASK)|				\
+	 0								\
+		)
 

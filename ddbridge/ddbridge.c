@@ -113,7 +113,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 
 static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 {
-	int stat;
+	int stat = 0;
 
 #ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
@@ -267,7 +267,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.subdevice = id->subdevice;
 
 	dev->link[0].dev = dev;
+#ifdef NUM_IDS
+	dev->link[0].info = ddb_infos[id->driver_data];
+#else
 	dev->link[0].info = (struct ddb_info *) id->driver_data;
+#endif
 	pr_info("DDBridge: device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
@@ -311,7 +315,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (ddb_init(dev) == 0)
 		return 0;
 
-	ddb_irq_disable(dev);
+	ddb_irq_exit(dev);
 fail0:
 	pr_err("DDBridge: fail0\n");
 	if (dev->msi)
@@ -524,7 +528,7 @@ static struct ddb_info ddb_sdr = {
 	.name     = "Digital Devices SDR",
 	.version  = 3,
 	.regmap   = &octopus_sdr_map,
-	.port_num = 10,
+	.port_num = 20,
 	.temp_num = 1,
 	.tempmon_irq = 8,
 };
@@ -557,6 +561,14 @@ static struct ddb_info ddb_octopro = {
 	.vendor      = _vend,    .device    = _dev, \
 	.subvendor   = _subvend, .subdevice = _subdev, \
 	.driver_data = (unsigned long)&_driverdata }
+
+#define DDB_DEVICE(_device, _subdevice, _driver_data) { \
+		PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, _subdevice),	\
+			.driver_data = (kernel_ulong_t) &_driver_data }
+
+#define DDB_DEVICE_ANY(_device, _subdevice) {		\
+		PCI_DEVICE_SUB(0xdd01, _device, PCI_ANY_ID, _subdevice), \
+			.driver_data = (kernel_ulong_t) ddb_none }
 
 static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
 	DDB_ID(DDVID, 0x0002, DDVID, 0x0001, ddb_octopus),

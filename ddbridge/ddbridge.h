@@ -199,6 +199,10 @@ struct ddb_info {
 #define OUTPUT_DMA_SIZE (128*47*21)
 #define OUTPUT_DMA_IRQ_DIV 1
 #endif
+#define OUTPUT_DMA_BUFS_SDR 8
+#define OUTPUT_DMA_SIZE_SDR (256*1024)
+#define OUTPUT_DMA_IRQ_DIV_SDR 1
+
 
 struct ddb;
 struct ddb_port;
@@ -345,8 +349,8 @@ struct mod_base {
 
 struct ddb_mod {
 	struct ddb_port       *port;
-	u32                    nr;
-	u32                    regs;
+	//u32                    nr;
+	//u32                    regs;
 	
 	u32                    frequency;
 	u32                    modulation;

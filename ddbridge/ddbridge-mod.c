@@ -271,7 +271,7 @@ static int mod_set_modulation(struct ddb_mod *mod, enum fe_modulation modulation
 		return -EINVAL;
 	mod->modulation = modulation;
 	if (dev->link[0].info->version < 2) 
-		ddbwritel(dev, qamtab[modulation], CHANNEL_SETTINGS(mod->nr));
+		ddbwritel(dev, qamtab[modulation], CHANNEL_SETTINGS(mod->port->nr));
 	mod_calc_obitrate(mod);
 	return 0;
 }
@@ -1618,14 +1618,149 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 	return 0;
 }
 
+
+/****************************************************************************/
+
+static u32 vsb13500[64] = {
+	0x0000000E, 0x00010004, 0x00020003, 0x00030009,
+	0x0004FFFA, 0x00050002, 0x0006FFF8, 0x0007FFF0,
+	0x00080000, 0x0009FFEA, 0x000A0001, 0x000B0003,
+	0x000CFFF9, 0x000D0025,	0x000E0004, 0x000F001F,
+	0x00100023, 0x0011FFEE, 0x00120020, 0x0013FFD0,
+	0x0014FFD5, 0x0015FFED, 0x0016FF8B, 0x0017000B,
+	0x0018FFC8, 0x0019FFF1, 0x001A009E, 0x001BFFEF,
+	0x001C013B, 0x001D00CB, 0x001E0031, 0x001F05F6,
+
+	0x0040FFFF, 0x00410004, 0x0042FFF8, 0x0043FFFE,
+	0x0044FFFA, 0x0045FFF3, 0x00460003, 0x0047FFF4,
+	0x00480005, 0x0049000D, 0x004A0000, 0x004B0022,
+	0x004C0005, 0x004D000D, 0x004E0013, 0x004FFFDF,
+	0x00500007, 0x0051FFD4, 0x0052FFD2, 0x0053FFFD,
+	0x0054FFB7, 0x00550021, 0x00560009, 0x00570010,
+	0x00580097, 0x00590003, 0x005A009D, 0x005B004F,
+	0x005CFF89, 0x005D0097, 0x005EFD42, 0x005FFCBE
+};
+
+static u32 stage2[16] = {
+	0x0080FFFF, 0x00810000, 0x00820005, 0x00830000,
+	0x0084FFF0, 0x00850000, 0x00860029, 0x00870000,
+	0x0088FFA2, 0x0089FFFF, 0x008A00C9, 0x008B000C,
+	0x008CFE49, 0x008DFF9B, 0x008E04D4, 0x008F07FF
+};
+
+static void mod_set_sdr_table(struct ddb_mod *mod, u32 *tab, u32 len)
+{
+	struct ddb *dev = mod->port->dev;
+	u32 i;
+
+	for (i = 0; i < len; i++) 
+		ddbwritel(dev, tab[i], SDR_CHANNEL_SETFIR(mod->port->nr));
+}
+
+
+
+static int rfdac_init(struct ddb *dev)
+{
+	int i;
+	u32 tmp;
+	
+	ddbwritel(dev, RFDAC_CMD_POWERDOWN, RFDAC_CONTROL);
+	for (i = 0; i < 10; i++) {
+		msleep(10);
+		tmp = ddbreadl(dev, RFDAC_CONTROL);
+		if ((tmp & RFDAC_CMD_STATUS) == 0x00)
+			break;
+	}
+	if (tmp & 0x80)
+		return -1;
+	printk("sync %d:%08x\n", i, tmp);
+	ddbwritel(dev, RFDAC_CMD_RESET, RFDAC_CONTROL);
+	for (i = 0; i < 10; i++) {
+		msleep(10);
+		tmp = ddbreadl(dev, RFDAC_CONTROL);
+		if ((tmp & RFDAC_CMD_STATUS) == 0x00)
+			break;
+	}
+	if (tmp & 0x80)
+		return -1;
+	printk("sync %d:%08x\n", i, tmp);
+	ddbwritel(dev, RFDAC_CMD_SETUP, RFDAC_CONTROL);
+	for (i = 0; i < 10; i++) {
+		msleep(10);
+		tmp = ddbreadl(dev, RFDAC_CONTROL);
+		if ((tmp & RFDAC_CMD_STATUS) == 0x00)
+			break;
+	}
+	if (tmp & 0x80)
+		return -1;
+	printk("sync %d:%08x\n", i, tmp);
+ 	ddbwritel(dev, 0x01, JESD204B_BASE);
+	for (i = 0; i < 400; i++) {
+		msleep(10);
+		tmp = ddbreadl(dev, JESD204B_BASE);
+		if ((tmp & 0xc0000000) == 0xc0000000)
+			break;
+	}
+	printk("sync %d:%08x\n", i, tmp);
+	if ((tmp & 0xc0000000) != 0xc0000000)
+		return -1;
+	return 0;
+}
+
+static void mod_set_cfcw(struct ddb_mod *mod, int i)
+{
+	struct ddb *dev = mod->port->dev;
+	s32 freq = 182250000 + 7000000 * i;
+	s32 dcf = 188000000;
+	s64 tmp, srdac = 245760000;
+	u32 cfcw;
+	
+	tmp = ((s64) (freq - dcf)) << 32;
+	tmp = div64_s64(tmp, srdac);
+	cfcw = (u32) tmp;
+	printk("cfcw = %08x nr = %u\n", cfcw, mod->port->nr);
+	ddbwritel(dev, cfcw, SDR_CHANNEL_CFCW(mod->port->nr));
+}
+
+
 static int mod_init_3(struct ddb *dev, u32 Frequency)
 {
-	int ret = 0;
+	int streams = dev->link[0].info->port_num;
+	int i, ret = 0;
 
 	mod_set_vga(dev, 64);
 	ret = mod_setup_max2871(dev, max2871_sdr);
 	if (ret)
 		pr_err("DDBridge: PLL setup failed\n");
+	ret = rfdac_init(dev);
+	if (ret)
+		ret = rfdac_init(dev);
+	if (ret)
+		pr_err("DDBridge: RFDAC setup failed\n");
+ 	//ddbwritel(dev, 0x01, JESD204B_BASE);
+
+	for (i = 0; i < streams; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+		mod->port = &dev->port[i];
+		
+		mod_set_sdr_table(mod, vsb13500, 64);
+		mod_set_sdr_table(mod, stage2, 16);
+	}
+	ddbwritel(dev, 0x2000, 0x244);
+	ddbwritel(dev, 0x01, 0x240);
+	//msleep(500);
+	for (i = 0; i < streams; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+
+		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
+		ddbwritel(dev, 0x06, SDR_CHANNEL_CONFIG(i));
+		ddbwritel(dev, 0x70800000, SDR_CHANNEL_ARICW(i));
+		mod_set_cfcw(mod, i);
+
+		ddbwritel(dev, 0x00011f80, SDR_CHANNEL_RGAIN(i));
+		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM1GAIN(i));
+		ddbwritel(dev, 0x00000800, SDR_CHANNEL_FM2GAIN(i));
+	}
 	return ret;
 }
 

@@ -407,7 +407,7 @@ static void ddb_set_dma_table(struct ddb_io *io)
 		ddbwritel(dev, mem & 0xffffffff, dma->bufregs + i * 8);
 		ddbwritel(dev, mem >> 32, dma->bufregs + i * 8 + 4);
 	}
-	dma->bufval = (dma->div << 16) |
+	dma->bufval = ((dma->div & 0x0f) << 16) |
 		((dma->num & 0x1f) << 11) |
 		((dma->size >> 7) & 0x7ff);
 }
@@ -3330,7 +3330,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 {
 	struct ddb_dma *dma;
 	struct ddb_regmap *rm = io_regmap(io, 0);
-
+	
 	dma = out ? &io->port->dev->odma[nr] : &io->port->dev->idma[nr];
 	io->dma = dma;
 	dma->io = io;
@@ -3339,9 +3339,16 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 	if (out) {
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
-		dma->num = OUTPUT_DMA_BUFS;
-		dma->size = OUTPUT_DMA_SIZE;
-		dma->div = OUTPUT_DMA_IRQ_DIV;
+		if (io->port->dev->link[0].info->type == DDB_MOD &&
+		    io->port->dev->link[0].info->version == 3) {
+			dma->num = OUTPUT_DMA_BUFS_SDR;
+			dma->size = OUTPUT_DMA_SIZE_SDR;
+			dma->div = OUTPUT_DMA_IRQ_DIV_SDR;
+		} else {
+			dma->num = OUTPUT_DMA_BUFS;
+			dma->size = OUTPUT_DMA_SIZE;
+			dma->div = OUTPUT_DMA_IRQ_DIV;
+		}
 	} else {
 #ifdef DDB_USE_WORK
 		INIT_WORK(&dma->work, input_work);
@@ -4724,6 +4731,7 @@ static ssize_t redirect_store(struct device *device,
 	return count;
 }
 
+#if 0
 /* A L P I  AAAAAALLPPPPPPII */
 /* AAAAAAAA LLLLLLLL PPPPPPII */
 static ssize_t redirect2_show(struct device *device,
@@ -4747,6 +4755,7 @@ static ssize_t redirect2_store(struct device *device,
 	pr_info("DDBridge: redirect: %02x, %02x\n", i, p);
 	return count;
 }
+#endif
 
 static ssize_t gap_show(struct device *device,
 			struct device_attribute *attr, char *buf)
