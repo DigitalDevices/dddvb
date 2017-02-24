@@ -573,7 +573,7 @@ static int update_image(struct ddflash *ddf, char *fn,
 	if (res == 0) {
 		res = flashcmp(ddf, fs, adr, len, fw_off);
 		if (res == -2) {
-			res = 1
+			res = 1;
 		}
 	}
  
