@@ -510,12 +510,12 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 				goto out;
 			}
 		} else if (!strcasecmp(key, "Version")) {
-         if (strchr(val,'.')) {
-            int major = 0, minor = 0;
-            sscanf(val,"%d.%d",&major,&minor);
-            version = (major << 16) + minor;
-         } else
-            sscanf(val, "%x", &version);
+			if (strchr(val,'.')) {
+				int major = 0, minor = 0;
+				sscanf(val,"%d.%d",&major,&minor);
+				version = (major << 16) + minor;
+			} else
+				sscanf(val, "%x", &version);
 		} else if (!strcasecmp(key, "Length")) {
 			sscanf(val, "%u", &length);
 		} 
@@ -570,8 +570,13 @@ static int update_image(struct ddflash *ddf, char *fn,
 	if (res < 0) 
 		goto out;
 	res = flashwrite(ddf, fs, adr, len, fw_off);
-	if (res == 0)
-		res = 1;
+	if (res == 0) {
+		res = flashcmp(ddf, fs, adr, len, fw_off);
+		if (res == -2) {
+			res = 1
+		}
+	}
+ 
 out:
 	close(fs);
 	return res;
