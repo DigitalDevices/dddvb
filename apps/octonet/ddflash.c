@@ -619,6 +619,25 @@ static int update_flash(struct ddflash *ddf)
 				if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x10000, 0xa0000, 1, 1)) == 1)
 					stat |= 1;
 		}
+#if 1
+		if ((ddf->id.hw & 0xffffff) == 0x010001) {		
+			if (fexists("/config/gtl.enabled")) {
+				if ((res = update_image(ddf, "/config/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
+					stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
+						stat |= 1;
+			} else if (fexists("/config/gtl.disabled")) {
+				if ((res = update_image(ddf, "/config/fpga.img", 0x160000, 0x80000, 1, 0)) == 1)
+					stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga.img", 0x160000, 0x80000, 1, 0)) == 1)
+						stat |= 1;
+			
+			}
+		}
+#endif
+
 		break;
 	case 0x320:
 		//fname="/boot/DVBNetV1A_DD01_0300.bit";
