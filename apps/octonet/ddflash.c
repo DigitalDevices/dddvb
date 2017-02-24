@@ -510,7 +510,12 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 				goto out;
 			}
 		} else if (!strcasecmp(key, "Version")) {
-			sscanf(val, "%x", &version);
+         if (strchr(val,'.')) {
+            int major = 0, minor = 0;
+            sscanf(val,"%d.%d",&major,&minor);
+            version = (major << 16) + minor;
+         } else
+            sscanf(val, "%x", &version);
 		} else if (!strcasecmp(key, "Length")) {
 			sscanf(val, "%u", &length);
 		} 
@@ -620,14 +625,14 @@ static int update_flash(struct ddflash *ddf)
 					stat |= 1;
 		}
 #if 1
-		if ((ddf->id.hw & 0xffffff) == 0x010001) {		
-			if (fexists("/config/gtl.enabled")) {
+		if ( (stat&1) && (ddf->id.hw & 0xffffff) <= 0x010001) {		
+			if (ddf->id.device == 0x0307) {
 				if ((res = update_image(ddf, "/config/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
 					stat |= 1;
 				if (res == -1)
 					if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
 						stat |= 1;
-			} else if (fexists("/config/gtl.disabled")) {
+			} else {
 				if ((res = update_image(ddf, "/config/fpga.img", 0x160000, 0x80000, 1, 0)) == 1)
 					stat |= 1;
 				if (res == -1)
