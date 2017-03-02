@@ -763,7 +763,7 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot, u8 * b
 		status = -EAGAIN;
 		goto exit;
 	}
-#if 0
+
 	/* It may need some time for the CAM to settle down, or there might be a
 	   race condition between the CAM, writing HC and our last check for DA.
 	   This happens, if the CAM asserts DA, just after checking DA before we
@@ -781,7 +781,7 @@ static int dvb_ca_en50221_write_data(struct dvb_ca_private *ca, int slot, u8 * b
 		status = -EAGAIN;
 		goto exit;
 	}
-#endif
+
 	/* send the amount of data */
 	if ((status = ca->pub->write_cam_control(ca->pub, slot, CTRLIF_SIZE_HIGH, bytes_write >> 8)) != 0)
 		goto exit;
