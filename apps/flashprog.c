@@ -210,8 +210,12 @@ int main(int argc, char **argv)
 			printf("Octopus 35\n");
 			break;
 		case 0x0003:
-			fname="DVBBridgeV1B_DVBBridgeV1B.bit";
+			fname="DVBBridgeV1B_DVBBridgeV1B.fpga";
 			printf("Octopus\n");
+			break;
+		case 0x0005:
+			fname="DVBBridgeV2A_DD01_0005_STD.fpga";
+			printf("Octopus Classic\n");
 			break;
 		case 0x0006:
 			fname="DVBBridgeV2A_DD01_0006_STD.fpga";
