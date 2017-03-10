@@ -3646,9 +3646,9 @@ static irqreturn_t irq_handler0(int irq, void *dev_id)
 	do {
 		if (s & 0x80000000)
 			return IRQ_NONE;
-		if (!(s & 0xfff00))
+		if (!(s & 0xfffff00))
 			return IRQ_NONE;
-		ddbwritel(dev, s & 0xfff00, INTERRUPT_ACK);
+		ddbwritel(dev, s & 0xfffff00, INTERRUPT_ACK);
 		irq_handle_io(dev, s);
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
 
