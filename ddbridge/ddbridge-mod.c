@@ -1746,7 +1746,7 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 		mod_set_sdr_table(mod, vsb13500, 64);
 		mod_set_sdr_table(mod, stage2, 16);
 	}
-	ddbwritel(dev, 0x2000, 0x244);
+	ddbwritel(dev, 0x1800, 0x244);
 	ddbwritel(dev, 0x01, 0x240);
 	//msleep(500);
 	for (i = 0; i < streams; i++) {
