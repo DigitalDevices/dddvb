@@ -146,7 +146,7 @@ struct dvb_frontend *lnbh25_attach(struct dvb_frontend *fe,
 	fe->ops.enable_high_lnb_voltage = lnbh25_enable_high_lnb_voltage;
 	fe->ops.release_sec = lnbh25_release;
 
-	pr_info("LNB25 on %02x\n", lnbh->adr);
+	pr_info("LNBH25 on %02x\n", lnbh->adr);
 
 	return fe;
 }
