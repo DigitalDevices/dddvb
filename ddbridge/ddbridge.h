@@ -144,6 +144,19 @@ struct ddb_ids {
 	u32 mac;
 };
 
+#if 0
+struct ddb_ddata {
+	u32 id;
+#define DDB_NONE         0
+#define DDB_OCTOPUS      1
+#define DDB_OCTOPUS_CI   2
+#define DDB_MODULATOR    3
+#define DDB_OCTONET      4
+#define DDB_OCTOPUS_MAX  5
+#define DDB_OCTOPUS_MAX_CT  6
+#define DDB_OCTOPRO      7
+#define DDB_OCTOPRO_HDIN 8
+#else
 struct ddb_info {
 	u32   type;
 #define DDB_NONE         0
@@ -155,6 +168,7 @@ struct ddb_info {
 #define DDB_OCTOPUS_MAX_CT  6
 #define DDB_OCTOPRO      7
 #define DDB_OCTOPRO_HDIN 8
+#endif
 	u32   version;
 	char *name;
 	u32   i2c_mask;
@@ -681,15 +695,6 @@ static void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 		return gtlcpyfrom(dev, dst, adr, count);
 	return memcpy_fromio(dst, (char *) (dev->regs + adr), count);
 }
-
-#if 0
-
-#define ddbcpyto(_dev, _adr, _src, _count) \
-	memcpy_toio((char *) (_dev->regs + (_adr)), (_src), (_count))
-
-#define ddbcpyfrom(_dev, _dst, _adr, _count) \
-	memcpy_fromio((_dst), (char *) (_dev->regs + (_adr)), (_count))
-#endif
 
 #define ddbmemset(_dev, _adr, _val, _count) \
 	memset_io((char *) (_dev->regs + (_adr)), (_val), (_count))

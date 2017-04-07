@@ -46,6 +46,10 @@ static int fmode;
 module_param(fmode, int, 0444);
 MODULE_PARM_DESC(fmode, "frontend emulation mode");
 
+static int fmode_sat = -1;
+module_param(fmode_sat, int, 0444);
+MODULE_PARM_DESC(fmode_sat, "set frontend emulation mode sat");
+
 static int old_quattro;
 module_param(old_quattro, int, 0444);
 MODULE_PARM_DESC(old_quattro, "old quattro LNB input order ");
@@ -1681,6 +1685,29 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	return 0;
 }
 
+static int lnb_send_diseqc(struct ddb *dev, u32 link, u32 input,
+			   struct dvb_diseqc_master_cmd *cmd)
+{
+	u32 tag = DDB_LINK_TAG(link);
+	int i;
+
+	ddbwritel(dev, 0, tag | LNB_BUF_LEVEL(input));
+	for (i = 0; i < cmd->msg_len; i++)
+		ddbwritel(dev, cmd->msg[i], tag | LNB_BUF_WRITE(input));
+	lnb_command(dev, link, input, LNB_CMD_DISEQC);
+	return 0;
+}
+
+static int lnb_set_sat(struct ddb *dev, u32 link, u32 input, u32 sat, u32 band, u32 hor)
+{
+	struct dvb_diseqc_master_cmd cmd = {
+		.msg = {0xe0, 0x10, 0x38, 0xf0, 0x00, 0x00},
+		.msg_len = 4
+	};
+	cmd.msg[3] = 0xf0 | ( ((sat << 2) & 0x0c) | (band ? 1 : 0) | (hor ? 2 : 0));
+	return lnb_send_diseqc(dev, link, input, &cmd);
+}
+
 static int lnb_set_tone(struct ddb *dev, u32 link, u32 input,
 			fe_sec_tone_mode_t tone)
 {
@@ -1933,6 +1960,17 @@ static int lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm)
 	pr_info("DDBridge: Set fmode link %u = %u\n", l, fm);
 	mutex_lock(&link->lnb.lock);
 	if (fm == 2 || fm == 1) {
+		if (fmode_sat >= 0) {
+			lnb_set_sat(dev, l, 0, fmode_sat, 0, 0);
+			if (old_quattro) {
+				lnb_set_sat(dev, l, 1, fmode_sat, 0, 1);
+				lnb_set_sat(dev, l, 2, fmode_sat, 1, 0);
+			} else {
+				lnb_set_sat(dev, l, 1, fmode_sat, 1, 0);
+				lnb_set_sat(dev, l, 2, fmode_sat, 0, 1);
+			}
+			lnb_set_sat(dev, l, 3, fmode_sat, 1, 1);
+		}
 		lnb_set_tone(dev, l, 0, SEC_TONE_OFF);
 		if (old_quattro) {
 			lnb_set_tone(dev, l, 1, SEC_TONE_OFF);
@@ -1998,46 +2036,6 @@ static int fe_attach_mxl5xx(struct ddb_input *input)
 	dvb->fe->ops.set_input = max_set_input;
 	dvb->input = tuner;
 	return 0;
-}
-
-static int my_dvb_dmx_ts_card_init(struct dvb_demux *dvbdemux, char *id,
-				   int (*start_feed)(struct dvb_demux_feed *),
-				   int (*stop_feed)(struct dvb_demux_feed *),
-				   void *priv)
-{
-	dvbdemux->priv = priv;
-
-	dvbdemux->filternum = 256;
-	dvbdemux->feednum = 256;
-	dvbdemux->start_feed = start_feed;
-	dvbdemux->stop_feed = stop_feed;
-	dvbdemux->write_to_decoder = NULL;
-	dvbdemux->dmx.capabilities = (DMX_TS_FILTERING |
-				      DMX_SECTION_FILTERING |
-				      DMX_MEMORY_BASED_FILTERING);
-	return dvb_dmx_init(dvbdemux);
-}
-
-static int my_dvb_dmxdev_ts_card_init(struct dmxdev *dmxdev,
-				      struct dvb_demux *dvbdemux,
-				      struct dmx_frontend *hw_frontend,
-				      struct dmx_frontend *mem_frontend,
-				      struct dvb_adapter *dvb_adapter)
-{
-	int ret;
-
-	dmxdev->filternum = 256;
-	dmxdev->demux = &dvbdemux->dmx;
-	dmxdev->capabilities = 0;
-	ret = dvb_dmxdev_init(dmxdev, dvb_adapter);
-	if (ret < 0)
-		return ret;
-
-	hw_frontend->source = DMX_FRONTEND_0;
-	dvbdemux->dmx.add_frontend(&dvbdemux->dmx, hw_frontend);
-	mem_frontend->source = DMX_MEMORY_FE;
-	dvbdemux->dmx.add_frontend(&dvbdemux->dmx, mem_frontend);
-	return dvbdemux->dmx.connect_frontend(&dvbdemux->dmx, hw_frontend);
 }
 
 #if 0
@@ -2111,12 +2109,13 @@ static void dvb_input_detach(struct ddb_input *input)
 	case 0x20:
 		dvb_net_release(&dvb->dvbnet);
 		/* fallthrough */
-	case 0x11:
-		dvbdemux->dmx.close(&dvbdemux->dmx);
+	case 0x12:
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->hw_frontend);
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->mem_frontend);
+		/* fallthrough */
+	case 0x11:
 		dvb_dmxdev_release(&dvb->dmxdev);
 		/* fallthrough */
 	case 0x10:
@@ -2239,20 +2238,32 @@ static int dvb_input_attach(struct ddb_input *input)
 
 	dvb->attached = 0x01;
 
-	ret = my_dvb_dmx_ts_card_init(dvbdemux, "SW demux",
-				      start_feed,
-				      stop_feed, input);
+	dvbdemux->priv = input;
+	dvbdemux->dmx.capabilities = DMX_TS_FILTERING |
+		DMX_SECTION_FILTERING | DMX_MEMORY_BASED_FILTERING;
+	dvbdemux->start_feed = start_feed;
+	dvbdemux->stop_feed = stop_feed;
+	dvbdemux->filternum = dvbdemux->feednum = 256;
+	ret = dvb_dmx_init(dvbdemux);
 	if (ret < 0)
 		return ret;
 	dvb->attached = 0x10;
 
-	ret = my_dvb_dmxdev_ts_card_init(&dvb->dmxdev,
-					 &dvb->demux,
-					 &dvb->hw_frontend,
-					 &dvb->mem_frontend, adap);
+	dvb->dmxdev.filternum = 256;
+	dvb->dmxdev.demux = &dvbdemux->dmx;
+	ret = dvb_dmxdev_init(&dvb->dmxdev, adap);
 	if (ret < 0)
 		return ret;
 	dvb->attached = 0x11;
+
+	dvb->mem_frontend.source = DMX_MEMORY_FE;
+	dvb->demux.dmx.add_frontend(&dvb->demux.dmx, &dvb->mem_frontend);
+	dvb->hw_frontend.source = DMX_FRONTEND_0;
+	dvb->demux.dmx.add_frontend(&dvb->demux.dmx, &dvb->hw_frontend);
+	ret = dvbdemux->dmx.connect_frontend(&dvbdemux->dmx, &dvb->hw_frontend);
+	if (ret < 0)
+		return ret;
+	dvb->attached = 0x12;
 
 	ret = dvb_net_init(adap, &dvb->dvbnet, dvb->dmxdev.demux);
 	if (ret < 0)
@@ -2348,6 +2359,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		return 0;
 	}
 	dvb->attached = 0x30;
+
 	if (dvb->fe) {
 		if (dvb_register_frontend(adap, dvb->fe) < 0)
 			return -ENODEV;
