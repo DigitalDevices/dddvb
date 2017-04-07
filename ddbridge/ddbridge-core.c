@@ -5202,7 +5202,21 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 		link->info = &ddb_s2_48;
 		break;
 	case 0x0008dd01:
-		link->info = &ddb_c2t2_8;
+		switch (subid) {
+		case 0x0035dd01:
+		default:
+			link->info = &ddb_c2t2_8;
+			break;
+		case 0x0036dd01:
+			link->info = &ddb_isdbt_8;
+			break;
+		case 0x0037dd01:
+			link->info = &ddb_c2t2i_v0_8;
+			break;
+		case 0x0038dd01:
+			link->info = &ddb_c2t2i_8;
+			break;
+		}
 		break;
 	default:
 		pr_info("DDBridge: Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
