@@ -244,7 +244,7 @@
 #define LNB_CMD_HIGH   4
 #define LNB_CMD_OFF    5
 #define LNB_CMD_DISEQC 6
-#define LNB_CMD_UNI    7
+#define LNB_CMD_SCIF   7
 
 #define LNB_BUSY  (1ULL <<  4)
 #define LNB_TONE  (1ULL << 15)
