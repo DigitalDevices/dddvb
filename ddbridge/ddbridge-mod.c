@@ -1481,6 +1481,12 @@ void ddbridge_mod_rate_handler(unsigned long data)
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
 
+static intmod_set_ari(struct ddb_mod *mod, u32 rate)
+{
+	ddbwritel(mod->port->dev, rate, SDR_CHANNEL_ARICW(mod->port->nr));
+	return 0;
+}
+
 static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
 	switch(tvp->cmd) {
@@ -1498,6 +1504,9 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 
 	case MODULATOR_INPUT_BITRATE:
 		return mod_set_ibitrate(mod, tvp->u.data);
+
+	case MODULATOR_OUTPUT_ARI:
+		return mod_set_ari(mod, tvp->u.data);
 	}
 	return 0;
 }
@@ -1605,7 +1614,7 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		mod->port = &dev->port[i];
 		mod_set_modulation(mod, QAM_256);
 		mod_set_symbolrate(mod, 6900000);
-		mod_set_frequency(mod, 114000000 + i * 8000000);
+		mod_set_frequency(mod, dev->mod_base.frequency + i * 8000000);
 	}
 	if (streams <= 8)
 		mod_set_vga(dev, RF_VGA_GAIN_N8);
