@@ -1481,7 +1481,7 @@ void ddbridge_mod_rate_handler(unsigned long data)
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
 
-static intmod_set_ari(struct ddb_mod *mod, u32 rate)
+static int mod_set_ari(struct ddb_mod *mod, u32 rate)
 {
 	ddbwritel(mod->port->dev, rate, SDR_CHANNEL_ARICW(mod->port->nr));
 	return 0;
