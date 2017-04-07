@@ -555,90 +555,83 @@ static struct ddb_info ddb_octopro = {
 /****************************************************************************/
 /****************************************************************************/
 
-#define DDVID 0xdd01 /* Digital Devices Vendor ID */
-
-#define DDB_ID(_vend, _dev, _subvend, _subdev, _driverdata) { \
-	.vendor      = _vend,    .device    = _dev, \
-	.subvendor   = _subvend, .subdevice = _subdev, \
-	.driver_data = (unsigned long)&_driverdata }
-
 #define DDB_DEVICE(_device, _subdevice, _driver_data) { \
-		PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, _subdevice),	\
+		PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, _subdevice), \
 			.driver_data = (kernel_ulong_t) &_driver_data }
 
-#define DDB_DEVICE_ANY(_device, _subdevice) {		\
-		PCI_DEVICE_SUB(0xdd01, _device, PCI_ANY_ID, _subdevice), \
-			.driver_data = (kernel_ulong_t) ddb_none }
+#define DDB_DEVICE_ANY(_device) { \
+		PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID),	\
+			.driver_data = (kernel_ulong_t) &ddb_none }
 
-static const struct pci_device_id ddb_id_tbl[] __devinitconst = {
-	DDB_ID(DDVID, 0x0002, DDVID, 0x0001, ddb_octopus),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0001, ddb_octopus),
-	DDB_ID(DDVID, 0x0005, DDVID, 0x0004, ddb_octopusv3),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0002, ddb_octopus_le),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0003, ddb_octopus_oem),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0010, ddb_octopus_mini),
-	DDB_ID(DDVID, 0x0005, DDVID, 0x0011, ddb_octopus_mini),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0020, ddb_v6),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0021, ddb_v6_5),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0022, ddb_v7),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0024, ddb_v7a),
-	DDB_ID(DDVID, 0x0003, DDVID, 0x0030, ddb_dvbct),
-	DDB_ID(DDVID, 0x0003, DDVID, 0xdb03, ddb_satixS2v3),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0031, ddb_ctv7),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0032, ddb_ctv7),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0033, ddb_ctv7),
-	DDB_ID(DDVID, 0x0007, DDVID, 0x0023, ddb_s2_48),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0034, ddb_ct2_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0035, ddb_c2t2_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0036, ddb_isdbt_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0037, ddb_c2t2i_v0_8),
-	DDB_ID(DDVID, 0x0008, DDVID, 0x0038, ddb_c2t2i_8),
-	DDB_ID(DDVID, 0x0006, DDVID, 0x0039, ddb_ctv7),
-	DDB_ID(DDVID, 0x0011, DDVID, 0x0040, ddb_ci),
-	DDB_ID(DDVID, 0x0011, DDVID, 0x0041, ddb_cis),
-	DDB_ID(DDVID, 0x0012, DDVID, 0x0042, ddb_ci),
-	DDB_ID(DDVID, 0x0013, DDVID, 0x0043, ddb_ci_s2_pro),
-	DDB_ID(DDVID, 0x0013, DDVID, 0x0044, ddb_ci_s2_pro_a),
-	DDB_ID(DDVID, 0x0201, DDVID, 0x0001, ddb_mod),
-	DDB_ID(DDVID, 0x0201, DDVID, 0x0002, ddb_mod),
-	DDB_ID(DDVID, 0x0203, DDVID, 0x0001, ddb_mod),
-	DDB_ID(DDVID, 0x0210, DDVID, 0x0001, ddb_mod_fsm_24),
-	DDB_ID(DDVID, 0x0210, DDVID, 0x0002, ddb_mod_fsm_16),
-	DDB_ID(DDVID, 0x0210, DDVID, 0x0003, ddb_mod_fsm_8),
-	DDB_ID(DDVID, 0x0220, DDVID, 0x0001, ddb_sdr),
+static const struct pci_device_id ddb_id_table[] __devinitconst = {
+	DDB_DEVICE(0x0002, 0x0001, ddb_octopus),
+	DDB_DEVICE(0x0003, 0x0001, ddb_octopus),
+	DDB_DEVICE(0x0005, 0x0004, ddb_octopusv3),
+	DDB_DEVICE(0x0003, 0x0002, ddb_octopus_le),
+	DDB_DEVICE(0x0003, 0x0003, ddb_octopus_oem),
+	DDB_DEVICE(0x0003, 0x0010, ddb_octopus_mini),
+	DDB_DEVICE(0x0005, 0x0011, ddb_octopus_mini),
+	DDB_DEVICE(0x0003, 0x0020, ddb_v6),
+	DDB_DEVICE(0x0003, 0x0021, ddb_v6_5),
+	DDB_DEVICE(0x0006, 0x0022, ddb_v7),
+	DDB_DEVICE(0x0006, 0x0024, ddb_v7a),
+	DDB_DEVICE(0x0003, 0x0030, ddb_dvbct),
+	DDB_DEVICE(0x0003, 0xdb03, ddb_satixS2v3),
+	DDB_DEVICE(0x0006, 0x0031, ddb_ctv7),
+	DDB_DEVICE(0x0006, 0x0032, ddb_ctv7),
+	DDB_DEVICE(0x0006, 0x0033, ddb_ctv7),
+	DDB_DEVICE(0x0007, 0x0023, ddb_s2_48),
+	DDB_DEVICE(0x0008, 0x0034, ddb_ct2_8),
+	DDB_DEVICE(0x0008, 0x0035, ddb_c2t2_8),
+	DDB_DEVICE(0x0008, 0x0036, ddb_isdbt_8),
+	DDB_DEVICE(0x0008, 0x0037, ddb_c2t2i_v0_8),
+	DDB_DEVICE(0x0008, 0x0038, ddb_c2t2i_8),
+	DDB_DEVICE(0x0006, 0x0039, ddb_ctv7),
+	DDB_DEVICE(0x0011, 0x0040, ddb_ci),
+	DDB_DEVICE(0x0011, 0x0041, ddb_cis),
+	DDB_DEVICE(0x0012, 0x0042, ddb_ci),
+	DDB_DEVICE(0x0013, 0x0043, ddb_ci_s2_pro),
+	DDB_DEVICE(0x0013, 0x0044, ddb_ci_s2_pro_a),
+	DDB_DEVICE(0x0201, 0x0001, ddb_mod),
+	DDB_DEVICE(0x0201, 0x0002, ddb_mod),
+	DDB_DEVICE(0x0203, 0x0001, ddb_mod),
+	DDB_DEVICE(0x0210, 0x0001, ddb_mod_fsm_24),
+	DDB_DEVICE(0x0210, 0x0002, ddb_mod_fsm_16),
+	DDB_DEVICE(0x0210, 0x0003, ddb_mod_fsm_8),
+	DDB_DEVICE(0x0220, 0x0001, ddb_sdr),
 	/* testing on OctopusNet Pro */
-	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
-	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro),
-	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0328, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0329, PCI_ANY_ID, PCI_ANY_ID, ddb_octopro_hdin),
+	DDB_DEVICE(0x0320, PCI_ANY_ID, ddb_octopro_hdin),
+	DDB_DEVICE(0x0321, PCI_ANY_ID, ddb_none),
+	DDB_DEVICE(0x0322, PCI_ANY_ID, ddb_octopro),
+	DDB_DEVICE(0x0323, PCI_ANY_ID, ddb_none),
+	DDB_DEVICE(0x0328, PCI_ANY_ID, ddb_none),
+	DDB_DEVICE(0x0329, PCI_ANY_ID, ddb_octopro_hdin),
 	/* in case sub-ids got deleted in flash */
-	DDB_ID(DDVID, 0x0003, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0005, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0006, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0007, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0008, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0011, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0012, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0013, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0201, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0203, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0210, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0220, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0320, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0321, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0322, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0323, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0328, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
-	DDB_ID(DDVID, 0x0329, PCI_ANY_ID, PCI_ANY_ID, ddb_none),
+	DDB_DEVICE_ANY(0x0003),
+	DDB_DEVICE_ANY(0x0005),
+	DDB_DEVICE_ANY(0x0006),
+	DDB_DEVICE_ANY(0x0007),
+	DDB_DEVICE_ANY(0x0008),
+	DDB_DEVICE_ANY(0x0011),
+	DDB_DEVICE_ANY(0x0012),
+	DDB_DEVICE_ANY(0x0013),
+	DDB_DEVICE_ANY(0x0201),
+	DDB_DEVICE_ANY(0x0203),
+	DDB_DEVICE_ANY(0x0210),
+	DDB_DEVICE_ANY(0x0220),
+	DDB_DEVICE_ANY(0x0320),
+	DDB_DEVICE_ANY(0x0321),
+	DDB_DEVICE_ANY(0x0322),
+	DDB_DEVICE_ANY(0x0323),
+	DDB_DEVICE_ANY(0x0328),
+	DDB_DEVICE_ANY(0x0329),
 	{0}
 };
-MODULE_DEVICE_TABLE(pci, ddb_id_tbl);
+MODULE_DEVICE_TABLE(pci, ddb_id_table);
 
 static struct pci_driver ddb_pci_driver = {
 	.name        = "ddbridge",
-	.id_table    = ddb_id_tbl,
+	.id_table    = ddb_id_table,
 	.probe       = ddb_probe,
 	.remove      = ddb_remove,
 };
