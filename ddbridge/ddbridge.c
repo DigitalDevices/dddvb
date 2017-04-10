@@ -118,7 +118,11 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 #ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
 		stat = pci_enable_msi_range(dev->pdev, 1, nr);
+#else
+		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
+#endif
 		if (stat >= 1) {
 			dev->msi = stat;
 			pr_info("DDBridge: using %d MSI interrupt(s)\n",
@@ -528,7 +532,7 @@ static struct ddb_info ddb_sdr = {
 	.name     = "Digital Devices SDR",
 	.version  = 3,
 	.regmap   = &octopus_sdr_map,
-	.port_num = 20,
+	.port_num = 16,
 	.temp_num = 1,
 	.tempmon_irq = 8,
 };
