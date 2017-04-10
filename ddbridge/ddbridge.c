@@ -119,9 +119,9 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 	if (msi && pci_msi_enabled()) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
-		stat = pci_enable_msi_range(dev->pdev, 1, nr);
-#else
 		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
+#else
+		stat = pci_enable_msi_range(dev->pdev, 1, nr);
 #endif
 		if (stat >= 1) {
 			dev->msi = stat;
