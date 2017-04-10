@@ -55,7 +55,6 @@
 #include <linux/completion.h>
 
 #include <linux/types.h>
-#include <linux/sched.h>
 #include <linux/interrupt.h>
 #include <linux/mutex.h>
 #include <asm/dma.h>
