@@ -1,7 +1,7 @@
 /*
  * ddbridge.c: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -1481,14 +1481,84 @@ void ddbridge_mod_rate_handler(unsigned long data)
 		PCRAdjustExtFrac, PCRCorr, mod->PCRIncrement);
 }
 
-static int mod_set_ari(struct ddb_mod *mod, u32 rate)
+static int mod3_set_base_frequency(struct ddb *dev, u32 frequency)
+{
+	u64 tmp;
+	
+	if (frequency % 1000)
+		return -EINVAL;
+	if ((frequency < 114000000) || (frequency > 874000000))
+		return -EINVAL;
+	dev->mod_base.frequency = frequency;
+	tmp = frequency;
+	tmp <<= 33;
+	tmp = div64_s64(tmp, 4915200000);
+	printk("set base frequency = %u  regs = 0x%08llx\n", frequency, tmp);
+	ddbwritel(dev, (u32) tmp, RFDAC_FCW);
+	return 0;
+}
+
+static void mod3_set_cfcw(struct ddb_mod *mod, u32 f)
+{
+	struct ddb *dev = mod->port->dev;
+	s32 freq = f;
+	s32 dcf = dev->mod_base.frequency;
+	s64 tmp, srdac = 245760000;
+	u32 cfcw;
+	
+	tmp = ((s64) (freq - dcf)) << 32;
+	tmp = div64_s64(tmp, srdac);
+	cfcw = (u32) tmp;
+	printk("f=%u cfcw = %08x nr = %u\n", f, cfcw, mod->port->nr);
+	ddbwritel(dev, cfcw, SDR_CHANNEL_CFCW(mod->port->nr));
+}
+
+static int mod3_set_frequency(struct ddb_mod *mod, u32 frequency)
+{
+	struct ddb *dev = mod->port->dev;
+	
+#if 0
+	if (frequency % 1000)
+		return -EINVAL;
+	if ((frequency < 114000000) || (frequency > 874000000))
+		return -EINVAL;
+	if (frequency > dev->mod_base.frequency)
+		if (frequency - dev->mod_base.frequency > 100000000)
+			return -EINVAL;
+	else
+		if (dev->mod_base.frequency - frequency > 100000000)
+			return -EINVAL;
+#endif
+	mod3_set_cfcw(mod, frequency);
+	return 0;
+}
+
+static int mod3_set_ari(struct ddb_mod *mod, u32 rate)
 {
 	ddbwritel(mod->port->dev, rate, SDR_CHANNEL_ARICW(mod->port->nr));
 	return 0;
 }
 
+
+static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
+{
+	switch(tvp->cmd) {
+	case MODULATOR_OUTPUT_ARI:
+		return mod3_set_ari(mod, tvp->u.data);
+
+	case MODULATOR_FREQUENCY:
+		return mod3_set_frequency(mod, tvp->u.data);
+
+	case MODULATOR_BASE_FREQUENCY:
+		return mod3_set_base_frequency(mod->port->dev, tvp->u.data);
+	}
+	return -EINVAL;
+}
+
 static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
+	if (mod->port->dev->link[0].info->version == 3)
+		return mod3_prop_proc(mod, tvp);
 	switch(tvp->cmd) {
 	case MODULATOR_SYMBOL_RATE:
 		return mod_set_symbolrate(mod, tvp->u.data);
@@ -1505,8 +1575,6 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	case MODULATOR_INPUT_BITRATE:
 		return mod_set_ibitrate(mod, tvp->u.data);
 
-	case MODULATOR_OUTPUT_ARI:
-		return mod_set_ari(mod, tvp->u.data);
 	}
 	return 0;
 }
@@ -1518,7 +1586,9 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	struct ddb *dev = output->port->dev;
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	int ret = 0;
-
+	
+	if (dev->link[0].info->version == 3 && cmd != FE_SET_PROPERTY)
+		return -EINVAL;
 	switch (cmd) {
 	case FE_SET_PROPERTY:
 	{
@@ -1666,8 +1736,6 @@ static void mod_set_sdr_table(struct ddb_mod *mod, u32 *tab, u32 len)
 		ddbwritel(dev, tab[i], SDR_CHANNEL_SETFIR(mod->port->nr));
 }
 
-
-
 static int rfdac_init(struct ddb *dev)
 {
 	int i;
@@ -1716,22 +1784,6 @@ static int rfdac_init(struct ddb *dev)
 	return 0;
 }
 
-static void mod_set_cfcw(struct ddb_mod *mod, int i)
-{
-	struct ddb *dev = mod->port->dev;
-	s32 freq = 182250000 + 7000000 * i;
-	s32 dcf = 188000000;
-	s64 tmp, srdac = 245760000;
-	u32 cfcw;
-	
-	tmp = ((s64) (freq - dcf)) << 32;
-	tmp = div64_s64(tmp, srdac);
-	cfcw = (u32) tmp;
-	printk("cfcw = %08x nr = %u\n", cfcw, mod->port->nr);
-	ddbwritel(dev, cfcw, SDR_CHANNEL_CFCW(mod->port->nr));
-}
-
-
 static int mod_init_3(struct ddb *dev, u32 Frequency)
 {
 	int streams = dev->link[0].info->port_num;
@@ -1758,13 +1810,14 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	ddbwritel(dev, 0x1800, 0x244);
 	ddbwritel(dev, 0x01, 0x240);
 	//msleep(500);
+	mod3_set_base_frequency(dev, 188000000);
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
 		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
 		ddbwritel(dev, 0x06, SDR_CHANNEL_CONFIG(i));
 		ddbwritel(dev, 0x70800000, SDR_CHANNEL_ARICW(i));
-		mod_set_cfcw(mod, i);
+		mod3_set_frequency(mod, 182250000 + 7000000 * i);
 
 		ddbwritel(dev, 0x00011f80, SDR_CHANNEL_RGAIN(i));
 		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM1GAIN(i));
