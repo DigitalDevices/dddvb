@@ -1798,7 +1798,6 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 		ret = rfdac_init(dev);
 	if (ret)
 		pr_err("DDBridge: RFDAC setup failed\n");
- 	//ddbwritel(dev, 0x01, JESD204B_BASE);
 
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
@@ -1809,7 +1808,7 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	}
 	ddbwritel(dev, 0x1800, 0x244);
 	ddbwritel(dev, 0x01, 0x240);
-	//msleep(500);
+
 	mod3_set_base_frequency(dev, 188000000);
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
