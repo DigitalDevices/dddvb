@@ -122,7 +122,7 @@ struct ddb_regmap {
 
 	struct ddb_regset *input;
 	struct ddb_regset *output;
-	
+
 	struct ddb_regset *channel;
 	//struct ddb_regset *ci;
 	//struct ddb_regset *pid_filter;
@@ -191,7 +191,8 @@ struct ddb_info {
 };
 
 /* DMA_SIZE MUST be smaller than 256k and
-   MUST be divisible by 188 and 128 !!! */
+ * MUST be divisible by 188 and 128 !!!
+ */
 
 #define DMA_MAX_BUFS 32      /* hardware table limit */
 
@@ -364,11 +365,11 @@ struct ddb_mod {
 	struct ddb_port       *port;
 	//u32                    nr;
 	//u32                    regs;
-	
+
 	u32                    frequency;
 	u32                    modulation;
 	u32                    symbolrate;
-	
+
 	u64                    obitrate;
 	u64                    ibitrate;
 	u32                    pcr_correction;

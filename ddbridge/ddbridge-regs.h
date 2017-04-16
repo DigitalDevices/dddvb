@@ -58,9 +58,9 @@
 /* ------------------------------------------------------------------------- */
 
 /* Interrupt controller
-   How many MSI's are available depends on HW (Min 2 max 8)
-   How many are usable also depends on Host platform
-*/
+ * How many MSI's are available depends on HW (Min 2 max 8)
+ * How many are usable also depends on Host platform
+ */
 
 #define INTERRUPT_BASE   (0x40)
 
@@ -167,13 +167,15 @@
 #define TEMPMON_FANPWM      (0x00000F00)            // PWM speed in 10% steps
 #define TEMPMON_FANTACHO    (0x000000FF)            // Rotations in 100/min steps
 
-// V1 Temperature Monitor
-// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
-// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 1 : ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
+/* V1 Temperature Monitor
+ * Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
+ * Temperature Monitor TEMPMON_CONTROL & 0x8000 == 1 :
+ * ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
+ */
 
-#define TEMPMON1_CORE       (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 ext)
-#define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08)    // SHORT Temperature in °C x 256 (LM75A 0x90)
-#define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C)    // SHORT Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int)
+#define TEMPMON1_CORE       (TEMPMON_SENSOR0)    // u16 Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08) // SHORT Temperature in °C x 256 (LM75A 0x90)
+#define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C) // SHORT Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int)
 
 // V2 Temperature Monitor 2 ADM1032
 
@@ -332,16 +334,16 @@
 /* Muxout from VCO (usually = Lock) */
 #define VCO3_CONTROL_MUXOUT (0x00000004)
 
-// V2
+/* V2 */
 
 #define MAX2871_BASE            (0xC0)
 #define MAX2871_CONTROL         (MAX2871_BASE + 0x00)
-#define MAX2871_OUTDATA         (MAX2871_BASE + 0x04)  // 32 Bit
-#define MAX2871_INDATA          (MAX2871_BASE + 0x08)  // 32 Bit
+#define MAX2871_OUTDATA         (MAX2871_BASE + 0x04)
+#define MAX2871_INDATA          (MAX2871_BASE + 0x08)
 #define MAX2871_CONTROL_WRITE   (0x00000001)   // 1 = Trigger write, resets when done
 #define MAX2871_CONTROL_CE      (0x00000002)   // 0 = Put VCO into power down
-#define MAX2871_CONTROL_MUXOUT  (0x00000004)   // Muxout from VCO 
-#define MAX2871_CONTROL_LOCK    (0x00000008)   // Lock from VCO 
+#define MAX2871_CONTROL_MUXOUT  (0x00000004)   // Muxout from VCO
+#define MAX2871_CONTROL_LOCK    (0x00000008)   // Lock from VCO
 
 #define FSM_BASE                (0x200)
 #define FSM_CONTROL             (FSM_BASE + 0x00)
@@ -360,9 +362,9 @@
 
 
 #define FSM_CAPACITY            (FSM_BASE + 0x04)
-#define FSM_CAPACITY_MAX        (0x3F000000)  
-#define FSM_CAPACITY_CUR        (0x003F0000)  
-#define FSM_CAPACITY_INUSE      (0x0000003F)  
+#define FSM_CAPACITY_MAX        (0x3F000000)
+#define FSM_CAPACITY_CUR        (0x003F0000)
+#define FSM_CAPACITY_INUSE      (0x0000003F)
 
 #define FSM_GAIN                (FSM_BASE + 0x10)
 #define FSM_GAINMASK            (0x000000FF)
@@ -381,15 +383,15 @@
 #define RF_ATTENUATOR   (0xD8)
 #define RF_ATTENUATOR   (0xD8)
 /*  0x00 =  0 dB
-    0x01 =  1 dB
-      ...
-    0x1F = 31 dB
-*/
+ *  0x01 =  1 dB
+ *    ...
+ *  0x1F = 31 dB
+ */
 
 #define RF_VGA  (0xDC)
 /* Only V2 */
 /* 8 bit range 0 - 31.75 dB Gain  */
-	
+
 /* VGA Gain for same output level as V1 Modulator */
 #define RF_VGA_GAIN_N8          (85)
 #define RF_VGA_GAIN_N16         (117)
@@ -411,9 +413,9 @@
 #define RF_POWER_CONTROL_VALID     (0x00000500)
 
 
-/* --------------------------------------------------------------------------
-   Output control
-*/
+/*
+ *  Output control
+ */
 
 #define IQOUTPUT_BASE           (0x240)
 #define IQOUTPUT_CONTROL        (IQOUTPUT_BASE + 0x00)
@@ -581,7 +583,7 @@
 
 // Additional Status Bits
 
-#define DMA_PCIE_LANES_MASK       ( 0x00070000 )
+#define DMA_PCIE_LANES_MASK       (0x00070000)
 
 
 // --------------------------------------------------------------------------
@@ -619,7 +621,7 @@
 #define SDR_FIR_SELECT_MASK         (0x00C00000)
 #define SDR_VSB_LENGTH_MASK         (0x01000000)
 
-#define SDR_SET_FIR(select,tap,coeff,vsblen)	\
+#define SDR_SET_FIR(select, tap, coeff, vsblen)	\
 	((((select)<<22)&SDR_FIR_SELECT_MASK)|			\
 	 (((tap)<<16)&SDR_FIR_TAP_MASK)|				\
 	 ((coeff)&SDR_FIR_COEFF_MASK)|					\

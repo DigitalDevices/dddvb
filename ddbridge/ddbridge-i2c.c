@@ -169,7 +169,7 @@ static int ddb_i2c_master_xfer(struct i2c_adapter *adapter,
 			ddbcpyfrom(dev, msg[0].buf,
 				   i2c->rbuf, msg[0].len);
 			return num;
-		} 
+		}
 		ddbcpyto(dev, i2c->wbuf, msg[0].buf, msg[0].len);
 		ddbwritel(dev, msg[0].len, i2c->regs + I2C_TASKLENGTH);
 		if (ddb_i2c_cmd(i2c, addr, 2))

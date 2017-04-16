@@ -129,7 +129,7 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 				dev->msi);
 		} else
 			pr_info("DDBridge: MSI not available.\n");
-		
+
 #else
 		stat = pci_enable_msi_block(dev->pdev, nr);
 		if (stat == 0) {
@@ -139,7 +139,7 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 			stat = pci_enable_msi(dev->pdev);
 			dev->msi = 1;
 		}
-		if (stat < 0) 
+		if (stat < 0)
 			pr_info("DDBridge: MSI not available.\n");
 #endif
 	}
@@ -170,7 +170,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 			   irq_flag, "ddbridge", (void *) dev);
 	if (stat < 0)
 		return stat;
-	
+
 	ddbwritel(dev, 0x0000ff7f, INTERRUPT_V2_CONTROL);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_1);
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_2);
@@ -181,15 +181,15 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	ddbwritel(dev, 0xffffffff, INTERRUPT_V2_ENABLE_7);
 	return stat;
 }
-	
+
 static int __devinit ddb_irq_init(struct ddb *dev)
 {
 	int stat;
 	int irq_flag = IRQF_SHARED;
-	
+
 	if (dev->link[0].info->regmap->irq_version == 2)
 		return ddb_irq_init2(dev);
-	
+
 	ddbwritel(dev, 0x00000000, INTERRUPT_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI1_ENABLE);
 	ddbwritel(dev, 0x00000000, MSI2_ENABLE);
@@ -254,7 +254,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)))
 		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
 			return -ENODEV;
-	
+
 	dev = vzalloc(sizeof(struct ddb));
 	if (dev == NULL)
 		return -ENOMEM;
@@ -315,7 +315,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	stat = ddb_irq_init(dev);
 	if (stat < 0)
 		goto fail0;
-	
+
 	if (ddb_init(dev) == 0)
 		return 0;
 
