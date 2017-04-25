@@ -213,7 +213,7 @@ struct ddb_info {
 #define OUTPUT_DMA_SIZE (128*47*21)
 #define OUTPUT_DMA_IRQ_DIV 1
 #endif
-#define OUTPUT_DMA_BUFS_SDR 8
+#define OUTPUT_DMA_BUFS_SDR 32
 #define OUTPUT_DMA_SIZE_SDR (256*1024)
 #define OUTPUT_DMA_IRQ_DIV_SDR 1
 
