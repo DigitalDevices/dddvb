@@ -1461,9 +1461,9 @@ static void mod3_set_cfcw(struct ddb_mod *mod, u32 f)
 
 static int mod3_set_frequency(struct ddb_mod *mod, u32 frequency)
 {
+#if 0
 	struct ddb *dev = mod->port->dev;
 
-#if 0
 	if (frequency % 1000)
 		return -EINVAL;
 	if ((frequency < 114000000) || (frequency > 874000000))
