@@ -770,7 +770,7 @@ static void ddb_output_start(struct ddb_output *output)
 			  DMA_BUFFER_SIZE(output->dma));
 		ddbwritel(dev, 0, DMA_BUFFER_ACK(output->dma));
 		ddbwritel(dev, 1, DMA_BASE_READ);
-		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(output->dma));
+		ddbwritel(dev, 7, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class != DDB_PORT_MOD)
 		ddbwritel(dev, con | 1, TS_CONTROL(output));
