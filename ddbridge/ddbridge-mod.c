@@ -1758,14 +1758,14 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	ddbwritel(dev, 0x1800, 0x244);
 	ddbwritel(dev, 0x01, 0x240);
 
-	mod3_set_base_frequency(dev, 188000000);
+	mod3_set_base_frequency(dev, 602000000);
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
 		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
 		ddbwritel(dev, 0x06, SDR_CHANNEL_CONFIG(i));
 		ddbwritel(dev, 0x70800000, SDR_CHANNEL_ARICW(i));
-		mod3_set_frequency(mod, 182250000 + 7000000 * i);
+		mod3_set_frequency(mod, Frequency + 7000000 * i);
 
 		ddbwritel(dev, 0x00011f80, SDR_CHANNEL_RGAIN(i));
 		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM1GAIN(i));
@@ -1781,6 +1781,6 @@ int ddbridge_mod_init(struct ddb *dev)
 	if (dev->link[0].info->version == 2)
 		return mod_init_2(dev, 114000000);
 	if (dev->link[0].info->version == 3)
-		return mod_init_3(dev, 114000000);
+		return mod_init_3(dev, 503250000);
 	return -1;
 }
