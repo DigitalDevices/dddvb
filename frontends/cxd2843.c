@@ -270,9 +270,10 @@ static int writebitsx(struct cxd_state *cxd, u8 Bank, u8 Address,
 	mutex_lock(&cxd->mutex);
 	status = readregsx_unlocked(cxd, Bank, Address, &tmp, 1);
 	if (status < 0)
-		return status;
+		goto out;
 	tmp = (tmp & ~Mask) | Value;
 	status = writeregsx_unlocked(cxd, Bank, Address, &tmp, 1);
+out:
 	mutex_unlock(&cxd->mutex);
 	return status;
 }
@@ -286,9 +287,10 @@ static int writebitst(struct cxd_state *cxd, u8 Bank, u8 Address,
 	mutex_lock(&cxd->mutex);
 	status = readregst_unlocked(cxd, Bank, Address, &Tmp, 1);
 	if (status < 0)
-		return status;
+		goto out;
 	Tmp = (Tmp & ~Mask) | Value;
 	status = writeregst_unlocked(cxd, Bank, Address, &Tmp, 1);
+out:
 	mutex_unlock(&cxd->mutex);
 	return status;
 }
