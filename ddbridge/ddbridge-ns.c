@@ -1,7 +1,7 @@
 /*
  * ddbridge-ns.c: Digital Devices PCIe bridge driver net streaming
  *
- * Copyright (C) 2010-2015 Marcus Metzler <mocm@metzlerbros.de>
+ * Copyright (C) 2010-2017Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Digital Devices GmbH
  *
