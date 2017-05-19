@@ -38,10 +38,6 @@ static int vlan;
 module_param(vlan, int, 0444);
 MODULE_PARM_DESC(vlan, "VLAN and QoS IDs enabled");
 
-static int tt;
-module_param(tt, int, 0444);
-MODULE_PARM_DESC(tt, "");
-
 static int fmode;
 module_param(fmode, int, 0444);
 MODULE_PARM_DESC(fmode, "frontend emulation mode");
