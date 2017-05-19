@@ -426,7 +426,7 @@ static int flash_detect(struct ddflash *ddf)
 	}
 	if (ddf->sector_size) {
 		ddf->buffer = malloc(ddf->sector_size);
-		printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);
+		//printf("allocated buffer %08x@%08x\n", ddf->sector_size, (uint32_t) ddf->buffer);
 		if (!ddf->buffer)
 			return -1;
 	}
@@ -510,7 +510,12 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 				goto out;
 			}
 		} else if (!strcasecmp(key, "Version")) {
-			sscanf(val, "%x", &version);
+			if (strchr(val,'.')) {
+				int major = 0, minor = 0;
+				sscanf(val,"%d.%d",&major,&minor);
+				version = (major << 16) + minor;
+			} else
+				sscanf(val, "%x", &version);
 		} else if (!strcasecmp(key, "Length")) {
 			sscanf(val, "%u", &length);
 		} 
@@ -565,8 +570,13 @@ static int update_image(struct ddflash *ddf, char *fn,
 	if (res < 0) 
 		goto out;
 	res = flashwrite(ddf, fs, adr, len, fw_off);
-	if (res == 0)
-		res = 1;
+	if (res == 0) {
+		res = flashcmp(ddf, fs, adr, len, fw_off);
+		if (res == -2) {
+			res = 1;
+		}
+	}
+ 
 out:
 	close(fs);
 	return res;
@@ -607,18 +617,40 @@ static int update_flash(struct ddflash *ddf)
 				if ((res = update_image(ddf, "/boot/fpga.img", 0x10000, 0xa0000, 1, 0)) == 1)
 					stat |= 1;
 		} else {
-			if ((res = update_image(ddf, "/config/fpga.img", 0x10000, 0xa0000, 1, 1)) == 1)
-				stat |= 1;
-			if (res == -1)
-				if ((res = update_image(ddf, "/boot/fpga.img", 0x10000, 0xa0000, 1, 1)) == 1)
+			if (ddf->id.device == 0x0307) {
+				if (res == -1)
+					if ((res = update_image(ddf, "/config/fpga_gtl.img", 0x10000, 0xa0000, 1, 1)) == 1)
+						stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x10000, 0xa0000, 1, 1)) == 1)
+						stat |= 1;
+			} else {
+				if ((res = update_image(ddf, "/config/fpga.img", 0x10000, 0xa0000, 1, 1)) == 1)
 					stat |= 1;
-			if (res == -1)
-				if ((res = update_image(ddf, "/config/fpga_gtl.img", 0x10000, 0xa0000, 1, 1)) == 1)
-					stat |= 1;
-			if (res == -1)
-				if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x10000, 0xa0000, 1, 1)) == 1)
-					stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga.img", 0x10000, 0xa0000, 1, 1)) == 1)
+						stat |= 1;
+			}
 		}
+#if 1
+		if ( (stat&1) && (ddf->id.hw & 0xffffff) <= 0x010001) {		
+			if (ddf->id.device == 0x0307) {
+				if ((res = update_image(ddf, "/config/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
+					stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga_gtl.img", 0x160000, 0x80000, 1, 0)) == 1)
+						stat |= 1;
+			} else {
+				if ((res = update_image(ddf, "/config/fpga.img", 0x160000, 0x80000, 1, 0)) == 1)
+					stat |= 1;
+				if (res == -1)
+					if ((res = update_image(ddf, "/boot/fpga.img", 0x160000, 0x80000, 1, 0)) == 1)
+						stat |= 1;
+			
+			}
+		}
+#endif
+
 		break;
 	case 0x320:
 		//fname="/boot/DVBNetV1A_DD01_0300.bit";

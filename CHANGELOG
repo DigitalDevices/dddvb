@@ -1,3 +1,7 @@
+0.9.29 compiles with most kernels up to 4.11.1
+
+see git commit messages for newer changes
+
 0.9.24 2016.08.03
 - suport new V2 modulator cards
 

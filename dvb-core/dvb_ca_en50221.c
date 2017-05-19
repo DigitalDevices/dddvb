@@ -35,7 +35,12 @@
 #include <linux/vmalloc.h>
 #include <linux/delay.h>
 #include <linux/spinlock.h>
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+#include <linux/sched/signal.h>
+#else
 #include <linux/sched.h>
+#endif
 #include <linux/kthread.h>
 
 #include "dvb_ca_en50221.h"

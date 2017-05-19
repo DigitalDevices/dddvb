@@ -1,7 +1,7 @@
 /*
  * ddbridge-i2c.c: Digital Devices bridge i2c driver
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *
@@ -156,38 +156,43 @@ static int ddb_i2c_master_xfer(struct i2c_adapter *adapter,
 	struct ddb *dev = i2c->dev;
 	u8 addr = 0;
 
-	if (num != 1 && num != 2)
-		return -EIO;
 	addr = msg[0].addr;
 	if (msg[0].len > i2c->bsize)
 		return -EIO;
-	if (num == 2 && msg[1].flags & I2C_M_RD &&
-	    !(msg[0].flags & I2C_M_RD)) {
-		if (msg[1].len > i2c->bsize)
-			return -EIO;
-		ddbcpyto(dev, i2c->wbuf, msg[0].buf, msg[0].len);
-		ddbwritel(dev, msg[0].len | (msg[1].len << 16),
-			  i2c->regs + I2C_TASKLENGTH);
-		if (!ddb_i2c_cmd(i2c, addr, 1)) {
-			ddbcpyfrom(dev, msg[1].buf,
-				   i2c->rbuf,
-				   msg[1].len);
-			return num;
-		}
-	}
-	if (num == 1 && !(msg[0].flags & I2C_M_RD)) {
-		ddbcpyto(dev, i2c->wbuf, msg[0].buf, msg[0].len);
-		ddbwritel(dev, msg[0].len, i2c->regs + I2C_TASKLENGTH);
-		if (!ddb_i2c_cmd(i2c, addr, 2))
-			return num;
-	}
-	if (num == 1 && (msg[0].flags & I2C_M_RD)) {
-		ddbwritel(dev, msg[0].len << 16, i2c->regs + I2C_TASKLENGTH);
-		if (!ddb_i2c_cmd(i2c, addr, 3)) {
+	switch (num) {
+	case 1:
+		if (msg[0].flags & I2C_M_RD) {
+			ddbwritel(dev, msg[0].len << 16,
+				  i2c->regs + I2C_TASKLENGTH);
+			if (ddb_i2c_cmd(i2c, addr, 3))
+				break;
 			ddbcpyfrom(dev, msg[0].buf,
 				   i2c->rbuf, msg[0].len);
 			return num;
 		}
+		ddbcpyto(dev, i2c->wbuf, msg[0].buf, msg[0].len);
+		ddbwritel(dev, msg[0].len, i2c->regs + I2C_TASKLENGTH);
+		if (ddb_i2c_cmd(i2c, addr, 2))
+			break;
+		return num;
+	case 2:
+		if ((msg[0].flags & I2C_M_RD) == I2C_M_RD)
+			break;
+		if ((msg[1].flags & I2C_M_RD) != I2C_M_RD)
+			break;
+		if (msg[1].len > i2c->bsize)
+			break;
+		ddbcpyto(dev, i2c->wbuf, msg[0].buf, msg[0].len);
+		ddbwritel(dev, msg[0].len | (msg[1].len << 16),
+			  i2c->regs + I2C_TASKLENGTH);
+		if (ddb_i2c_cmd(i2c, addr, 1))
+			break;
+		ddbcpyfrom(dev, msg[1].buf,
+			   i2c->rbuf,
+			   msg[1].len);
+		return num;
+	default:
+		break;
 	}
 	return -EIO;
 }
@@ -247,11 +252,10 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 	adap->class = I2C_CLASS_TV_ANALOG;
 #endif
 #endif
-	/*strcpy(adap->name, "ddbridge");*/
 	snprintf(adap->name, I2C_NAME_SIZE, "ddbridge_%02x.%x.%x",
 		 dev->nr, i2c->link, i);
 	adap->algo = &ddb_i2c_algo;
-	adap->algo_data = (void *)i2c;
+	adap->algo_data = (void *) i2c;
 	adap->dev.parent = dev->dev;
 	return i2c_add_adapter(adap);
 }

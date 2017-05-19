@@ -1,7 +1,7 @@
 /*
  * octonet.c: Digital Devices network tuner driver
  *
- * Copyright (C) 2012-16 Digital Devices GmbH
+ * Copyright (C) 2012-17 Digital Devices GmbH
  *                       Marcus Metzler <mocm@metzlerbros.de>
  *                       Ralph Metzler <rjkm@metzlerbros.de>
  *

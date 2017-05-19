@@ -210,8 +210,12 @@ int main(int argc, char **argv)
 			printf("Octopus 35\n");
 			break;
 		case 0x0003:
-			fname="DVBBridgeV1B_DVBBridgeV1B.bit";
+			fname="DVBBridgeV1B_DVBBridgeV1B.fpga";
 			printf("Octopus\n");
+			break;
+		case 0x0005:
+			fname="DVBBridgeV2A_DD01_0005_STD.fpga";
+			printf("Octopus Classic\n");
 			break;
 		case 0x0006:
 			fname="DVBBridgeV2A_DD01_0006_STD.fpga";
@@ -248,6 +252,10 @@ int main(int argc, char **argv)
 		case 0x0210:
 			fname="DVBModulatorV2A_DD01_0210.fpga";
 			printf("Modulator V2\n");
+			break;
+		case 0x0220:
+			fname="SDRModulatorV1A_DD01_0220.fpga";
+			printf("SDRModulator\n");
 			break;
 		default:
 			printf("UNKNOWN\n");
@@ -314,6 +322,7 @@ int main(int argc, char **argv)
 		err = FlashWritePageMode(ddb,FlashOffset,buffer,BufferSize,0x3C);
 		break;
         case SPANSION_S25FL116K:
+        case SPANSION_S25FL164K:
 		err = FlashWritePageMode(ddb,FlashOffset,buffer,BufferSize,0x1C);
 		break;            
 	}

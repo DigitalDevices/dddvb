@@ -1,7 +1,7 @@
 /*
  * ddbridge.h: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2015 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Ralph Metzler <rmetzler@digitaldevices.de>
  *
  * This program is free software; you can redistribute it and/or
@@ -55,7 +55,6 @@
 #include <linux/completion.h>
 
 #include <linux/types.h>
-#include <linux/sched.h>
 #include <linux/interrupt.h>
 #include <linux/mutex.h>
 #include <asm/dma.h>
@@ -123,7 +122,7 @@ struct ddb_regmap {
 
 	struct ddb_regset *input;
 	struct ddb_regset *output;
-	
+
 	struct ddb_regset *channel;
 	//struct ddb_regset *ci;
 	//struct ddb_regset *pid_filter;
@@ -178,7 +177,8 @@ struct ddb_info {
 };
 
 /* DMA_SIZE MUST be smaller than 256k and
-   MUST be divisible by 188 and 128 !!! */
+ * MUST be divisible by 188 and 128 !!!
+ */
 
 #define DMA_MAX_BUFS 32      /* hardware table limit */
 
@@ -199,6 +199,10 @@ struct ddb_info {
 #define OUTPUT_DMA_SIZE (128*47*21)
 #define OUTPUT_DMA_IRQ_DIV 1
 #endif
+#define OUTPUT_DMA_BUFS_SDR 32
+#define OUTPUT_DMA_SIZE_SDR (256*1024)
+#define OUTPUT_DMA_IRQ_DIV_SDR 1
+
 
 struct ddb;
 struct ddb_port;
@@ -345,13 +349,13 @@ struct mod_base {
 
 struct ddb_mod {
 	struct ddb_port       *port;
-	u32                    nr;
-	u32                    regs;
-	
+	//u32                    nr;
+	//u32                    regs;
+
 	u32                    frequency;
 	u32                    modulation;
 	u32                    symbolrate;
-	
+
 	u64                    obitrate;
 	u64                    ibitrate;
 	u32                    pcr_correction;
@@ -678,15 +682,6 @@ static void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 	return memcpy_fromio(dst, (char *) (dev->regs + adr), count);
 }
 
-#if 0
-
-#define ddbcpyto(_dev, _adr, _src, _count) \
-	memcpy_toio((char *) (_dev->regs + (_adr)), (_src), (_count))
-
-#define ddbcpyfrom(_dev, _dst, _adr, _count) \
-	memcpy_fromio((_dst), (char *) (_dev->regs + (_adr)), (_count))
-#endif
-
 #define ddbmemset(_dev, _adr, _val, _count) \
 	memset_io((char *) (_dev->regs + (_adr)), (_val), (_count))
 
@@ -753,6 +748,6 @@ void ddbridge_mod_rate_handler(unsigned long data);
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.28"
+#define DDBRIDGE_VERSION "0.9.29"
 
 #endif

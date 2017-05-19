@@ -91,6 +91,7 @@ void *get_ts(void *a)
 	if (!buf)
 		return NULL;
 	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
+	printf("using %s for reading\n", fname);
 	fdi = open(fname, O_RDONLY);
 
 	while (1) {
@@ -122,6 +123,7 @@ int send(void)
 	if (!buf)
 		return -1;
 	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
+	printf("using %s for writing\n", fname);
 	fdo=open(fname, O_WRONLY);
 
 	while (1) {
