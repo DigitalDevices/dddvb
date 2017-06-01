@@ -1497,6 +1497,12 @@ static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 
 	case MODULATOR_BASE_FREQUENCY:
 		return mod3_set_base_frequency(mod->port->dev, tvp->u.data);
+      
+	case MODULATOR_ATTENUATOR:
+		return mod_set_attenuator(mod->port->dev, tvp->u.data);
+      
+	case MODULATOR_GAIN:
+		return mod_set_vga(mod->port->dev, tvp->u.data);
 	}
 	return -EINVAL;
 }
@@ -1741,7 +1747,6 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	int streams = dev->link[0].info->port_num;
 	int i, ret = 0;
 
-	mod_set_vga(dev, 64);
 	ret = mod_setup_max2871(dev, max2871_sdr);
 	if (ret)
 		pr_err("DDBridge: PLL setup failed\n");
@@ -1774,6 +1779,8 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM1GAIN(i));
 		ddbwritel(dev, 0x00000800, SDR_CHANNEL_FM2GAIN(i));
 	}
+	mod_set_attenuator(dev, 0);
+	mod_set_vga(dev, 64);
 	return ret;
 }
 
