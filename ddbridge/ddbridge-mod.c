@@ -1521,6 +1521,9 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	case MODULATOR_INPUT_BITRATE:
 		return mod_set_ibitrate(mod, tvp->u.data);
 
+	case MODULATOR_GAIN:
+		return mod_set_vga(mod->port->dev, tvp->u.data);
+
 	}
 	return 0;
 }

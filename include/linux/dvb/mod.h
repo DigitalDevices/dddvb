@@ -29,6 +29,7 @@ struct dvb_mod_channel_params {
 #define MODULATOR_ATTENUATOR     32  
 #define MODULATOR_INPUT_BITRATE  33  /* Hz */
 #define MODULATOR_PCR_MODE       34  /* 1=pcr correction enabled */
+#define MODULATOR_GAIN           35
 #define MODULATOR_OUTPUT_ARI     64
 
 #endif /*_UAPI_DVBMOD_H_*/
