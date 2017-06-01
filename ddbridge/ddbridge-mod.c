@@ -1776,8 +1776,8 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 		mod3_set_frequency(mod, Frequency + 7000000 * i);
 
 		ddbwritel(dev, 0x00011f80, SDR_CHANNEL_RGAIN(i));
-		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM1GAIN(i));
-		ddbwritel(dev, 0x00000800, SDR_CHANNEL_FM2GAIN(i));
+		ddbwritel(dev, 0x00002000, SDR_CHANNEL_FM1GAIN(i));
+		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM2GAIN(i));
 	}
 	mod_set_attenuator(dev, 0);
 	mod_set_vga(dev, 64);
