@@ -1528,8 +1528,9 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		return mod_set_ibitrate(mod, tvp->u.data);
 
 	case MODULATOR_GAIN:
-		return mod_set_vga(mod->port->dev, tvp->u.data);
-
+		if (mod->port->dev->link[0].info->version == 2)
+			return mod_set_vga(mod->port->dev, tvp->u.data);
+		return -EINVAL;
 	}
 	return 0;
 }
