@@ -685,6 +685,7 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 	if (output->port->gap != 0xffffffff) {
 		flags |= 1;
 		gap = output->port->gap;
+		max_bitrate = 0;
 	}
 	if (dev->link[0].info->type == DDB_OCTOPUS_CI && output->port->nr > 1) {
 		*con = 0x10c;
