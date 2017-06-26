@@ -45,7 +45,7 @@
 
 LIST_HEAD(stvlist);
 
-enum ReceiveMode { Mode_None, Mode_DVBS, Mode_DVBS2, Mode_Auto };
+enum ReceiveMode { RCVMODE_NONE, RCVMODE_DVBS, RCVMODE_DVBS2, RCVMODE_AUTO };
 
 enum DVBS2_FECType { DVBS2_64K, DVBS2_16K };
 
@@ -480,7 +480,7 @@ static int GetSignalParameters(struct stv *state)
 	if (!state->Started)
 		return -1;
 	
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->ReceiveMode == RCVMODE_DVBS2) {
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
 		state->ModCod = (enum FE_STV0910_ModCod) ((tmp & 0x7c) >> 2);
 		state->Pilots = (tmp & 0x01) != 0;
@@ -491,7 +491,7 @@ static int GetSignalParameters(struct stv *state)
 		rolloff = rolloff >> 6;
 		state->FERollOff = (enum FE_STV0910_RollOff) rolloff;
 #endif
-	} else if (state->ReceiveMode == Mode_DVBS) {
+	} else if (state->ReceiveMode == RCVMODE_DVBS) {
 		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
 		state->PunctureRate = FEC_NONE;
 		switch (tmp & 0x1F) {
@@ -528,10 +528,10 @@ static int TrackingOptimization(struct stv *state)
 	tmp &= ~0xC0;
 
 	switch (state->ReceiveMode) {
-	case Mode_DVBS:
+	case RCVMODE_DVBS:
 		tmp |= 0x40;
 		break;
-	case Mode_DVBS2:
+	case RCVMODE_DVBS2:
 		tmp |= 0x80;
 		break;
 	default:
@@ -540,7 +540,7 @@ static int TrackingOptimization(struct stv *state)
 	}
 	write_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, tmp);
 
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->ReceiveMode == RCVMODE_DVBS2) {
 		/*Disable Reed-Solomon */  
 		write_shared_reg(state, RSTV0910_TSTTSRS, state->nr ? 0x02 : 0x01, 0x03);
 
@@ -620,7 +620,7 @@ static int GetSignalToNoise(struct stv *state, s32 *SignalToNoise)
 	if (!state->Started)
 		return 0;
 
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->ReceiveMode == RCVMODE_DVBS2) {
 		read_reg(state, RSTV0910_P2_NNOSPLHT1 + state->regoff, &Data1);
 		read_reg(state, RSTV0910_P2_NNOSPLHT0 + state->regoff, &Data0);
 		nLookup = ARRAY_SIZE(S2_SN_Lookup);
@@ -751,10 +751,10 @@ static int GetBitErrorRate(struct stv *state, u32 *BERNumerator,
 	*BERDenominator = 1;
 
 	switch (state->ReceiveMode) {
-	case Mode_DVBS:
+	case RCVMODE_DVBS:
 		return GetBitErrorRateS(state, BERNumerator, BERDenominator);
 		break;
-	case Mode_DVBS2:
+	case RCVMODE_DVBS2:
 		return GetBitErrorRateS2(state, BERNumerator, BERDenominator);
 	default:
 		break;
@@ -847,7 +847,7 @@ static int Stop(struct stv *state)
 		write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x5c);
 		state->Started = 0;
 	}
-	state->ReceiveMode = Mode_None;
+	state->ReceiveMode = RCVMODE_NONE;
 	return 0;
 }
 
@@ -967,7 +967,7 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	if (p->symbol_rate < 100000 || p->symbol_rate > 70000000)
 		return -EINVAL;
 
-	state->ReceiveMode = Mode_None;
+	state->ReceiveMode = RCVMODE_NONE;
 	state->DemodLockTime = 0;
 
 	/* Demod Stop*/
@@ -1116,7 +1116,7 @@ static int probe(struct stv *state)
 {
 	u8 id;
 
-	state->ReceiveMode = Mode_None;
+	state->ReceiveMode = RCVMODE_NONE;
 	state->Started = 0;
 
 	if (read_reg(state, RSTV0910_MID, &id) < 0)
@@ -1271,7 +1271,7 @@ static int get_frontend(struct dvb_frontend *fe)
 	u8 tmp;
 
 	
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->ReceiveMode == RCVMODE_DVBS2) {
 		u32 mc;
 		enum fe_modulation modcod2mod[0x20] = {
 			QPSK, QPSK, QPSK, QPSK,
@@ -1298,7 +1298,7 @@ static int get_frontend(struct dvb_frontend *fe)
 		p->pilot = (tmp & 0x01) ? PILOT_ON : PILOT_OFF;
 		p->modulation = modcod2mod[mc];
 		p->fec_inner = modcod2fec[mc];	
-        } else if (state->ReceiveMode == Mode_DVBS) {
+        } else if (state->ReceiveMode == RCVMODE_DVBS) {
 		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
 		switch( tmp & 0x1F ) {
                 case 0x0d:
@@ -1333,7 +1333,7 @@ static int ManageMatypeInfo(struct stv *state)
 {
 	if (!state->Started)
 		return -1;
-        if (state->ReceiveMode == Mode_DVBS2 ) {
+        if (state->ReceiveMode == RCVMODE_DVBS2 ) {
 		u8 BBHeader[2];
 		
 		read_regs(state, RSTV0910_P2_MATSTR1 + state->regoff,
@@ -1342,7 +1342,7 @@ static int ManageMatypeInfo(struct stv *state)
 			(enum FE_STV0910_RollOff) (BBHeader[0] & 0x03);
 		state->isVCM = (BBHeader[0] & 0x10) == 0;
 		state->isStandardBroadcast = (BBHeader[0] & 0xFC) == 0xF0;
-        } else if (state->ReceiveMode == Mode_DVBS) {
+        } else if (state->ReceiveMode == RCVMODE_DVBS) {
 		state->isVCM = 0;
 		state->isStandardBroadcast = 1;
 		state->FERollOff = FE_SAT_35;
@@ -1360,7 +1360,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	struct stv *state = fe->demodulator_priv;
 	u8 DmdState = 0;
 	u8 DStatus  = 0;
-	enum ReceiveMode CurReceiveMode = Mode_None;
+	enum ReceiveMode CurReceiveMode = RCVMODE_NONE;
 	u32 FECLock = 0;
 	u16 val;
 	u32 ber;
@@ -1381,15 +1381,15 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 			 &DStatus);
 		if (DStatus & 0x08)
 			CurReceiveMode = (DmdState & 0x20) ?
-				Mode_DVBS : Mode_DVBS2;
+				RCVMODE_DVBS : RCVMODE_DVBS2;
 	}
-	if (CurReceiveMode == Mode_None) {
+	if (CurReceiveMode == RCVMODE_NONE) {
 		set_vth(state);
 		//if( Time >= m_DemodTimeout ) *pLockStatus = NEVER_LOCK;
 		return 0;
 	}
 	*status |= 0x0f;
-	if (state->ReceiveMode == Mode_None) {
+	if (state->ReceiveMode == RCVMODE_NONE) {
 		state->ReceiveMode = CurReceiveMode;
 		state->DemodLockTime = jiffies;
 		state->FirstTimeLock = 1;
@@ -1398,7 +1398,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		TrackingOptimization(state);
 		
 #if 0
-            if( CurReceiveMode == Mode_DVBS2 && m_bPilots
+            if( CurReceiveMode == RCVMODE_DVBS2 && m_bPilots
 		&& ( m_ModCod == FE_8PSK_23 || m_ModCod == FE_8PSK_35) )
             {
                 LONG C_N;
@@ -1420,7 +1420,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 			  state->tscfgh);
 	}
 	if (DmdState & 0x40) {
-		if (state->ReceiveMode == Mode_DVBS2) {
+		if (state->ReceiveMode == RCVMODE_DVBS2) {
 			u8 PDELStatus;
 			read_reg(state,
 				 RSTV0910_P2_PDELSTATUS1 + state->regoff,
@@ -1460,7 +1460,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
             }
 	    
 #endif
-	    if (state->ReceiveMode == Mode_DVBS2) {
+	    if (state->ReceiveMode == RCVMODE_DVBS2) {
 		    /* FSTV0910_P2_MANUALSX_ROLLOFF,
 			   FSTV0910_P2_MANUALS2_ROLLOFF = 0 */
 			state->DEMOD &= ~0x84;
@@ -1500,7 +1500,7 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		write_reg(state, RSTV0910_P2_ERRCTRL2 + state->regoff, 0xc1);
 
 		set_vth_default(state);
-		if (state->ReceiveMode == Mode_DVBS)
+		if (state->ReceiveMode == RCVMODE_DVBS)
 			EnablePunctureRate(state, state->PunctureRate);
 	}
 
@@ -1832,7 +1832,7 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->regoff = state->nr ? 0 : 0x200;
 	state->SearchRange = 16000000;
 	state->DEMOD = 0x10;     /* Inversion : Auto with reset to 0 */
-	state->ReceiveMode   = Mode_None;
+	state->ReceiveMode   = RCVMODE_NONE;
 	state->CurScramblingCode = NO_SCRAMBLING_CODE;
 	state->single = cfg->single ? 1 : 0;
 	
