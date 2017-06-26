@@ -115,7 +115,7 @@ struct stv {
 	u32                  demod_timeout;
 	u32                  fec_timeout;
 	u32                  first_time_lock;
-	u8                   DEMOD;
+	u8                   demod_bits;
 	u32                  symbol_rate;
 
 	u8                      last_viterbi_rate;
@@ -135,7 +135,7 @@ struct stv {
 	u32   last_berdenominator;
 	u8    berscale;
 
-	u8    VTH[6];
+	u8    vth[6];
 };
 
 struct sinit_table {
@@ -915,18 +915,18 @@ static int enable_puncture_rate(struct stv *state, enum fe_code_rate rate)
 
 static int set_vth_default(struct stv *state)
 {
-	state->VTH[0] = 0xd7;
-	state->VTH[1] = 0x85;
-	state->VTH[2] = 0x58;
-	state->VTH[3] = 0x3a;
-	state->VTH[4] = 0x34;
-	state->VTH[5] = 0x28;
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->VTH[0]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->VTH[1]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->VTH[2]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->VTH[3]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->VTH[4]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->VTH[5]);
+	state->vth[0] = 0xd7;
+	state->vth[1] = 0x85;
+	state->vth[2] = 0x58;
+	state->vth[3] = 0x3a;
+	state->vth[4] = 0x34;
+	state->vth[5] = 0x28;
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->vth[0]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->vth[1]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->vth[2]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->vth[3]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->vth[4]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->vth[5]);
 	return 0;
 }
 
@@ -946,14 +946,14 @@ static int set_vth(struct stv *state)
 	s32 vth = table_lookup(vthlookup_table, ARRAY_SIZE(vthlookup_table), reg_value);
 
         for (i = 0; i < 6; i += 1)
-		if (state->VTH[i] > vth)
-			state->VTH[i] = vth;
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->VTH[0]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->VTH[1]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->VTH[2]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->VTH[3]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->VTH[4]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->VTH[5]);
+		if (state->vth[i] > vth)
+			state->vth[i] = vth;
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->vth[0]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->vth[1]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->vth[2]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->vth[3]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->vth[4]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->vth[5]);
 	return status;
 }
 
@@ -1030,8 +1030,8 @@ static int start(struct stv *state, struct dtv_frontend_properties *p)
 
 	/*pr_info("symb = %u\n", symb);*/
 
-	state->DEMOD |= 0x80;
-	write_reg(state, RSTV0910_P2_DEMOD + state->regoff, state->DEMOD);
+	state->demod_bits |= 0x80;
+	write_reg(state, RSTV0910_P2_DEMOD + state->regoff, state->demod_bits);
 
 	/* FE_STV0910_SetSearchStandard */
 	read_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, &reg_dmdcfgmd);
@@ -1463,9 +1463,9 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	    if (state->receive_mode == RCVMODE_DVBS2) {
 		    /* FSTV0910_P2_MANUALSX_ROLLOFF,
 			   FSTV0910_P2_MANUALS2_ROLLOFF = 0 */
-			state->DEMOD &= ~0x84;
+			state->demod_bits &= ~0x84;
 			write_reg(state, RSTV0910_P2_DEMOD + state->regoff,
-				  state->DEMOD);
+				  state->demod_bits);
 			read_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff,
 				 &tmp);
 			/*reset DVBS2 packet delinator error counter */
@@ -1831,7 +1831,7 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->nr = nr;
 	state->regoff = state->nr ? 0 : 0x200;
 	state->search_range = 16000000;
-	state->DEMOD = 0x10;     /* Inversion : Auto with reset to 0 */
+	state->demod_bits = 0x10;     /* Inversion : Auto with reset to 0 */
 	state->receive_mode   = RCVMODE_NONE;
 	state->cur_scrambling_code = NO_SCRAMBLING_CODE;
 	state->single = cfg->single ? 1 : 0;
