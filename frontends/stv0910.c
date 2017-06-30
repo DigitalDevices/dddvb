@@ -38,8 +38,8 @@
 #include "stv0910_regs.h"
 
 
-#define EXT_CLOCK   30000000
-#define TUNING_DELAY    200
+#define EXT_CLOCK    30000000
+#define TUNING_DELAY 200
 #define BER_SRC_S    0x20
 #define BER_SRC_S2   0x20
 
@@ -97,32 +97,32 @@ struct stv_base {
 };
 
 struct stv {
-	struct stv_base     *base;
-	struct dvb_frontend  fe;
-	int                  nr;
-	u16                  regoff;
-	u8                   i2crpt;
-	u8                   tscfgh;
-	u8                   tsgeneral;
-	u8                   tsspeed;
-	u8                   single;
-	unsigned long        tune_time;
+	struct stv_base         *base;
+	struct dvb_frontend      fe;
+	int                      nr;
+	u16                      regoff;
+	u8                       i2crpt;
+	u8                       tscfgh;
+	u8                       tsgeneral;
+	u8                       tsspeed;
+	u8                       single;
+	unsigned long            tune_time;
 
-	s32                  search_range;
-	u32                  started;
-	u32                  demod_lock_time;
-	enum receive_mode     receive_mode;
-	u32                  demod_timeout;
-	u32                  fec_timeout;
-	u32                  first_time_lock;
-	u8                   demod_bits;
-	u32                  symbol_rate;
+	s32                      search_range;
+	u32                      started;
+	u32                      demod_lock_time;
+	enum receive_mode        receive_mode;
+	u32                      demod_timeout;
+	u32                      fec_timeout;
+	u32                      first_time_lock;
+	u8                       demod_bits;
+	u32                      symbol_rate;
 
-	u8                      last_viterbi_rate;
-	enum fe_code_rate       puncture_rate;
+	u8                       last_viterbi_rate;
+	enum fe_code_rate        puncture_rate;
 	enum fe_stv0910_mod_cod  mod_cod;
-	enum dvbs2_fectype      fectype;
-	u32                     pilots;
+	enum dvbs2_fectype       fectype;
+	u32                      pilots;
 	enum fe_stv0910_roll_off feroll_off;
 
 	int   is_standard_broadcast;
