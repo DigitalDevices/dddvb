@@ -38,18 +38,18 @@
 #include "stv0910_regs.h"
 
 
-#define EXT_CLOCK   30000000
-#define TUNING_DELAY    200
+#define EXT_CLOCK    30000000
+#define TUNING_DELAY 200
 #define BER_SRC_S    0x20
 #define BER_SRC_S2   0x20
 
 LIST_HEAD(stvlist);
 
-enum ReceiveMode { Mode_None, Mode_DVBS, Mode_DVBS2, Mode_Auto };
+enum receive_mode { RCVMODE_NONE, RCVMODE_DVBS, RCVMODE_DVBS2, RCVMODE_AUTO };
 
-enum DVBS2_FECType { DVBS2_64K, DVBS2_16K };
+enum dvbs2_fectype { DVBS2_64K, DVBS2_16K };
 
-enum DVBS2_ModCod {
+enum dvbs2_mod_cod {
 	DVBS2_DUMMY_PLF, DVBS2_QPSK_1_4, DVBS2_QPSK_1_3, DVBS2_QPSK_2_5,
 	DVBS2_QPSK_1_2, DVBS2_QPSK_3_5, DVBS2_QPSK_2_3,	DVBS2_QPSK_3_4,
 	DVBS2_QPSK_4_5,	DVBS2_QPSK_5_6,	DVBS2_QPSK_8_9,	DVBS2_QPSK_9_10,
@@ -60,7 +60,7 @@ enum DVBS2_ModCod {
 	DVBS2_32APSK_9_10
 };
 
-enum FE_STV0910_ModCod {
+enum fe_stv0910_mod_cod {
 	FE_DUMMY_PLF, FE_QPSK_14, FE_QPSK_13, FE_QPSK_25,
 	FE_QPSK_12, FE_QPSK_35, FE_QPSK_23, FE_QPSK_34,
 	FE_QPSK_45, FE_QPSK_56, FE_QPSK_89, FE_QPSK_910,
@@ -71,9 +71,9 @@ enum FE_STV0910_ModCod {
 	FE_32APSK_910
 };
 
-enum FE_STV0910_RollOff { FE_SAT_35, FE_SAT_25, FE_SAT_20, FE_SAT_15 };
+enum fe_stv0910_roll_off { FE_SAT_35, FE_SAT_25, FE_SAT_20, FE_SAT_15 };
 
-static inline u32 MulDiv32(u32 a, u32 b, u32 c)
+static inline u32 muldiv32(u32 a, u32 b, u32 c)
 {
 	u64 tmp64;
 
@@ -97,55 +97,55 @@ struct stv_base {
 };
 
 struct stv {
-	struct stv_base     *base;
-	struct dvb_frontend  fe;
-	int                  nr;
-	u16                  regoff;
-	u8                   i2crpt;
-	u8                   tscfgh;
-	u8                   tsgeneral;
-	u8                   tsspeed;
-	u8                   single;
-	unsigned long        tune_time;
+	struct stv_base         *base;
+	struct dvb_frontend      fe;
+	int                      nr;
+	u16                      regoff;
+	u8                       i2crpt;
+	u8                       tscfgh;
+	u8                       tsgeneral;
+	u8                       tsspeed;
+	u8                       single;
+	unsigned long            tune_time;
 
-	s32                  SearchRange;
-	u32                  Started;
-	u32                  DemodLockTime;
-	enum ReceiveMode     ReceiveMode;
-	u32                  DemodTimeout;
-	u32                  FecTimeout;
-	u32                  FirstTimeLock;
-	u8                   DEMOD;
-	u32                  SymbolRate;
+	s32                      search_range;
+	u32                      started;
+	u32                      demod_lock_time;
+	enum receive_mode        receive_mode;
+	u32                      demod_timeout;
+	u32                      fec_timeout;
+	u32                      first_time_lock;
+	u8                       demod_bits;
+	u32                      symbol_rate;
 
-	u8                      LastViterbiRate;
-	enum fe_code_rate       PunctureRate;
-	enum FE_STV0910_ModCod  ModCod;
-	enum DVBS2_FECType      FECType;
-	u32                     Pilots;
-	enum FE_STV0910_RollOff FERollOff;
+	u8                       last_viterbi_rate;
+	enum fe_code_rate        puncture_rate;
+	enum fe_stv0910_mod_cod  mod_cod;
+	enum dvbs2_fectype       fectype;
+	u32                      pilots;
+	enum fe_stv0910_roll_off feroll_off;
 
-	int   isStandardBroadcast;
-	int   isVCM;
+	int   is_standard_broadcast;
+	int   is_vcm;
 	
-	u32   CurScramblingCode;
-	u32   ScramblingCode;
+	u32   cur_scrambling_code;
+	u32   scrambling_code;
 	
-	u32   LastBERNumerator;
-	u32   LastBERDenominator;
-	u8    BERScale;
+	u32   last_bernumerator;
+	u32   last_berdenominator;
+	u8    berscale;
 
-	u8    VTH[6];
+	u8    vth[6];
 };
 
-struct SInitTable {
-	u16  Address;
-	u8   Data;
+struct sinit_table {
+	u16  address;
+	u8   data;
 };
 
-struct SLookup {
-	s16  Value;
-	u16  RegValue;
+struct slookup {
+	s16  value;
+	u16  reg_value;
 };
 
 static inline int i2c_write(struct i2c_adapter *adap, u8 adr,
@@ -216,7 +216,7 @@ static int write_shared_reg(struct stv *state, u16 reg, u8 mask, u8 val)
 	return status;
 }
 
-struct SLookup S1_SN_Lookup[] = {
+struct slookup s1_sn_lookup[] = {
 	{   0,    9242  },  /*C/N=  0dB*/
 	{  05,    9105  },  /*C/N=0.5dB*/
 	{  10,    8950  },  /*C/N=1.0dB*/
@@ -273,7 +273,7 @@ struct SLookup S1_SN_Lookup[] = {
 	{  510,    425  }   /*C/N=51.0dB*/
 };
 
-struct SLookup S2_SN_Lookup[] = {
+struct slookup s2_sn_lookup[] = {
 	{  -30,  13950  },  /*C/N=-2.5dB*/
 	{  -25,  13580  },  /*C/N=-2.5dB*/
 	{  -20,  13150  },  /*C/N=-2.0dB*/
@@ -339,7 +339,7 @@ struct SLookup S2_SN_Lookup[] = {
 /*********************************************************************
 Tracking carrier loop carrier QPSK 1/4 to 8PSK 9/10 long Frame
 *********************************************************************/
-static u8 S2CarLoop[] =	{
+static u8 s2car_loop[] =	{
 	/* Modcod  2MPon 2MPoff 5MPon 5MPoff 10MPon 10MPoff
 	   20MPon 20MPoff 30MPon 30MPoff*/
 	/* FE_QPSK_14  */
@@ -407,131 +407,131 @@ static u8 S2CarLoop[] =	{
 };
 
 static u8 get_optim_cloop(struct stv *state,
-			  enum FE_STV0910_ModCod ModCod, u32 Pilots)
+			  enum fe_stv0910_mod_cod mod_cod, u32 pilots)
 {
 	int i = 0;
-	if (ModCod >= FE_32APSK_910)
+	if (mod_cod >= FE_32APSK_910)
 		i = ((int)FE_32APSK_910 - (int)FE_QPSK_14) * 10;
-	else if (ModCod >= FE_QPSK_14)
-		i = ((int)ModCod - (int)FE_QPSK_14) * 10;
+	else if (mod_cod >= FE_QPSK_14)
+		i = ((int)mod_cod - (int)FE_QPSK_14) * 10;
 
-	if (state->SymbolRate <= 3000000)
+	if (state->symbol_rate <= 3000000)
 		i += 0;
-	else if (state->SymbolRate <=  7000000)
+	else if (state->symbol_rate <=  7000000)
 		i += 2;
-	else if (state->SymbolRate <= 15000000)
+	else if (state->symbol_rate <= 15000000)
 		i += 4;
-	else if (state->SymbolRate <= 25000000)
+	else if (state->symbol_rate <= 25000000)
 		i += 6;
 	else
 		i += 8;
 
-	if (!Pilots)
+	if (!pilots)
 		i += 1;
 
-	return S2CarLoop[i];
+	return s2car_loop[i];
 }
 
-static int GetCurSymbolRate(struct stv *state, u32 *pSymbolRate)
+static int get_cur_symbol_rate(struct stv *state, u32 *p_symbol_rate)
 {
 	int status = 0;
-	u8 SymbFreq0;
-	u8 SymbFreq1;
-	u8 SymbFreq2;
-	u8 SymbFreq3;
-	u8 TimOffs0;
-	u8 TimOffs1;
-	u8 TimOffs2;
-	u32 SymbolRate;
-	s32 TimingOffset;
+	u8 symb_freq0;
+	u8 symb_freq1;
+	u8 symb_freq2;
+	u8 symb_freq3;
+	u8 tim_offs0;
+	u8 tim_offs1;
+	u8 tim_offs2;
+	u32 symbol_rate;
+	s32 timing_offset;
 
-	*pSymbolRate = 0;
-	if (!state->Started)
+	*p_symbol_rate = 0;
+	if (!state->started)
 		return status;
 
-	read_reg(state, RSTV0910_P2_SFR3 + state->regoff, &SymbFreq3);
-	read_reg(state, RSTV0910_P2_SFR2 + state->regoff, &SymbFreq2);
-	read_reg(state, RSTV0910_P2_SFR1 + state->regoff, &SymbFreq1);
-	read_reg(state, RSTV0910_P2_SFR0 + state->regoff, &SymbFreq0);
-	read_reg(state, RSTV0910_P2_TMGREG2 + state->regoff, &TimOffs2);
-	read_reg(state, RSTV0910_P2_TMGREG1 + state->regoff, &TimOffs1);
-	read_reg(state, RSTV0910_P2_TMGREG0 + state->regoff, &TimOffs0);
+	read_reg(state, RSTV0910_P2_SFR3 + state->regoff, &symb_freq3);
+	read_reg(state, RSTV0910_P2_SFR2 + state->regoff, &symb_freq2);
+	read_reg(state, RSTV0910_P2_SFR1 + state->regoff, &symb_freq1);
+	read_reg(state, RSTV0910_P2_SFR0 + state->regoff, &symb_freq0);
+	read_reg(state, RSTV0910_P2_TMGREG2 + state->regoff, &tim_offs2);
+	read_reg(state, RSTV0910_P2_TMGREG1 + state->regoff, &tim_offs1);
+	read_reg(state, RSTV0910_P2_TMGREG0 + state->regoff, &tim_offs0);
 
-	SymbolRate = ((u32) SymbFreq3 << 24) | ((u32) SymbFreq2 << 16) |
-		((u32) SymbFreq1 << 8) | (u32) SymbFreq0;
-	TimingOffset = ((u32) TimOffs2 << 16) | ((u32) TimOffs1 << 8) |
-		(u32) TimOffs0;
+	symbol_rate = ((u32) symb_freq3 << 24) | ((u32) symb_freq2 << 16) |
+		((u32) symb_freq1 << 8) | (u32) symb_freq0;
+	timing_offset = ((u32) tim_offs2 << 16) | ((u32) tim_offs1 << 8) |
+		(u32) tim_offs0;
 
-	if ((TimingOffset & (1<<23)) != 0)
-		TimingOffset |= 0xFF000000; /* Sign extent */
+	if ((timing_offset & (1<<23)) != 0)
+		timing_offset |= 0xFF000000; /* Sign extent */
 
-	SymbolRate = (u32) (((u64) SymbolRate * state->base->mclk) >> 32);
-	TimingOffset = (s32) (((s64) SymbolRate * (s64) TimingOffset) >> 29);
+	symbol_rate = (u32) (((u64) symbol_rate * state->base->mclk) >> 32);
+	timing_offset = (s32) (((s64) symbol_rate * (s64) timing_offset) >> 29);
 
-	*pSymbolRate = SymbolRate + TimingOffset;
+	*p_symbol_rate = symbol_rate + timing_offset;
 
 	return 0;
 }
 
-static int GetSignalParameters(struct stv *state)
+static int get_signal_parameters(struct stv *state)
 {
 	u8 tmp;
 	
-	if (!state->Started)
+	if (!state->started)
 		return -1;
 	
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->receive_mode == RCVMODE_DVBS2) {
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
-		state->ModCod = (enum FE_STV0910_ModCod) ((tmp & 0x7c) >> 2);
-		state->Pilots = (tmp & 0x01) != 0;
-		state->FECType = (enum DVBS2_FECType) ((tmp & 0x02) >> 1);
+		state->mod_cod = (enum fe_stv0910_mod_cod) ((tmp & 0x7c) >> 2);
+		state->pilots = (tmp & 0x01) != 0;
+		state->fectype = (enum dvbs2_fectype) ((tmp & 0x02) >> 1);
 
 #if 0
 		read_reg(state, RSTV0910_P2_TMGOBS + state->regoff, &rolloff);
 		rolloff = rolloff >> 6;
-		state->FERollOff = (enum FE_STV0910_RollOff) rolloff;
+		state->feroll_off = (enum fe_stv0910_roll_off) rolloff;
 #endif
-	} else if (state->ReceiveMode == Mode_DVBS) {
+	} else if (state->receive_mode == RCVMODE_DVBS) {
 		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
-		state->PunctureRate = FEC_NONE;
+		state->puncture_rate = FEC_NONE;
 		switch (tmp & 0x1F) {
 		case 0x0d:
-			state->PunctureRate = FEC_1_2;
+			state->puncture_rate = FEC_1_2;
 			break;
 		case 0x12:
-			state->PunctureRate = FEC_2_3;
+			state->puncture_rate = FEC_2_3;
 			break;
 		case 0x15:
-			state->PunctureRate = FEC_3_4;
+			state->puncture_rate = FEC_3_4;
 			break;
 		case 0x18:
-			state->PunctureRate = FEC_5_6;
+			state->puncture_rate = FEC_5_6;
 			break;
-		case 0x1A:
-			state->PunctureRate = FEC_7_8;
+		case 0x1a:
+			state->puncture_rate = FEC_7_8;
 			break;
 		}
-		state->isVCM = 0;
-		state->isStandardBroadcast = 1;
-		state->FERollOff = FE_SAT_35;
+		state->is_vcm = 0;
+		state->is_standard_broadcast = 1;
+		state->feroll_off = FE_SAT_35;
 	}
 	return 0;
 }
 
-static int TrackingOptimization(struct stv *state)
+static int tracking_optimization(struct stv *state)
 {
-	u32 SymbolRate = 0;
+	u32 symbol_rate = 0;
 	u8 tmp;
 
-	GetCurSymbolRate(state, &SymbolRate);
+	get_cur_symbol_rate(state, &symbol_rate);
 	read_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, &tmp);
 	tmp &= ~0xC0;
 
-	switch (state->ReceiveMode) {
-	case Mode_DVBS:
+	switch (state->receive_mode) {
+	case RCVMODE_DVBS:
 		tmp |= 0x40;
 		break;
-	case Mode_DVBS2:
+	case RCVMODE_DVBS2:
 		tmp |= 0x80;
 		break;
 	default:
@@ -540,28 +540,28 @@ static int TrackingOptimization(struct stv *state)
 	}
 	write_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, tmp);
 
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->receive_mode == RCVMODE_DVBS2) {
 		/*Disable Reed-Solomon */  
 		write_shared_reg(state, RSTV0910_TSTTSRS, state->nr ? 0x02 : 0x01, 0x03);
 
-		if (state->FECType == DVBS2_64K) {
-			u8 aclc = get_optim_cloop(state, state->ModCod,
-						  state->Pilots);
+		if (state->fectype == DVBS2_64K) {
+			u8 aclc = get_optim_cloop(state, state->mod_cod,
+						  state->pilots);
 
-			if (state->ModCod <= FE_QPSK_910) {
+			if (state->mod_cod <= FE_QPSK_910) {
 				write_reg(state, RSTV0910_P2_ACLC2S2Q +
 					  state->regoff, aclc);
-			} else if (state->ModCod <= FE_8PSK_910) {
+			} else if (state->mod_cod <= FE_8PSK_910) {
 				write_reg(state, RSTV0910_P2_ACLC2S2Q +
 					  state->regoff, 0x2a);
 				write_reg(state, RSTV0910_P2_ACLC2S28 +
 					  state->regoff, aclc);
-			} else if (state->ModCod <= FE_16APSK_910) {
+			} else if (state->mod_cod <= FE_16APSK_910) {
 				write_reg(state, RSTV0910_P2_ACLC2S2Q +
 					  state->regoff, 0x2a);
 				write_reg(state, RSTV0910_P2_ACLC2S216A +
 					  state->regoff, aclc);
-			} else if (state->ModCod <= FE_32APSK_910) {
+			} else if (state->mod_cod <= FE_32APSK_910) {
 				write_reg(state, RSTV0910_P2_ACLC2S2Q +
 					  state->regoff, 0x2a);
 				write_reg(state, RSTV0910_P2_ACLC2S232A +
@@ -572,107 +572,107 @@ static int TrackingOptimization(struct stv *state)
 	return 0;
 }
 
-static s32 TableLookup(struct SLookup *Table,
-		       int TableSize, u16 RegValue)
+static s32 table_lookup(struct slookup *table,
+		       int table_size, u16 reg_value)
 {
-	s32 Value;
+	s32 value;
 	int imin = 0;
-	int imax = TableSize - 1;
+	int imax = table_size - 1;
 	int i;
-	s32 RegDiff;
+	s32 reg_diff;
 	
 	/* Assumes Table[0].RegValue > Table[imax].RegValue */
-	if( RegValue >= Table[0].RegValue )
-		Value = Table[0].Value;
-	else if( RegValue <= Table[imax].RegValue )
-		Value = Table[imax].Value;
+	if( reg_value >= table[0].reg_value )
+		value = table[0].value;
+	else if( reg_value <= table[imax].reg_value )
+		value = table[imax].value;
 	else
 	{
 		while(imax-imin > 1)
 		{
 			i = (imax + imin) / 2;
-			if( (Table[imin].RegValue >= RegValue) && (RegValue >= Table[i].RegValue) )
+			if( (table[imin].reg_value >= reg_value) && (reg_value >= table[i].reg_value) )
 				imax = i;
 			else
 				imin = i;
 		}
 		
-		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
-		Value = Table[imin].Value;
-		if( RegDiff != 0 )
-			Value += ((s32)(RegValue - Table[imin].RegValue) *
-				  (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+		reg_diff = table[imax].reg_value - table[imin].reg_value;
+		value = table[imin].value;
+		if( reg_diff != 0 )
+			value += ((s32)(reg_value - table[imin].reg_value) *
+				  (s32)(table[imax].value - table[imin].value))/(reg_diff);
 	}
 	
-	return Value;
+	return value;
 }
 
-static int GetSignalToNoise(struct stv *state, s32 *SignalToNoise)
+static int get_signal_to_noise(struct stv *state, s32 *signal_to_noise)
 {
-	u8 Data0;
-	u8 Data1;
-	u16 Data;
-	int nLookup;
-	struct SLookup *Lookup;
+	u8 data0;
+	u8 data1;
+	u16 data;
+	int n_lookup;
+	struct slookup *lookup;
 
-	*SignalToNoise = 0;
+	*signal_to_noise = 0;
 
-	if (!state->Started)
+	if (!state->started)
 		return 0;
 
-	if (state->ReceiveMode == Mode_DVBS2) {
-		read_reg(state, RSTV0910_P2_NNOSPLHT1 + state->regoff, &Data1);
-		read_reg(state, RSTV0910_P2_NNOSPLHT0 + state->regoff, &Data0);
-		nLookup = ARRAY_SIZE(S2_SN_Lookup);
-		Lookup = S2_SN_Lookup;
+	if (state->receive_mode == RCVMODE_DVBS2) {
+		read_reg(state, RSTV0910_P2_NNOSPLHT1 + state->regoff, &data1);
+		read_reg(state, RSTV0910_P2_NNOSPLHT0 + state->regoff, &data0);
+		n_lookup = ARRAY_SIZE(s2_sn_lookup);
+		lookup = s2_sn_lookup;
 	} else {
-		read_reg(state, RSTV0910_P2_NNOSDATAT1 + state->regoff, &Data1);
-		read_reg(state, RSTV0910_P2_NNOSDATAT0 + state->regoff, &Data0);
-		nLookup = ARRAY_SIZE(S1_SN_Lookup);
-		Lookup = S1_SN_Lookup;
+		read_reg(state, RSTV0910_P2_NNOSDATAT1 + state->regoff, &data1);
+		read_reg(state, RSTV0910_P2_NNOSDATAT0 + state->regoff, &data0);
+		n_lookup = ARRAY_SIZE(s1_sn_lookup);
+		lookup = s1_sn_lookup;
 	}
-	Data = (((u16)Data1) << 8) | (u16) Data0;
-        *SignalToNoise = TableLookup(Lookup, nLookup, Data);
+	data = (((u16)data1) << 8) | (u16) data0;
+        *signal_to_noise = table_lookup(lookup, n_lookup, data);
 	return 0;
 }
 
-static int GetBitErrorRateS(struct stv *state, u32 *BERNumerator,
-			    u32 *BERDenominator)
+static int get_bit_error_rate_s(struct stv *state, u32 *bernumerator,
+			    u32 *berdenominator)
 {
-	u8 Regs[3];
+	u8 regs[3];
 
 	int status = read_regs(state, RSTV0910_P2_ERRCNT12 + state->regoff,
-			       Regs, 3);
+			       regs, 3);
 
 	if (status)
 		return -1;
 
-	if ((Regs[0] & 0x80) == 0) {
-		state->LastBERDenominator = 1 << ((state->BERScale * 2) +
+	if ((regs[0] & 0x80) == 0) {
+		state->last_berdenominator = 1 << ((state->berscale * 2) +
 						  10 + 3);
-		state->LastBERNumerator = ((u32) (Regs[0] & 0x7F) << 16) |
-			((u32) Regs[1] << 8) | Regs[2];
-		if (state->LastBERNumerator < 256 && state->BERScale < 6) {
-			state->BERScale += 1;
+		state->last_bernumerator = ((u32) (regs[0] & 0x7F) << 16) |
+			((u32) regs[1] << 8) | regs[2];
+		if (state->last_bernumerator < 256 && state->berscale < 6) {
+			state->berscale += 1;
 			status = write_reg(state, RSTV0910_P2_ERRCTRL1 +
 					   state->regoff,
-					   0x20 | state->BERScale);
-		} else if (state->LastBERNumerator > 1024 &&
-			   state->BERScale > 2) {
-			state->BERScale -= 1;
+					   0x20 | state->berscale);
+		} else if (state->last_bernumerator > 1024 &&
+			   state->berscale > 2) {
+			state->berscale -= 1;
 			status = write_reg(state, RSTV0910_P2_ERRCTRL1 +
 					   state->regoff, 0x20 |
-					   state->BERScale);
+					   state->berscale);
 		}
 	}
-	*BERNumerator = state->LastBERNumerator;
-	*BERDenominator = state->LastBERDenominator;
+	*bernumerator = state->last_bernumerator;
+	*berdenominator = state->last_berdenominator;
 	return 0;
 }
 
-static u32 DVBS2_nBCH(enum DVBS2_ModCod ModCod, enum DVBS2_FECType FECType)
+static u32 dvbs2_nbch(enum dvbs2_mod_cod mod_cod, enum dvbs2_fectype fectype)
 {
-	static u32 nBCH[][2] = {
+	static u32 nbch[][2] = {
 		{16200,  3240}, /* QPSK_1_4, */
 		{21600,  5400}, /* QPSK_1_3, */
 		{25920,  6480}, /* QPSK_2_5, */
@@ -703,59 +703,59 @@ static u32 DVBS2_nBCH(enum DVBS2_ModCod ModCod, enum DVBS2_FECType FECType)
 		{58320, 16000}, /* 32APSK_9_10 */
 	};
 
-	if (ModCod >= DVBS2_QPSK_1_4 &&
-	    ModCod <= DVBS2_32APSK_9_10 && FECType <= DVBS2_16K)
-		return nBCH[FECType][ModCod];
+	if (mod_cod >= DVBS2_QPSK_1_4 &&
+	    mod_cod <= DVBS2_32APSK_9_10 && fectype <= DVBS2_16K)
+		return nbch[fectype][mod_cod];
 	return 64800;
 }
 
-static int GetBitErrorRateS2(struct stv *state,
-			     u32 *BERNumerator,
-			     u32 *BERDenominator)
+static int get_bit_error_rate_s2(struct stv *state,
+			     u32 *bernumerator,
+			     u32 *berdenominator)
 {
-	u8 Regs[3];
+	u8 regs[3];
 	
 	int status = read_regs(state, RSTV0910_P2_ERRCNT12 + state->regoff,
-			       Regs, 3);
+			       regs, 3);
 
 	if (status)
 		return -1;
 
-	if ((Regs[0] & 0x80) == 0) {
-		state->LastBERDenominator =
-			DVBS2_nBCH((enum DVBS2_ModCod) state->ModCod,
-				   state->FECType) <<
-			(state->BERScale * 2);
-		state->LastBERNumerator = (((u32) Regs[0] & 0x7F) << 16) |
-			((u32) Regs[1] << 8) | Regs[2];
-		if (state->LastBERNumerator < 256 && state->BERScale < 6) {
-			state->BERScale += 1;
+	if ((regs[0] & 0x80) == 0) {
+		state->last_berdenominator =
+			dvbs2_nbch((enum dvbs2_mod_cod) state->mod_cod,
+				   state->fectype) <<
+			(state->berscale * 2);
+		state->last_bernumerator = (((u32) regs[0] & 0x7F) << 16) |
+			((u32) regs[1] << 8) | regs[2];
+		if (state->last_bernumerator < 256 && state->berscale < 6) {
+			state->berscale += 1;
 			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  0x20 | state->BERScale);
-		} else if (state->LastBERNumerator > 1024 &&
-			   state->BERScale > 2) {
-			state->BERScale -= 1;
+				  0x20 | state->berscale);
+		} else if (state->last_bernumerator > 1024 &&
+			   state->berscale > 2) {
+			state->berscale -= 1;
 			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  0x20 | state->BERScale);
+				  0x20 | state->berscale);
 		}
 	}
-	*BERNumerator = state->LastBERNumerator;
-	*BERDenominator = state->LastBERDenominator;
+	*bernumerator = state->last_bernumerator;
+	*berdenominator = state->last_berdenominator;
 	return status;
 }
 
-static int GetBitErrorRate(struct stv *state, u32 *BERNumerator,
-			   u32 *BERDenominator)
+static int get_bit_error_rate(struct stv *state, u32 *bernumerator,
+			   u32 *berdenominator)
 {
-	*BERNumerator = 0;
-	*BERDenominator = 1;
+	*bernumerator = 0;
+	*berdenominator = 1;
 
-	switch (state->ReceiveMode) {
-	case Mode_DVBS:
-		return GetBitErrorRateS(state, BERNumerator, BERDenominator);
+	switch (state->receive_mode) {
+	case RCVMODE_DVBS:
+		return get_bit_error_rate_s(state, bernumerator, berdenominator);
 		break;
-	case Mode_DVBS2:
-		return GetBitErrorRateS2(state, BERNumerator, BERDenominator);
+	case RCVMODE_DVBS2:
+		return get_bit_error_rate_s2(state, bernumerator, berdenominator);
 	default:
 		break;
 	}
@@ -767,13 +767,13 @@ static int init(struct dvb_frontend *fe)
 	return 0;
 }
 
-static int set_mclock(struct stv *state, u32 MasterClock)
+static int set_mclock(struct stv *state, u32 master_clock)
 {
 	u32 idf = 1;
 	u32 odf = 4;
 	u32 quartz = state->base->extclk / 1000000;
-	u32 Fphi = MasterClock / 1000000;
-	u32 ndiv = (Fphi * odf * idf) / quartz;
+	u32 fphi = master_clock / 1000000;
+	u32 ndiv = (fphi * odf * idf) / quartz;
 	u32 cp = 7;
 	u32 fvco;
 
@@ -831,9 +831,9 @@ static int set_mclock(struct stv *state, u32 MasterClock)
 	return 0;
 }
 
-static int Stop(struct stv *state)
+static int stop(struct stv *state)
 {
-	if (state->Started) {
+	if (state->started) {
 		u8 tmp;
 
 		write_reg(state, RSTV0910_P2_TSCFGH + state->regoff,
@@ -845,9 +845,9 @@ static int Stop(struct stv *state)
 		write_reg(state, RSTV0910_P2_AGC2O + state->regoff, 0x5B);
 		/* Stop the demod */
 		write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x5c);
-		state->Started = 0;
+		state->started = 0;
 	}
-	state->ReceiveMode = Mode_None;
+	state->receive_mode = RCVMODE_NONE;
 	return 0;
 }
 
@@ -894,7 +894,7 @@ static int init_search_param(struct stv *state)
 	return 0;
 }
 
-static int EnablePunctureRate(struct stv *state, enum fe_code_rate rate)
+static int enable_puncture_rate(struct stv *state, enum fe_code_rate rate)
 {
 	switch(rate) {
         case FEC_1_2: 
@@ -915,24 +915,24 @@ static int EnablePunctureRate(struct stv *state, enum fe_code_rate rate)
 
 static int set_vth_default(struct stv *state)
 {
-	state->VTH[0] = 0xd7;
-	state->VTH[1] = 0x85;
-	state->VTH[2] = 0x58;
-	state->VTH[3] = 0x3a;
-	state->VTH[4] = 0x34;
-	state->VTH[5] = 0x28;
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->VTH[0]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->VTH[1]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->VTH[2]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->VTH[3]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->VTH[4]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->VTH[5]);
+	state->vth[0] = 0xd7;
+	state->vth[1] = 0x85;
+	state->vth[2] = 0x58;
+	state->vth[3] = 0x3a;
+	state->vth[4] = 0x34;
+	state->vth[5] = 0x28;
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->vth[0]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->vth[1]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->vth[2]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->vth[3]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->vth[4]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->vth[5]);
 	return 0;
 }
 
 static int set_vth(struct stv *state)
 {
-	static struct SLookup VTHLookupTable[] = {
+	static struct slookup vthlookup_table[] = {
 		{250,	8780}, /*C/N=1.5dB*/
 		{100,	7405}, /*C/N=4.5dB*/
 		{40,	6330}, /*C/N=6.5dB*/
@@ -942,36 +942,36 @@ static int set_vth(struct stv *state)
 	int i;
 	u8 tmp[2];
 	int status = read_regs(state, RSTV0910_P2_NNOSDATAT1 + state->regoff, tmp, 2);
-	u16 RegValue = (tmp[0] << 8) | tmp[1];
-	s32 vth = TableLookup(VTHLookupTable, ARRAY_SIZE(VTHLookupTable), RegValue);
+	u16 reg_value = (tmp[0] << 8) | tmp[1];
+	s32 vth = table_lookup(vthlookup_table, ARRAY_SIZE(vthlookup_table), reg_value);
 
         for (i = 0; i < 6; i += 1)
-		if (state->VTH[i] > vth)
-			state->VTH[i] = vth;
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->VTH[0]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->VTH[1]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->VTH[2]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->VTH[3]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->VTH[4]);
-	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->VTH[5]);
+		if (state->vth[i] > vth)
+			state->vth[i] = vth;
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 0, state->vth[0]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 1, state->vth[1]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 2, state->vth[2]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 3, state->vth[3]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 4, state->vth[4]);
+	write_reg(state, RSTV0910_P2_VTH12 + state->regoff + 5, state->vth[5]);
 	return status;
 }
 
-static int Start(struct stv *state, struct dtv_frontend_properties *p)
+static int start(struct stv *state, struct dtv_frontend_properties *p)
 {
-	s32 Freq;
-	u8  regDMDCFGMD;
+	s32 freq;
+	u8  reg_dmdcfgmd;
 	u16 symb;
-	u32 ScramblingCode = 1;
+	u32 scrambling_code = 1;
 	
 	if (p->symbol_rate < 100000 || p->symbol_rate > 70000000)
 		return -EINVAL;
 
-	state->ReceiveMode = Mode_None;
-	state->DemodLockTime = 0;
+	state->receive_mode = RCVMODE_NONE;
+	state->demod_lock_time = 0;
 
 	/* Demod Stop*/
-	if (state->Started)
+	if (state->started)
 		write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x5C);
 
 	init_search_param(state);
@@ -981,7 +981,7 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 		   PRBS X root cannot be 0, so this should always work.
 		*/
 		if (p->stream_id & 0xffffff00) 
-			ScramblingCode = p->stream_id >> 8;
+			scrambling_code = p->stream_id >> 8;
 		write_reg(state, RSTV0910_P2_ISIENTRY + state->regoff, p->stream_id & 0xff);
 		write_reg(state, RSTV0910_P2_ISIBITENA + state->regoff, 0xff);
 		//pr_info("ID=%08x\n", p->stream_id & 0xff);
@@ -989,61 +989,61 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 
 	/* props->pls is always gold code ! */
         if (p->pls != NO_SCRAMBLING_CODE)
-		ScramblingCode = p->pls | 0x40000; 
+		scrambling_code = p->pls | 0x40000; 
 
-        if (ScramblingCode != state->CurScramblingCode) {
+        if (scrambling_code != state->cur_scrambling_code) {
 		write_reg(state, RSTV0910_P2_PLROOT0 + state->regoff,
-			  ScramblingCode & 0xff);
+			  scrambling_code & 0xff);
 		write_reg(state, RSTV0910_P2_PLROOT1 + state->regoff,
-			  (ScramblingCode >> 8) & 0xff);
+			  (scrambling_code >> 8) & 0xff);
 		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff,
-			  (ScramblingCode >> 16) & 0x07);
-		state->CurScramblingCode = ScramblingCode;
+			  (scrambling_code >> 16) & 0x07);
+		state->cur_scrambling_code = scrambling_code;
 		//pr_info("PLS=%08x\n",  ScramblingCode);
         }
 
 	if (p->symbol_rate <= 1000000) {  /*SR <=1Msps*/
-		state->DemodTimeout = 3000;
-		state->FecTimeout = 2000;
+		state->demod_timeout = 3000;
+		state->fec_timeout = 2000;
 	} else if (p->symbol_rate <= 2000000) {  /*1Msps < SR <=2Msps*/
-		state->DemodTimeout = 2500;
-		state->FecTimeout = 1300;
+		state->demod_timeout = 2500;
+		state->fec_timeout = 1300;
 	} else if (p->symbol_rate <= 5000000) {  /*2Msps< SR <=5Msps*/
-		state->DemodTimeout = 1000;
-		state->FecTimeout = 650;
+		state->demod_timeout = 1000;
+		state->fec_timeout = 650;
 	} else if (p->symbol_rate <= 10000000) {  /*5Msps< SR <=10Msps*/
-		state->DemodTimeout = 700;
-		state->FecTimeout = 350;
+		state->demod_timeout = 700;
+		state->fec_timeout = 350;
 	} else if (p->symbol_rate < 20000000) {  /*10Msps< SR <=20Msps*/
-		state->DemodTimeout = 400;
-		state->FecTimeout = 200;
+		state->demod_timeout = 400;
+		state->fec_timeout = 200;
 	} else {  /*SR >=20Msps*/
-		state->DemodTimeout = 300;
-		state->FecTimeout = 200;
+		state->demod_timeout = 300;
+		state->fec_timeout = 200;
 	}
 
 	/* Set the Init Symbol rate*/
-	symb = MulDiv32(p->symbol_rate, 65536, state->base->mclk);
+	symb = muldiv32(p->symbol_rate, 65536, state->base->mclk);
 	write_reg(state, RSTV0910_P2_SFRINIT1 + state->regoff,
 		  ((symb >> 8) & 0x7F));
 	write_reg(state, RSTV0910_P2_SFRINIT0 + state->regoff, (symb & 0xFF));
 
 	/*pr_info("symb = %u\n", symb);*/
 
-	state->DEMOD |= 0x80;
-	write_reg(state, RSTV0910_P2_DEMOD + state->regoff, state->DEMOD);
+	state->demod_bits |= 0x80;
+	write_reg(state, RSTV0910_P2_DEMOD + state->regoff, state->demod_bits);
 
 	/* FE_STV0910_SetSearchStandard */
-	read_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, &regDMDCFGMD);
+	read_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, &reg_dmdcfgmd);
 	write_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff,
-		  regDMDCFGMD |= 0xC0);
+		  reg_dmdcfgmd |= 0xC0);
         write_shared_reg(state, RSTV0910_TSTTSRS, state->nr ? 0x02 : 0x01, 0x00);
 	
 	/* Disable DSS */
 	write_reg(state, RSTV0910_P2_FECM  + state->regoff, 0x00);
 	write_reg(state, RSTV0910_P2_PRVIT + state->regoff, 0x2F);
 
-        EnablePunctureRate(state, FEC_NONE);
+        enable_puncture_rate(state, FEC_NONE);
 	
 	/* 8PSK 3/5, 8PSK 2/3 Poff tracking optimization WA*/
 	write_reg(state, RSTV0910_P2_ACLC2S2Q + state->regoff, 0x0B);
@@ -1071,19 +1071,19 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	write_reg(state, RSTV0910_P2_CARCFG + state->regoff, 0x46);
 
 	if (p->symbol_rate <= 5000000)
-		Freq = (state->SearchRange / 2000) + 80;
+		freq = (state->search_range / 2000) + 80;
 	else
-		Freq = (state->SearchRange / 2000) + 1600;
-	Freq = (Freq << 16) / (state->base->mclk / 1000);
+		freq = (state->search_range / 2000) + 1600;
+	freq = (freq << 16) / (state->base->mclk / 1000);
 
 	write_reg(state, RSTV0910_P2_CFRUP1 + state->regoff,
-		  (Freq >> 8) & 0xff);
-	write_reg(state, RSTV0910_P2_CFRUP0 + state->regoff, (Freq & 0xff));
+		  (freq >> 8) & 0xff);
+	write_reg(state, RSTV0910_P2_CFRUP0 + state->regoff, (freq & 0xff));
 	/*CFR Low Setting*/
-	Freq = -Freq;
+	freq = -freq;
 	write_reg(state, RSTV0910_P2_CFRLOW1 + state->regoff,
-		  (Freq >> 8) & 0xff);
-	write_reg(state, RSTV0910_P2_CFRLOW0 + state->regoff, (Freq & 0xff));
+		  (freq >> 8) & 0xff);
+	write_reg(state, RSTV0910_P2_CFRLOW0 + state->regoff, (freq & 0xff));
 
 	/* init the demod frequency offset to 0 */
 	write_reg(state, RSTV0910_P2_CFRINIT1 + state->regoff, 0);
@@ -1093,8 +1093,8 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 	/* Trigger acq */
 	write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x15);
 
-	state->DemodLockTime += TUNING_DELAY;
-	state->Started = 1;
+	state->demod_lock_time += TUNING_DELAY;
+	state->started = 1;
 
 	return 0;
 }
@@ -1102,13 +1102,13 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 static int init_diseqc(struct stv *state)
 {
 	u16 offs = state->nr ? 0x40 : 0;  /* Address offset */
-	u8 Freq = ((state->base->mclk + 11000 * 32) / (22000 * 32));
+	u8 freq = ((state->base->mclk + 11000 * 32) / (22000 * 32));
 
 	/* Disable receiver */
 	write_reg(state, RSTV0910_P1_DISRXCFG + offs, 0x00);
 	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0xBA); /* Reset = 1 */
 	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3A); /* Reset = 0 */
-	write_reg(state, RSTV0910_P1_DISTXF22 + offs, Freq);
+	write_reg(state, RSTV0910_P1_DISTXF22 + offs, freq);
 	return 0;
 }
 
@@ -1116,8 +1116,8 @@ static int probe(struct stv *state)
 {
 	u8 id;
 
-	state->ReceiveMode = Mode_None;
-	state->Started = 0;
+	state->receive_mode = RCVMODE_NONE;
+	state->started = 0;
 
 	if (read_reg(state, RSTV0910_MID, &id) < 0)
 		return -1;
@@ -1233,16 +1233,16 @@ static int set_parameters(struct dvb_frontend *fe)
 {
 	int stat = 0;
 	struct stv *state = fe->demodulator_priv;
-	u32 IF;
+	u32 iffreq;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
-	Stop(state);
+	stop(state);
 	if (fe->ops.tuner_ops.set_params)
 		fe->ops.tuner_ops.set_params(fe);
 	if (fe->ops.tuner_ops.get_if_frequency)
-		fe->ops.tuner_ops.get_if_frequency(fe, &IF);
-	state->SymbolRate = p->symbol_rate;
-	stat = Start(state, p);
+		fe->ops.tuner_ops.get_if_frequency(fe, &iffreq);
+	state->symbol_rate = p->symbol_rate;
+	stat = start(state, p);
 	return stat;
 }
 
@@ -1271,7 +1271,7 @@ static int get_frontend(struct dvb_frontend *fe)
 	u8 tmp;
 
 	
-	if (state->ReceiveMode == Mode_DVBS2) {
+	if (state->receive_mode == RCVMODE_DVBS2) {
 		u32 mc;
 		enum fe_modulation modcod2mod[0x20] = {
 			QPSK, QPSK, QPSK, QPSK,
@@ -1298,7 +1298,7 @@ static int get_frontend(struct dvb_frontend *fe)
 		p->pilot = (tmp & 0x01) ? PILOT_ON : PILOT_OFF;
 		p->modulation = modcod2mod[mc];
 		p->fec_inner = modcod2fec[mc];	
-        } else if (state->ReceiveMode == Mode_DVBS) {
+        } else if (state->receive_mode == RCVMODE_DVBS) {
 		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
 		switch( tmp & 0x1F ) {
                 case 0x0d:
@@ -1329,23 +1329,23 @@ static int get_frontend(struct dvb_frontend *fe)
 }
 
 
-static int ManageMatypeInfo(struct stv *state)
+static int manage_matype_info(struct stv *state)
 {
-	if (!state->Started)
+	if (!state->started)
 		return -1;
-        if (state->ReceiveMode == Mode_DVBS2 ) {
-		u8 BBHeader[2];
+        if (state->receive_mode == RCVMODE_DVBS2 ) {
+		u8 bbheader[2];
 		
 		read_regs(state, RSTV0910_P2_MATSTR1 + state->regoff,
-			  BBHeader, 2);
-		state->FERollOff =
-			(enum FE_STV0910_RollOff) (BBHeader[0] & 0x03);
-		state->isVCM = (BBHeader[0] & 0x10) == 0;
-		state->isStandardBroadcast = (BBHeader[0] & 0xFC) == 0xF0;
-        } else if (state->ReceiveMode == Mode_DVBS) {
-		state->isVCM = 0;
-		state->isStandardBroadcast = 1;
-		state->FERollOff = FE_SAT_35;
+			  bbheader, 2);
+		state->feroll_off =
+			(enum fe_stv0910_roll_off) (bbheader[0] & 0x03);
+		state->is_vcm = (bbheader[0] & 0x10) == 0;
+		state->is_standard_broadcast = (bbheader[0] & 0xFC) == 0xF0;
+        } else if (state->receive_mode == RCVMODE_DVBS) {
+		state->is_vcm = 0;
+		state->is_standard_broadcast = 1;
+		state->feroll_off = FE_SAT_35;
         }
 	return 0;
 }
@@ -1358,10 +1358,10 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber);
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct stv *state = fe->demodulator_priv;
-	u8 DmdState = 0;
-	u8 DStatus  = 0;
-	enum ReceiveMode CurReceiveMode = Mode_None;
-	u32 FECLock = 0;
+	u8 dmd_state = 0;
+	u8 dstatus  = 0;
+	enum receive_mode cur_receive_mode = RCVMODE_NONE;
+	u32 feclock = 0;
 	u16 val;
 	u32 ber;
 	s32 foff;
@@ -1375,38 +1375,38 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	
 	read_ber(fe, &ber);
 	
-	read_reg(state, RSTV0910_P2_DMDSTATE + state->regoff, &DmdState);
-	if (DmdState & 0x40) {
+	read_reg(state, RSTV0910_P2_DMDSTATE + state->regoff, &dmd_state);
+	if (dmd_state & 0x40) {
 		read_reg(state, RSTV0910_P2_DSTATUS + state->regoff,
-			 &DStatus);
-		if (DStatus & 0x08)
-			CurReceiveMode = (DmdState & 0x20) ?
-				Mode_DVBS : Mode_DVBS2;
+			 &dstatus);
+		if (dstatus & 0x08)
+			cur_receive_mode = (dmd_state & 0x20) ?
+				RCVMODE_DVBS : RCVMODE_DVBS2;
 	}
-	if (CurReceiveMode == Mode_None) {
+	if (cur_receive_mode == RCVMODE_NONE) {
 		set_vth(state);
 		//if( Time >= m_DemodTimeout ) *pLockStatus = NEVER_LOCK;
 		return 0;
 	}
 	*status |= 0x0f;
-	if (state->ReceiveMode == Mode_None) {
-		state->ReceiveMode = CurReceiveMode;
-		state->DemodLockTime = jiffies;
-		state->FirstTimeLock = 1;
+	if (state->receive_mode == RCVMODE_NONE) {
+		state->receive_mode = cur_receive_mode;
+		state->demod_lock_time = jiffies;
+		state->first_time_lock = 1;
 
-		GetSignalParameters(state);
-		TrackingOptimization(state);
+		get_signal_parameters(state);
+		tracking_optimization(state);
 		
 #if 0
-            if( CurReceiveMode == Mode_DVBS2 && m_bPilots
-		&& ( m_ModCod == FE_8PSK_23 || m_ModCod == FE_8PSK_35) )
+            if( cur_receive_mode == RCVMODE_DVBS2 && m_b_pilots
+		&& ( m_mod_cod == FE_8PSK_23 || m_mod_cod == FE_8PSK_35) )
             {
                 LONG C_N;
-                CHK_ERROR(GetSignalToNoise(&C_N));
+                CHK_ERROR(get_signal_to_noise(&C_N));
                 if( C_N < 80 )
                 {
-                    CHK_ERROR(WriteReg(RSTV0910_P2_CARHDR + m_DemodOffset , 0x04));
-                    CHK_ERROR(WriteReg(RSTV0910_P2_BCLC2S28 + m_DemodOffset , 0x31));
+                    CHK_ERROR(write_reg(RSTV0910_P2_CARHDR + m_demod_offset , 0x04));
+                    CHK_ERROR(write_reg(RSTV0910_P2_BCLC2S28 + m_demod_offset , 0x31));
                 }
             }
 #endif
@@ -1419,53 +1419,53 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		write_reg(state, RSTV0910_P2_TSCFGH + state->regoff,
 			  state->tscfgh);
 	}
-	if (DmdState & 0x40) {
-		if (state->ReceiveMode == Mode_DVBS2) {
-			u8 PDELStatus;
+	if (dmd_state & 0x40) {
+		if (state->receive_mode == RCVMODE_DVBS2) {
+			u8 pdelstatus;
 			read_reg(state,
 				 RSTV0910_P2_PDELSTATUS1 + state->regoff,
-				 &PDELStatus);
-			FECLock = (PDELStatus & 0x02) != 0;
+				 &pdelstatus);
+			feclock = (pdelstatus & 0x02) != 0;
 		} else {
-			u8 VStatus;
+			u8 vstatus;
 			read_reg(state,
 				 RSTV0910_P2_VSTATUSVIT + state->regoff,
-				 &VStatus);
-			FECLock = (VStatus & 0x08) != 0;
+				 &vstatus);
+			feclock = (vstatus & 0x08) != 0;
 		}
 	}
 
-	if (!FECLock)
+	if (!feclock)
 		//if( Time >= m_DemodLockTime + m_FecTimeout ) *pLockStatus = NEVER_LOCK;
 		return 0;
 
 	*status |= 0x10;
 
-	if (state->FirstTimeLock) {
+	if (state->first_time_lock) {
 		u8 tmp;
 
-		state->FirstTimeLock = 0;
+		state->first_time_lock = 0;
 
-		ManageMatypeInfo(state);
+		manage_matype_info(state);
 		
 #if 0
-		ULONG Bitrate;
-		CSTV0910::GetBitrate(&Bitrate);
-		BYTE newTSSPEED = (Bitrate > 67000000) ? 0x30 : 0x40;
-            if (newTSSPEED != m_TSSPEED)
+		ULONG bitrate;
+		CSTV0910::get_bitrate(&bitrate);
+		BYTE new_tsspeed = (bitrate > 67000000) ? 0x30 : 0x40;
+            if (new_tsspeed != m_tsspeed)
             {
-		    KdPrintEx((MSG_INFO "_%d " __FUNCTION__ " TSSPEED = %02X\n", m_Instance, newTSSPEED));
-                CHK_ERROR(WriteReg(RSTV0910_P2_TSSPEED + m_DemodOffset, newTSSPEED));
-                m_TSSPEED = newTSSPEED;
+		    kd_print_ex((MSG_INFO "_%d " __FUNCTION__ " TSSPEED = %02X\n", m_instance, new_tsspeed));
+                CHK_ERROR(write_reg(RSTV0910_P2_TSSPEED + m_demod_offset, new_tsspeed));
+                m_tsspeed = new_tsspeed;
             }
 	    
 #endif
-	    if (state->ReceiveMode == Mode_DVBS2) {
+	    if (state->receive_mode == RCVMODE_DVBS2) {
 		    /* FSTV0910_P2_MANUALSX_ROLLOFF,
 			   FSTV0910_P2_MANUALS2_ROLLOFF = 0 */
-			state->DEMOD &= ~0x84;
+			state->demod_bits &= ~0x84;
 			write_reg(state, RSTV0910_P2_DEMOD + state->regoff,
-				  state->DEMOD);
+				  state->demod_bits);
 			read_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff,
 				 &tmp);
 			/*reset DVBS2 packet delinator error counter */
@@ -1479,19 +1479,19 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 				  state->regoff,
 				  tmp);
 
-			state->BERScale = 2;
-			state->LastBERNumerator = 0;
-			state->LastBERDenominator = 1;
+			state->berscale = 2;
+			state->last_bernumerator = 0;
+			state->last_berdenominator = 1;
 			/* force to PRE BCH Rate */
 			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  BER_SRC_S2 | state->BERScale);
+				  BER_SRC_S2 | state->berscale);
 		} else {
-			state->BERScale = 2;
-			state->LastBERNumerator = 0;
-			state->LastBERDenominator = 1;
+			state->berscale = 2;
+			state->last_bernumerator = 0;
+			state->last_berdenominator = 1;
 			/* force to PRE RS Rate */
 			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  BER_SRC_S | state->BERScale);
+				  BER_SRC_S | state->berscale);
 		}
 		/*Reset the Total packet counter */
 		write_reg(state, RSTV0910_P2_FBERCPT4 + state->regoff, 0x00);
@@ -1500,22 +1500,22 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		write_reg(state, RSTV0910_P2_ERRCTRL2 + state->regoff, 0xc1);
 
 		set_vth_default(state);
-		if (state->ReceiveMode == Mode_DVBS)
-			EnablePunctureRate(state, state->PunctureRate);
+		if (state->receive_mode == RCVMODE_DVBS)
+			enable_puncture_rate(state, state->puncture_rate);
 	}
 
 #if 0
-        if( m_isVCM )
+        if( m_is_vcm )
         {
 		// Use highest signaled ModCod for quality
 		BYTE tmp;
-		CHK_ERROR(ReadReg(RSTV0910_P2_DMDMODCOD +
-				  m_DemodOffset,&tmp));
-		FE_STV0910_ModCod ModCod =
-			FE_STV0910_ModCod((tmp & 0x7c) >> 2);
+		CHK_ERROR(read_reg(RSTV0910_P2_DMDMODCOD +
+				  m_demod_offset,&tmp));
+		fe_stv0910_mod_cod mod_cod =
+			fe_stv0910_mod_cod((tmp & 0x7c) >> 2);
 
-		if( ModCod > m_ModCod )
-			m_ModCod = ModCod;
+		if( mod_cod > m_mod_cod )
+			m_mod_cod = mod_cod;
         }
 #endif
 	return 0;
@@ -1632,7 +1632,7 @@ static int sleep(struct dvb_frontend *fe)
 {
 	struct stv *state = fe->demodulator_priv;
 
-	Stop(state);
+	stop(state);
 	return 0;
 }
 
@@ -1644,7 +1644,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	s32 SNR;
 
 	*snr = 0;
-	if (GetSignalToNoise(state, &SNR))
+	if (get_signal_to_noise(state, &SNR))
 		return -EIO;
 	*snr = SNR;
 	p->cnr.len = 1;
@@ -1660,7 +1660,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 n, d;
 
-	GetBitErrorRate(state, &n, &d);
+	get_bit_error_rate(state, &n, &d);
 	if (d) 
 		*ber = n / d;
 	else
@@ -1675,9 +1675,9 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 	return 0;
 }
 
-static s32 Log10x100(u32 x)
+static s32 log10x100(u32 x)
 {
-	static u32 LookupTable[100] = {
+	static u32 lookup_table[100] = {
 		101157945, 103514217, 105925373, 108392691, 110917482,
 		113501082, 116144861, 118850223, 121618600, 124451461,
 		127350308, 130316678, 133352143, 136458314, 139636836,
@@ -1715,7 +1715,7 @@ static s32 Log10x100(u32 x)
 		y -= 100;
 	}
 	i = 0;
-	while (i < 100 && x > LookupTable[i])
+	while (i < 100 && x > lookup_table[i])
 		i += 1;
 	y += i;
 	return y;
@@ -1725,22 +1725,22 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 {
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	u8 Reg[2];
+	u8 reg[2];
 	s32 bbgain;
-	s32 Power = 0;
+	s32 power = 0;
 	int i;
 
-	read_regs(state, RSTV0910_P2_AGCIQIN1 + state->regoff, Reg, 2);
-	*strength = (((u32) Reg[0]) << 8) | Reg[1];
+	read_regs(state, RSTV0910_P2_AGCIQIN1 + state->regoff, reg, 2);
+	*strength = (((u32) reg[0]) << 8) | reg[1];
 	
 	for (i = 0; i < 5; i += 1) {
-		read_regs(state, RSTV0910_P2_POWERI + state->regoff, Reg, 2);
-		Power += (u32) Reg[0] * (u32) Reg[0] +
-			(u32) Reg[1] * (u32) Reg[1];
+		read_regs(state, RSTV0910_P2_POWERI + state->regoff, reg, 2);
+		power += (u32) reg[0] * (u32) reg[0] +
+			(u32) reg[1] * (u32) reg[1];
 		msleep(3);
 	}
-	Power /= 5;
-	bbgain = (465 - Log10x100(Power)) * 10;
+	power /= 5;
+	bbgain = (465 - log10x100(power)) * 10;
 	
 	if (fe->ops.tuner_ops.get_rf_strength)
 		fe->ops.tuner_ops.get_rf_strength(fe, strength);
@@ -1830,10 +1830,10 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->tsspeed = 0x28;
 	state->nr = nr;
 	state->regoff = state->nr ? 0 : 0x200;
-	state->SearchRange = 16000000;
-	state->DEMOD = 0x10;     /* Inversion : Auto with reset to 0 */
-	state->ReceiveMode   = Mode_None;
-	state->CurScramblingCode = NO_SCRAMBLING_CODE;
+	state->search_range = 16000000;
+	state->demod_bits = 0x10;     /* Inversion : Auto with reset to 0 */
+	state->receive_mode   = RCVMODE_NONE;
+	state->cur_scrambling_code = NO_SCRAMBLING_CODE;
 	state->single = cfg->single ? 1 : 0;
 	
 	base = match_base(i2c, cfg->adr);

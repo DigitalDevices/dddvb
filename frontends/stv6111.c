@@ -33,7 +33,7 @@
 
 #include "dvb_frontend.h"
 
-static inline u32 MulDiv32(u32 a, u32 b, u32 c)
+static inline u32 muldiv32(u32 a, u32 b, u32 c)
 {
 	u64 tmp64;
 
@@ -50,7 +50,7 @@ struct stv {
 
 	u8 reg[11];
 	u32 ref_freq;
-	u32 Frequency;
+	u32 frequency;
 };
 
 static int i2c_read(struct i2c_adapter *adap,
@@ -123,19 +123,19 @@ static void dump_regs(struct stv *state)
 static int wait_for_call_done(struct stv *state, u8 mask)
 {
 	int status = 0;
-	u32 LockRetryCount = 10;
+	u32 lock_retry_count = 10;
 
-	while (LockRetryCount > 0) {
-		u8 Status;
+	while (lock_retry_count > 0) {
+		u8 regval;
 
-		status = read_reg(state, 9, &Status);
+		status = read_reg(state, 9, &regval);
 		if (status < 0)
 			return status;
 
-		if ((Status & mask) == 0)
+		if ((regval & mask) == 0)
 			break;
 		usleep_range(4000, 6000);
-		LockRetryCount -= 1;
+		lock_retry_count -= 1;
 
 		status = -1;
 	}
@@ -210,10 +210,10 @@ static int release(struct dvb_frontend *fe)
 	return 0;
 }
 
-static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
+static int set_bandwidth(struct dvb_frontend *fe, u32 cutoff_frequency)
 {
 	struct stv *state = fe->tuner_priv;
-	u32 index = (CutOffFrequency + 999999) / 1000000;
+	u32 index = (cutoff_frequency + 999999) / 1000000;
 
 	if (index < 6)
 		index = 6;
@@ -233,12 +233,12 @@ static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 	return 0;
 }
 
-static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
+static int set_lof(struct stv *state, u32 local_frequency, u32 cutoff_frequency)
 {
-	u32 index = (CutOffFrequency + 999999) / 1000000;
-	u32 Frequency = (LocalFrequency + 500) / 1000;
+	u32 index = (cutoff_frequency + 999999) / 1000000;
+	u32 frequency = (local_frequency + 500) / 1000;
 	u32 p = 1, psel = 0, fvco, div, frac;
-	u8 Icp, tmp;
+	u8 icp, tmp;
 
 	/* pr_info("F = %u, COF = %u\n", Frequency, CutOffFrequency); */
 	if (index < 6)
@@ -246,33 +246,33 @@ static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 	if (index > 50)
 		index = 50;
 
-	if (Frequency <= 1300000) {
+	if (frequency <= 1300000) {
 		p =  4;
 		psel = 1;
 	} else {
 		p =  2;
 		psel = 0;
 	}
-	fvco = Frequency * p;
+	fvco = frequency * p;
 	div = fvco / state->ref_freq;
 	frac = fvco % state->ref_freq;
-	frac = MulDiv32(frac, 0x40000, state->ref_freq);
+	frac = muldiv32(frac, 0x40000, state->ref_freq);
 
-	Icp = 0;
+	icp = 0;
 	if (fvco < 2700000)
-		Icp = 0;
+		icp = 0;
 	else if (fvco < 2950000)
-		Icp = 1;
+		icp = 1;
 	else if (fvco < 3300000)
-		Icp = 2;
+		icp = 2;
 	else if (fvco < 3700000)
-		Icp = 3;
+		icp = 3;
 	else if (fvco < 4200000)
-		Icp = 5;
+		icp = 5;
 	else if (fvco < 4800000)
-		Icp = 6;
+		icp = 6;
 	else
-		Icp = 7;
+		icp = 7;
 
 	state->reg[0x02] |= 0x80;   /* LNA IIP3 Mode */
 
@@ -281,7 +281,7 @@ static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 	state->reg[0x05] = (((div >> 8) & 0x01) | ((frac & 0x7F) << 1)) & 0xff;
 	state->reg[0x06] = ((frac >> 7) & 0xFF);
 	state->reg[0x07] = (state->reg[0x07] & ~0x07) | ((frac >> 15) & 0x07);
-	state->reg[0x07] = (state->reg[0x07] & ~0xE0) | (Icp << 5);
+	state->reg[0x07] = (state->reg[0x07] & ~0xE0) | (icp << 5);
 
 	state->reg[0x08] = (state->reg[0x08] & ~0xFC) | ((index - 6) << 2);
 	/* Start cal vco,CF */
@@ -299,7 +299,7 @@ static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
 	}
 	read_reg(state, 0x08, &tmp);
 
-	state->Frequency = Frequency;
+	state->frequency = frequency;
 	
 #if 0
 	dump_regs(state);
@@ -318,7 +318,7 @@ static int set_params(struct dvb_frontend *fe)
 
 	freq = p->frequency * 1000;
 	symb = p->symbol_rate;
-	cutoff = 5000000 + MulDiv32(p->symbol_rate, 135, 200);
+	cutoff = 5000000 + muldiv32(p->symbol_rate, 135, 200);
 
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 1);
@@ -334,13 +334,13 @@ static int get_frequency(struct dvb_frontend *fe, u32 *frequency)
 	return 0;
 }
 
-struct SLookup {
-	s16 Value;
-	u16 RegValue;
+struct slookup {
+	s16 value;
+	u16 reg_value;
 };
 
 
-static struct SLookup LNAGain_NF_LookUp[] = {
+static struct slookup lnagain_nf_lookup[] = {
 	/*Gain *100dB*/      /*Reg*/   
 	{ 2572  , 0   },
 	{ 2575  , 1   },
@@ -376,7 +376,7 @@ static struct SLookup LNAGain_NF_LookUp[] = {
 	{ 5102  , 31  }
 };
                                                 
-static struct SLookup LNAGain_IIP3_LookUp[] = {
+static struct slookup lnagain_iip3_lookup[] = {
 	/*Gain *100dB*/   /*reg*/
 	{ 1548 , 0   },
 	{ 1552 , 1   },
@@ -412,7 +412,7 @@ static struct SLookup LNAGain_IIP3_LookUp[] = {
 	{ 4535 , 31  }
 };
 
-static struct SLookup Gain_RFAGC_LookUp[] = {                
+static struct slookup gain_rfagc_lookup[] = {                
 	/*Gain *100dB*/   /*reg*/
 	{  4870  , 0x3000 },
 	{  4850  , 0x3C00 },
@@ -470,7 +470,7 @@ static struct SLookup Gain_RFAGC_LookUp[] = {
 
                                               
 // This table is 6 dB too low comapred to the others (probably created with a different BB_MAG setting)
-static struct SLookup Gain_Channel_AGC_NF_LookUp[] = {                
+static struct slookup gain_channel_agc_nf_lookup[] = {                
 	/*Gain *100dB*/   /*reg*/     
 	{  7082  ,  0x3000  },
 	{  7052  ,  0x4000  },
@@ -530,7 +530,7 @@ static struct SLookup Gain_Channel_AGC_NF_LookUp[] = {
 };
 
   
-static struct SLookup Gain_Channel_AGC_IIP3_LookUp[] = {                
+static struct slookup gain_channel_agc_iip3_lookup[] = {                
 	/*Gain *100dB*/   /*reg*/     
 	{ 7070 , 0x3000 },
 	{ 7028 , 0x4000 },
@@ -590,94 +590,94 @@ static struct SLookup Gain_Channel_AGC_IIP3_LookUp[] = {
 };
 
 
-static s32 TableLookup(struct SLookup *Table, int TableSize, u16 RegValue)
+static s32 table_lookup(struct slookup *table, int table_size, u16 reg_value)
 {
-	s32 Gain;
-	s32 RegDiff;
+	s32 gain;
+	s32 reg_diff;
 	int imin = 0;
-	int imax = TableSize - 1;
+	int imax = table_size - 1;
 	int i;
 	
 	// Assumes Table[0].RegValue < Table[imax].RegValue 
-	if( RegValue <= Table[0].RegValue )
-		Gain = Table[0].Value;
-	else if( RegValue >= Table[imax].RegValue )
-		Gain = Table[imax].Value;
+	if( reg_value <= table[0].reg_value )
+		gain = table[0].value;
+	else if( reg_value >= table[imax].reg_value )
+		gain = table[imax].value;
 	else {
 		while(imax-imin > 1) {
 			i = (imax + imin) / 2;
-			if ((Table[imin].RegValue <= RegValue) &&
-			    (RegValue <= Table[i].RegValue) )
+			if ((table[imin].reg_value <= reg_value) &&
+			    (reg_value <= table[i].reg_value) )
 				imax = i;
 			else
 				imin = i;
 		}
-		RegDiff = Table[imax].RegValue - Table[imin].RegValue;
-		Gain = Table[imin].Value;
-		if (RegDiff != 0)
-			Gain += ((s32) (RegValue - Table[imin].RegValue) *
-			    (s32)(Table[imax].Value - Table[imin].Value))/(RegDiff);
+		reg_diff = table[imax].reg_value - table[imin].reg_value;
+		gain = table[imin].value;
+		if (reg_diff != 0)
+			gain += ((s32) (reg_value - table[imin].reg_value) *
+			    (s32)(table[imax].value - table[imin].value))/(reg_diff);
 	}
-	return Gain;
+	return gain;
 }
 
 static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 {
 	struct stv *state = fe->tuner_priv;
-	u16 RFAgc = *st;
-	s32 Gain;
+	u16 rfagc = *st;
+	s32 gain;
 
 	if ((state->reg[0x03] & 0x60) == 0 ) {
 		// RF Mode
 		// Read AGC ADC
-		u8 Reg = 0;
+		u8 reg = 0;
 		
 		if (fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 1);
 		write_reg(state, 0x02, state->reg[0x02] | 0x20); 
-		read_reg(state, 2, &Reg);
-		if( Reg & 0x20 )
-			read_reg(state, 2, &Reg);
+		read_reg(state, 2, &reg);
+		if( reg & 0x20 )
+			read_reg(state, 2, &reg);
 		if (fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 0);
 		
 		if((state->reg[0x02] & 0x80) == 0)
 			// NF
-			Gain = TableLookup(LNAGain_NF_LookUp,
-					   ARRAY_SIZE(LNAGain_NF_LookUp), Reg & 0x1F);
+			gain = table_lookup(lnagain_nf_lookup,
+					   ARRAY_SIZE(lnagain_nf_lookup), reg & 0x1F);
 		else
 			// IIP3
-			Gain = TableLookup(LNAGain_IIP3_LookUp,
-					   ARRAY_SIZE(LNAGain_IIP3_LookUp), Reg & 0x1F);
-		Gain += TableLookup(Gain_RFAGC_LookUp,
-				    ARRAY_SIZE(Gain_RFAGC_LookUp), RFAgc);
-		Gain -= 2400;
+			gain = table_lookup(lnagain_iip3_lookup,
+					   ARRAY_SIZE(lnagain_iip3_lookup), reg & 0x1F);
+		gain += table_lookup(gain_rfagc_lookup,
+				    ARRAY_SIZE(gain_rfagc_lookup), rfagc);
+		gain -= 2400;
 	} else {
 		// Channel Mode
 		if( (state->reg[0x02] & 0x80) == 0 ) {
 			// NF
-			Gain = TableLookup(Gain_Channel_AGC_NF_LookUp,
-					   ARRAY_SIZE(Gain_Channel_AGC_NF_LookUp), RFAgc);
-			Gain += 600;
+			gain = table_lookup(gain_channel_agc_nf_lookup,
+					   ARRAY_SIZE(gain_channel_agc_nf_lookup), rfagc);
+			gain += 600;
 		} else {
 			// IIP3
-			Gain = TableLookup(Gain_Channel_AGC_IIP3_LookUp,
-					   ARRAY_SIZE(Gain_Channel_AGC_IIP3_LookUp), RFAgc);
+			gain = table_lookup(gain_channel_agc_iip3_lookup,
+					   ARRAY_SIZE(gain_channel_agc_iip3_lookup), rfagc);
 		}
 	}
 	
-	if (state->Frequency > 0)
+	if (state->frequency > 0)
 		// Tilt correction ( 0.00016 dB/MHz )
-		Gain -= ((((s32)(state->Frequency / 1000) - 1550) * 2) / 12);
+		gain -= ((((s32)(state->frequency / 1000) - 1550) * 2) / 12);
 	
-	Gain +=  (s32)( (state->reg[0x01] & 0xC0 ) >> 6 ) * 600 - 1300;// + (BBGain * 10);
+	gain +=  (s32)( (state->reg[0x01] & 0xC0 ) >> 6 ) * 600 - 1300;// + (BBGain * 10);
 	
-	if( Gain < 0 )
-		Gain = 0;
-	else if (Gain > 10000)
-		Gain = 10000;
+	if( gain < 0 )
+		gain = 0;
+	else if (gain > 10000)
+		gain = 10000;
 	
-	*st = 10000 - Gain;
+	*st = 10000 - gain;
 
 	return 0;
 }
