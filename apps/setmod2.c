@@ -39,9 +39,9 @@ int main()
 
 	fd = open("/dev/dvb/adapter0/mod0", O_RDONLY);
 
-	set_property(fd, MOD_MODULATION, QAM_256);
-	set_property(fd, MOD_SYMBOL_RATE, 6900000);
-	set_property(fd, MOD_FREQUENCY, 114000000);
+	set_property(fd, MODULATOR_MODULATION, QAM_256);
+	set_property(fd, MODULATOR_SYMBOL_RATE, 6900000);
+	set_property(fd, MODULATOR_FREQUENCY, 114000000);
 	close(fd);
 }
 

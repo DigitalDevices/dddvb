@@ -105,6 +105,7 @@ struct stv {
 	u8                   tscfgh;
 	u8                   tsgeneral;
 	u8                   tsspeed;
+	u8                   single;
 	unsigned long        tune_time;
 
 	s32                  SearchRange;
@@ -1137,7 +1138,10 @@ static int probe(struct stv *state)
 	write_reg(state, RSTV0910_SYNTCTRL,  0x02);  /* SYNTCTRL */
 	write_reg(state, RSTV0910_TSGENERAL, state->tsgeneral);  /* TSGENERAL */
 	write_reg(state, RSTV0910_CFGEXT,    0x02);  /* CFGEXT */
-	write_reg(state, RSTV0910_GENCFG,    0x15);  /* GENCFG */
+	if (state->single)
+		write_reg(state, RSTV0910_GENCFG,    0x14);  /* GENCFG */
+	else
+		write_reg(state, RSTV0910_GENCFG,    0x15);  /* GENCFG */
 
 	write_reg(state, RSTV0910_P1_TNRCFG2, 0x02);  /* IQSWAP = 0 */
 	write_reg(state, RSTV0910_P2_TNRCFG2, 0x82);  /* IQSWAP = 1 */
@@ -1830,7 +1834,8 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->DEMOD = 0x10;     /* Inversion : Auto with reset to 0 */
 	state->ReceiveMode   = Mode_None;
 	state->CurScramblingCode = NO_SCRAMBLING_CODE;
-
+	state->single = cfg->single ? 1 : 0;
+	
 	base = match_base(i2c, cfg->adr);
 	if (base) {
 		base->count++;

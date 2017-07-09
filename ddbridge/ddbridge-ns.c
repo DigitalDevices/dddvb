@@ -1,7 +1,7 @@
 /*
  * ddbridge-ns.c: Digital Devices PCIe bridge driver net streaming
  *
- * Copyright (C) 2010-2015 Marcus Metzler <mocm@metzlerbros.de>
+ * Copyright (C) 2010-2017Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Digital Devices GmbH
  *
@@ -87,7 +87,6 @@ static int ns_alloc(struct dvbnss *nss)
 		dev->ns[i].fe = input;
 		nss->priv = &dev->ns[i];
 		ret = 0;
-		/*pr_info("%s i=%d fe=%d\n", __func__, i, input->nr); */
 		break;
 	}
 	ddbwritel(dev, 0x03, RTP_MASTER_CONTROL);
@@ -198,7 +197,7 @@ static int ns_set_ci(struct dvbnss *nss, u8 ci)
 	if (ciport < 0)
 		return -EINVAL;
 
-	pr_info("input %d.%d to ci %d at port %d\n",
+	pr_info("DDBridge: input %d.%d to ci %d at port %d\n",
 		input->port->lnr, input->nr, ci, ciport);
 	ddbwritel(dev, (input->port->lnr << 21) | (input->nr << 16) | 0x1c,
 		  TS_CONTROL(dev->port[ciport].output));
@@ -446,8 +445,6 @@ static int ns_start(struct dvbnss *nss)
 	if (dns->fe != input)
 		ddb_dvb_ns_input_start(dns->fe);
 	ddb_dvb_ns_input_start(input);
-	/* printk("ns start ns %u, fe %u link %u\n",
-	   dns->nr, dns->fe->nr, dns->fe->port->lnr); */
 	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
 		  STREAM_CONTROL(dns->nr));
 	return 0;

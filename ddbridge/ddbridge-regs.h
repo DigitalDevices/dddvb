@@ -1,7 +1,7 @@
 /*
  * ddbridge-regs.h: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2016 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -25,6 +25,7 @@
 
 #define CUR_REGISTERMAP_VERSION_V1  0x00010001
 #define CUR_REGISTERMAP_VERSION_V2  0x00020000
+#define CUR_REGISTERMAP_VERSION_022X  0x00020001
 
 #define HARDWARE_VERSION            0x00000000
 #define REGISTERMAP_VERSION         0x00000004
@@ -57,9 +58,9 @@
 /* ------------------------------------------------------------------------- */
 
 /* Interrupt controller
-   How many MSI's are available depends on HW (Min 2 max 8)
-   How many are usable also depends on Host platform
-*/
+ * How many MSI's are available depends on HW (Min 2 max 8)
+ * How many are usable also depends on Host platform
+ */
 
 #define INTERRUPT_BASE   (0x40)
 
@@ -166,19 +167,22 @@
 #define TEMPMON_FANPWM      (0x00000F00)            // PWM speed in 10% steps
 #define TEMPMON_FANTACHO    (0x000000FF)            // Rotations in 100/min steps
 
-// V1 Temperature Monitor
-// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
-// Temperature Monitor TEMPMON_CONTROL & 0x8000 == 1 : ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
+/* V1 Temperature Monitor
+ * Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
+ * Temperature Monitor TEMPMON_CONTROL & 0x8000 == 1 :
+ * ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
+ */
 
-#define TEMPMON1_CORE       (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 ext)
-#define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08)    // SHORT Temperature in °C x 256 (LM75A 0x90)
-#define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C)    // SHORT Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int)
+#define TEMPMON1_CORE       (TEMPMON_SENSOR0)    // u16 Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08) // SHORT Temperature in °C x 256 (LM75A 0x90)
+#define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C) // SHORT Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int)
 
 // V2 Temperature Monitor 2 ADM1032
 
 #define TEMPMON2_BOARD      (TEMPMON_SENSOR0)    // SHORT Temperature in °C x 256 (ADM1032 int)
 #define TEMPMON2_FPGACORE   (TEMPMON_SENSOR1)    // SHORT Temperature in °C x 256 (ADM1032 ext)
 #define TEMPMON2_QAMCORE    (TEMPMON_SENSOR2)    // SHORT Temperature in °C x 256 (ADM1032 ext)
+#define TEMPMON2_DACCORE    (TEMPMON_SENSOR2)    // SHORT Temperature in °C x 256 (ADM1032 ext)
 
 /* ------------------------------------------------------------------------- */
 /* I2C Master Controller */
@@ -242,7 +246,7 @@
 #define LNB_CMD_HIGH   4
 #define LNB_CMD_OFF    5
 #define LNB_CMD_DISEQC 6
-#define LNB_CMD_UNI    7
+#define LNB_CMD_SCIF   7
 
 #define LNB_BUSY  (1ULL <<  4)
 #define LNB_TONE  (1ULL << 15)
@@ -330,16 +334,16 @@
 /* Muxout from VCO (usually = Lock) */
 #define VCO3_CONTROL_MUXOUT (0x00000004)
 
-// V2
+/* V2 */
 
 #define MAX2871_BASE            (0xC0)
 #define MAX2871_CONTROL         (MAX2871_BASE + 0x00)
-#define MAX2871_OUTDATA         (MAX2871_BASE + 0x04)  // 32 Bit
-#define MAX2871_INDATA          (MAX2871_BASE + 0x08)  // 32 Bit
+#define MAX2871_OUTDATA         (MAX2871_BASE + 0x04)
+#define MAX2871_INDATA          (MAX2871_BASE + 0x08)
 #define MAX2871_CONTROL_WRITE   (0x00000001)   // 1 = Trigger write, resets when done
 #define MAX2871_CONTROL_CE      (0x00000002)   // 0 = Put VCO into power down
-#define MAX2871_CONTROL_MUXOUT  (0x00000004)   // Muxout from VCO 
-#define MAX2871_CONTROL_LOCK    (0x00000008)   // Lock from VCO 
+#define MAX2871_CONTROL_MUXOUT  (0x00000004)   // Muxout from VCO
+#define MAX2871_CONTROL_LOCK    (0x00000008)   // Lock from VCO
 
 #define FSM_BASE                (0x200)
 #define FSM_CONTROL             (FSM_BASE + 0x00)
@@ -358,9 +362,9 @@
 
 
 #define FSM_CAPACITY            (FSM_BASE + 0x04)
-#define FSM_CAPACITY_MAX        (0x3F000000)  
-#define FSM_CAPACITY_CUR        (0x003F0000)  
-#define FSM_CAPACITY_INUSE      (0x0000003F)  
+#define FSM_CAPACITY_MAX        (0x3F000000)
+#define FSM_CAPACITY_CUR        (0x003F0000)
+#define FSM_CAPACITY_INUSE      (0x0000003F)
 
 #define FSM_GAIN                (FSM_BASE + 0x10)
 #define FSM_GAINMASK            (0x000000FF)
@@ -379,15 +383,15 @@
 #define RF_ATTENUATOR   (0xD8)
 #define RF_ATTENUATOR   (0xD8)
 /*  0x00 =  0 dB
-    0x01 =  1 dB
-      ...
-    0x1F = 31 dB
-*/
+ *  0x01 =  1 dB
+ *    ...
+ *  0x1F = 31 dB
+ */
 
 #define RF_VGA  (0xDC)
 /* Only V2 */
 /* 8 bit range 0 - 31.75 dB Gain  */
-	
+
 /* VGA Gain for same output level as V1 Modulator */
 #define RF_VGA_GAIN_N8          (85)
 #define RF_VGA_GAIN_N16         (117)
@@ -409,9 +413,9 @@
 #define RF_POWER_CONTROL_VALID     (0x00000500)
 
 
-/* --------------------------------------------------------------------------
-   Output control
-*/
+/*
+ *  Output control
+ */
 
 #define IQOUTPUT_BASE           (0x240)
 #define IQOUTPUT_CONTROL        (IQOUTPUT_BASE + 0x00)
@@ -551,4 +555,77 @@
 #define PID_FILTER_PID(i, j)     (PID_FILTER_BASE + (i) * 0x20 + (j) * 4)
 
 
+
+// V2
+
+// MAX2871 same as DVB Modulator V2
+
+#define RFDAC_BASE                (0x200)
+#define RFDAC_CONTROL             (RFDAC_BASE + 0x00)
+
+#define RFDAC_CMD_MASK            (0x00000087)
+#define RFDAC_CMD_STATUS          (0x00000080)
+#define RFDAC_CMD_RESET           (0x00000080)
+#define RFDAC_CMD_POWERDOWN       (0x00000081)
+#define RFDAC_CMD_SETUP           (0x00000082)
+
+#define RFDAC_STATUS              (RFDAC_BASE + 0x00)
+#define RFDAC_STATUS_READY        (0x00010000)
+#define RFDAC_STATUS_DACREADY     (0x00020000)
+
+#define RFDAC_FCW                 (RFDAC_BASE + 0x10)
+
+//
+// --------------------------------------------------------------------------
+//
+
+#define JESD204B_BASE             (0x280)
+
+// Additional Status Bits
+
+#define DMA_PCIE_LANES_MASK       (0x00070000)
+
+
+// --------------------------------------------------------------------------
+// Modulator Channels, partially compatible to DVB Modulator V1
+
+#define SDR_CHANNEL_BASE            (0x800)
+
+#define SDR_CHANNEL_CONTROL(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x00)
+#define SDR_CHANNEL_CONFIG(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x04)
+#define SDR_CHANNEL_CFCW(i)         ((SDR_CHANNEL_BASE) + (i) * 64 + 0x08)
+#define SDR_CHANNEL_ARICW(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x0C)
+#define SDR_CHANNEL_RGAIN(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x10)
+#define SDR_CHANNEL_SETFIR(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x14)
+
+#define SDR_CHANNEL_FMDCW(i)        ((SDR_CHANNEL_BASE) + (i) * 64 + 0x20)
+#define SDR_CHANNEL_FM1FCW(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x24)
+#define SDR_CHANNEL_FM2FCW(i)       ((SDR_CHANNEL_BASE) + (i) * 64 + 0x28)
+#define SDR_CHANNEL_FM1GAIN(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x2C)
+#define SDR_CHANNEL_FM2GAIN(i)      ((SDR_CHANNEL_BASE) + (i) * 64 + 0x30)
+
+// Control and status bits
+#define SDR_CONTROL_ENABLE_CHANNEL  (0x00000004)
+#define SDR_CONTROL_ENABLE_DMA      (0x00000008)
+#define SDR_STATUS_DMA_UNDERRUN     (0x00010000)
+
+// Config
+#define SDR_CONFIG_ENABLE_FM1       (0x00000002)
+#define SDR_CONFIG_ENABLE_FM2       (0x00000004)
+#define SDR_CONFIG_DISABLE_ARI      (0x00000010)
+#define SDR_CONFIG_DISABLE_VSB      (0x00000020)
+
+// SET FIR
+#define SDR_FIR_COEFF_MASK          (0x00000FFF)
+#define SDR_FIR_TAP_MASK            (0x001F0000)
+#define SDR_FIR_SELECT_MASK         (0x00C00000)
+#define SDR_VSB_LENGTH_MASK         (0x01000000)
+
+#define SDR_SET_FIR(select, tap, coeff, vsblen)	\
+	((((select)<<22)&SDR_FIR_SELECT_MASK)|			\
+	 (((tap)<<16)&SDR_FIR_TAP_MASK)|				\
+	 ((coeff)&SDR_FIR_COEFF_MASK)|					\
+	 (((vsblen)<<24)&SDR_VSB_LENGTH_MASK)|				\
+	 0								\
+		)
 

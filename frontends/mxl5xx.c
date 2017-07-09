@@ -698,6 +698,10 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	int stat;
 	u32 regData = 0;
 
+#if 0
+	if (!firmware_is_alive(state))
+		pr_info("FW dead!\n");
+#endif
 	mutex_lock(&state->base->status_lock);
 	HYDRA_DEMOD_STATUS_LOCK(state, state->demod);
 	stat = read_register(state, (HYDRA_DMD_STATUS_INPUT_POWER_ADDR +
@@ -837,8 +841,8 @@ static struct dvb_frontend_ops mxl_ops = {
 	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.info = {
 		.name			= "MXL5XX",
-		.frequency_min		= 950000,
-		.frequency_max		= 2150000,
+		.frequency_min		= 300000,
+		.frequency_max		= 2350000,
 		.frequency_stepsize	= 0,
 		.frequency_tolerance	= 0,
 		.symbol_rate_min	= 1000000,
@@ -1639,7 +1643,7 @@ static int load_fw(struct mxl *state, struct mxl5xx_cfg *cfg)
 
 static int validate_sku(struct mxl *state)
 {
-	u32 padMuxBond, prcmChipId, prcmSoCId;
+	u32 padMuxBond = 0, prcmChipId = 0, prcmSoCId = 0;
 	int status;
 	u32 type = state->base->type;
 	

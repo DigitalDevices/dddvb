@@ -8,6 +8,7 @@ struct cxd2843_cfg {
 	u8  adr;
 	u32 ts_clock;
 	u8  parallel;
+	u32 osc;
 };
 
 #if defined(CONFIG_DVB_CXD2843) || \

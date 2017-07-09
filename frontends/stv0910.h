@@ -9,6 +9,7 @@ struct stv0910_cfg {
 	u8  adr;
 	u8  parallel;
 	u8  rptlvl;
+	u8  single;
 };
 
 #if defined(CONFIG_DVB_STV0910) || \
