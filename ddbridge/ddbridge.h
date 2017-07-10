@@ -76,20 +76,6 @@
 #include "dvb_ca_en50221.h"
 #include "dvb_net.h"
 
-#include "tda18271c2dd.h"
-#include "stv6110x.h"
-#include "stv090x.h"
-#include "lnbh24.h"
-#include "drxk.h"
-#include "stv0367dd.h"
-#include "tda18212dd.h"
-#include "cxd2843.h"
-#include "cxd2099.h"
-#include "stv0910.h"
-#include "stv6111.h"
-#include "lnbh25.h"
-#include "mxl5xx.h"
-
 #define DDB_MAX_I2C    32
 #define DDB_MAX_PORT   32
 #define DDB_MAX_INPUT  64
@@ -745,8 +731,83 @@ void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
 void ddbridge_mod_rate_handler(unsigned long data);
 
-
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
+
+/****************************************************************************/
+
+/* ddbridge-main.c (modparams) */
+extern int adapter_alloc;
+
+/* ddbridge-core.c */
+/* hwmaps */
+extern struct ddb_regset octopus_input;
+extern struct ddb_regset octopus_output;
+extern struct ddb_regset octopus_i2c;
+extern struct ddb_regset octopus_i2c_buf;
+extern struct ddb_regmap octopus_map;
+extern struct ddb_regmap octopro_map;
+extern struct ddb_regmap octopro_hdin_map;
+extern struct ddb_regmap octopus_mod_map;
+extern struct ddb_regmap octopus_mod_2_map;
+extern struct ddb_regmap octopus_sdr_map;
+extern struct ddb_info ddb_s2_48;
+extern struct ddb_info ddb_ct2_8;
+extern struct ddb_info ddb_c2t2_8;
+extern struct ddb_info ddb_isdbt_8;
+extern struct ddb_info ddb_c2t2i_v0_8;
+extern struct ddb_info ddb_c2t2i_8;
+
+/* function prototypes */
+void ddb_ports_detach(struct ddb *dev);
+void ddb_ports_release(struct ddb *dev);
+void ddb_buffers_free(struct ddb *dev);
+void ddb_device_destroy(struct ddb *dev);
+void ddb_ports_init(struct ddb *dev);
+int ddb_buffers_alloc(struct ddb *dev);
+int ddb_ports_attach(struct ddb *dev);
+int ddb_device_create(struct ddb *dev);
+int ddb_class_create(void);
+void ddb_class_destroy(void);
+int ddb_init(struct ddb *dev);
+void ddb_reset_ios(struct ddb *dev);
+
+void ddb_nsd_detach(struct ddb *dev);
+int ddb_dvb_ns_input_start(struct ddb_input *input);
+int ddb_dvb_ns_input_stop(struct ddb_input *input);
+
+irqreturn_t irq_handler0(int irq, void *dev_id);
+irqreturn_t irq_handler1(int irq, void *dev_id);
+irqreturn_t irq_handler(int irq, void *dev_id);
+irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n);
+irqreturn_t irq_handler_v2(int irq, void *dev_id);
+#ifdef DDB_TEST_THREADED
+irqreturn_t irq_thread(int irq, void *dev_id);
+#endif
+
+/* ddbridge-i2c.c */
+int i2c_io(struct i2c_adapter *adapter, u8 adr,
+	   u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen);
+int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len);
+int i2c_read(struct i2c_adapter *adapter, u8 adr, u8 *val);
+int i2c_read_regs(struct i2c_adapter *adapter,
+		  u8 adr, u8 reg, u8 *val, u8 len);
+int i2c_read_regs16(struct i2c_adapter *adapter,
+		    u8 adr, u16 reg, u8 *val, u8 len);
+int i2c_read_reg(struct i2c_adapter *adapter, u8 adr, u8 reg, u8 *val);
+int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
+		   u16 reg, u8 *val);
+int i2c_write_reg16(struct i2c_adapter *adap, u8 adr,
+		    u16 reg, u8 val);
+int i2c_write_reg(struct i2c_adapter *adap, u8 adr,
+		  u8 reg, u8 val);
+
+void ddb_i2c_release(struct ddb *dev);
+int ddb_i2c_init(struct ddb *dev);
+
+/* ddbridge-ns.c */
+int netstream_init(struct ddb_input *input);
+
+/****************************************************************************/
 
 #define DDBRIDGE_VERSION "0.9.29"
 

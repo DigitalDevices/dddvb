@@ -23,6 +23,20 @@
  * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
  */
 
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/interrupt.h>
+#include <linux/delay.h>
+#include <linux/slab.h>
+#include <linux/poll.h>
+#include <linux/io.h>
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
+#include <linux/timer.h>
+#include <linux/i2c.h>
+#include <linux/swab.h>
+#include <linux/vmalloc.h>
+
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
@@ -31,12 +45,10 @@
 #include <linux/pci-dma-compat.h>
 #endif
 
-static int adapter_alloc = 3;
+int adapter_alloc = 3;
 module_param(adapter_alloc, int, 0444);
 MODULE_PARM_DESC(adapter_alloc,
 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
-
-#include "ddbridge-core.c"
 
 static struct ddb_regmap octopus_net_map = {
 	.irq_version = 1,
