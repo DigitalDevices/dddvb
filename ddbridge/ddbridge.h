@@ -76,20 +76,6 @@
 #include "dvb_ca_en50221.h"
 #include "dvb_net.h"
 
-#include "tda18271c2dd.h"
-#include "stv6110x.h"
-#include "stv090x.h"
-#include "lnbh24.h"
-#include "drxk.h"
-#include "stv0367dd.h"
-#include "tda18212dd.h"
-#include "cxd2843.h"
-#include "cxd2099.h"
-#include "stv0910.h"
-#include "stv6111.h"
-#include "lnbh25.h"
-#include "mxl5xx.h"
-
 #define DDB_MAX_I2C    32
 #define DDB_MAX_PORT   32
 #define DDB_MAX_INPUT  64
@@ -481,211 +467,6 @@ struct ddb {
 
 };
 
-static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)
-{
-	writeb(val, (char *) (dev->regs + (adr)));
-}
-
-static inline u32 ddbreadb(struct ddb *dev, u32 adr)
-{
-	return readb((char *) (dev->regs + (adr)));
-}
-
-static inline void ddbwritel0(struct ddb_link *link, u32 val, u32 adr)
-{
-	writel(val, (char *) (link->dev->regs + (adr)));
-}
-
-static inline u32 ddbreadl0(struct ddb_link *link, u32 adr)
-{
-	return readl((char *) (link->dev->regs + (adr)));
-}
-
-#if 0
-static inline void gtlw(struct ddb_link *link)
-{
-	u32 count = 0;
-	static u32 max;
-
-	while (1 & ddbreadl0(link, link->regs + 0x10)) {
-		if (++count == 1024) {
-			pr_info("LTO\n");
-			break;
-		}
-	}
-	if (count > max) {
-		max = count;
-		pr_info("TO=%u\n", max);
-	}
-	if (ddbreadl0(link, link->regs + 0x10) & 0x8000)
-		pr_err("link error\n");
-}
-#else
-static inline void gtlw(struct ddb_link *link)
-{
-	while (1 & ddbreadl0(link, link->regs + 0x10))
-		;
-}
-#endif
-
-
-static u32 ddblreadl(struct ddb_link *link, u32 adr)
-{
-	if (unlikely(link->nr)) {
-		unsigned long flags;
-		u32 val;
-
-		spin_lock_irqsave(&link->lock, flags);
-		gtlw(link);
-		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
-		ddbwritel0(link, 3, link->regs + 0x10);
-		gtlw(link);
-		val = ddbreadl0(link, link->regs + 0x1c);
-		spin_unlock_irqrestore(&link->lock, flags);
-		return val;
-	}
-	return readl((char *) (link->dev->regs + (adr)));
-}
-
-static void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
-{
-	if (unlikely(link->nr)) {
-		unsigned long flags;
-
-		spin_lock_irqsave(&link->lock, flags);
-		gtlw(link);
-		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
-		ddbwritel0(link, val, link->regs + 0x18);
-		ddbwritel0(link, 1, link->regs + 0x10);
-		spin_unlock_irqrestore(&link->lock, flags);
-		return;
-	}
-	writel(val, (char *) (link->dev->regs + (adr)));
-}
-
-static u32 ddbreadl(struct ddb *dev, u32 adr)
-{
-	if (unlikely(adr & 0xf0000000)) {
-		unsigned long flags;
-		u32 val, l = (adr >> DDB_LINK_SHIFT);
-		struct ddb_link *link = &dev->link[l];
-
-		spin_lock_irqsave(&link->lock, flags);
-		gtlw(link);
-		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
-		ddbwritel0(link, 3, link->regs + 0x10);
-		gtlw(link);
-		val = ddbreadl0(link, link->regs + 0x1c);
-		spin_unlock_irqrestore(&link->lock, flags);
-		return val;
-	}
-	return readl((char *) (dev->regs + (adr)));
-}
-
-static void ddbwritel(struct ddb *dev, u32 val, u32 adr)
-{
-	if (unlikely(adr & 0xf0000000)) {
-		unsigned long flags;
-		u32 l = (adr >> DDB_LINK_SHIFT);
-		struct ddb_link *link = &dev->link[l];
-
-		spin_lock_irqsave(&link->lock, flags);
-		gtlw(link);
-		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
-		ddbwritel0(link, val, link->regs + 0x18);
-		ddbwritel0(link, 1, link->regs + 0x10);
-		spin_unlock_irqrestore(&link->lock, flags);
-		return;
-	}
-	writel(val, (char *) (dev->regs + (adr)));
-}
-
-static void gtlcpyto(struct ddb *dev, u32 adr, const u8 *buf,
-		     unsigned int count)
-{
-	u32 val = 0, p = adr;
-	u32 aa = p & 3;
-
-	if (aa) {
-		while (p & 3 && count) {
-			val >>= 8;
-			val |= *buf << 24;
-			p++;
-			buf++;
-			count--;
-		}
-		ddbwritel(dev, val, adr);
-	}
-	while (count >= 4) {
-		val = buf[0] | (buf[1] << 8) | (buf[2] << 16) | (buf[3] << 24);
-		ddbwritel(dev, val, p);
-		p += 4;
-		buf += 4;
-		count -= 4;
-	}
-	if (count) {
-		val = buf[0];
-		if (count > 1)
-			val |= buf[1] << 8;
-		if (count > 2)
-			val |= buf[2] << 16;
-		ddbwritel(dev, val, p);
-	}
-}
-
-static void gtlcpyfrom(struct ddb *dev, u8 *buf, u32 adr, long count)
-{
-	u32 val = 0, p = adr;
-	u32 a = p & 3;
-
-	if (a) {
-		val = ddbreadl(dev, p) >> (8 * a);
-		while (p & 3 && count) {
-			*buf = val & 0xff;
-			val >>= 8;
-			p++;
-			buf++;
-			count--;
-		}
-	}
-	while (count >= 4) {
-		val = ddbreadl(dev, p);
-		buf[0] = val & 0xff;
-		buf[1] = (val >> 8) & 0xff;
-		buf[2] = (val >> 16) & 0xff;
-		buf[3] = (val >> 24) & 0xff;
-		p += 4;
-		buf += 4;
-		count -= 4;
-	}
-	if (count) {
-		val = ddbreadl(dev, p);
-		buf[0] = val & 0xff;
-		if (count > 1)
-			buf[1] = (val >> 8) & 0xff;
-		if (count > 2)
-			buf[2] = (val >> 16) & 0xff;
-	}
-}
-
-static void ddbcpyto(struct ddb *dev, u32 adr, void *src, long count)
-{
-	if (unlikely(adr & 0xf0000000))
-		return gtlcpyto(dev, adr, src, count);
-	return memcpy_toio((char *) (dev->regs + adr), src, count);
-}
-
-static void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
-{
-	if (unlikely(adr & 0xf0000000))
-		return gtlcpyfrom(dev, dst, adr, count);
-	return memcpy_fromio(dst, (char *) (dev->regs + adr), count);
-}
-
-#define ddbmemset(_dev, _adr, _val, _count) \
-	memset_io((char *) (_dev->regs + (_adr)), (_val), (_count))
-
-
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -745,8 +526,64 @@ void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
 void ddbridge_mod_rate_handler(unsigned long data);
 
-
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
+
+/****************************************************************************/
+
+/* ddbridge-main.c (modparams) */
+extern int adapter_alloc;
+
+/* ddbridge-core.c */
+void ddb_ports_detach(struct ddb *dev);
+void ddb_ports_release(struct ddb *dev);
+void ddb_buffers_free(struct ddb *dev);
+void ddb_device_destroy(struct ddb *dev);
+void ddb_ports_init(struct ddb *dev);
+int ddb_buffers_alloc(struct ddb *dev);
+int ddb_ports_attach(struct ddb *dev);
+int ddb_device_create(struct ddb *dev);
+int ddb_class_create(void);
+void ddb_class_destroy(void);
+int ddb_init(struct ddb *dev);
+void ddb_reset_ios(struct ddb *dev);
+
+void ddb_nsd_detach(struct ddb *dev);
+int ddb_dvb_ns_input_start(struct ddb_input *input);
+int ddb_dvb_ns_input_stop(struct ddb_input *input);
+
+irqreturn_t irq_handler0(int irq, void *dev_id);
+irqreturn_t irq_handler1(int irq, void *dev_id);
+irqreturn_t irq_handler(int irq, void *dev_id);
+irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n);
+irqreturn_t irq_handler_v2(int irq, void *dev_id);
+#ifdef DDB_TEST_THREADED
+irqreturn_t irq_thread(int irq, void *dev_id);
+#endif
+
+/* ddbridge-i2c.c */
+int i2c_io(struct i2c_adapter *adapter, u8 adr,
+	   u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen);
+int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len);
+int i2c_read(struct i2c_adapter *adapter, u8 adr, u8 *val);
+int i2c_read_regs(struct i2c_adapter *adapter,
+		  u8 adr, u8 reg, u8 *val, u8 len);
+int i2c_read_regs16(struct i2c_adapter *adapter,
+		    u8 adr, u16 reg, u8 *val, u8 len);
+int i2c_read_reg(struct i2c_adapter *adapter, u8 adr, u8 reg, u8 *val);
+int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
+		   u16 reg, u8 *val);
+int i2c_write_reg16(struct i2c_adapter *adap, u8 adr,
+		    u16 reg, u8 val);
+int i2c_write_reg(struct i2c_adapter *adap, u8 adr,
+		  u8 reg, u8 val);
+
+void ddb_i2c_release(struct ddb *dev);
+int ddb_i2c_init(struct ddb *dev);
+
+/* ddbridge-ns.c */
+int netstream_init(struct ddb_input *input);
+
+/****************************************************************************/
 
 #define DDBRIDGE_VERSION "0.9.29"
 

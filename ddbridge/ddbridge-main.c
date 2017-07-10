@@ -29,10 +29,12 @@
 
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
+#include "ddbridge-hw.h"
+#include "ddbridge-io.h"
 
 static struct workqueue_struct *ddb_wq;
 
-static int adapter_alloc;
+int adapter_alloc;
 module_param(adapter_alloc, int, 0444);
 MODULE_PARM_DESC(adapter_alloc,
 		 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
@@ -43,8 +45,6 @@ module_param(msi, int, 0444);
 MODULE_PARM_DESC(msi,
 		 " Control MSI interrupts: 0-disable, 1-enable (default)");
 #endif
-
-#include "ddbridge-core.c"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -332,228 +332,6 @@ fail:
 	pci_disable_device(pdev);
 	return -1;
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-static struct ddb_info ddb_none = {
-	.type     = DDB_NONE,
-	.name     = "unknown Digital Devices PCIe card, install newer driver",
-	.regmap   = &octopus_map,
-};
-
-static struct ddb_info ddb_octopus = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Octopus DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-};
-
-static struct ddb_info ddb_octopusv3 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Octopus V3 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-};
-
-static struct ddb_info ddb_octopus_le = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Octopus LE DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 2,
-	.i2c_mask = 0x03,
-};
-
-static struct ddb_info ddb_octopus_oem = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Octopus OEM",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.led_num  = 1,
-	.fan_num  = 1,
-	.temp_num = 1,
-	.temp_bus = 0,
-};
-
-static struct ddb_info ddb_octopus_mini = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Octopus Mini",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-};
-
-static struct ddb_info ddb_v6 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine S2 V6 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 3,
-	.i2c_mask = 0x07,
-};
-
-static struct ddb_info ddb_v6_5 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine S2 V6.5 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-};
-
-static struct ddb_info ddb_v7a = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine S2 V7 Advanced DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 2,
-	.board_control_2 = 4,
-	.ts_quirks = TS_QUIRK_REVERSED,
-};
-
-static struct ddb_info ddb_v7 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine S2 V7 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 2,
-	.board_control_2 = 4,
-	.ts_quirks = TS_QUIRK_REVERSED,
-};
-
-static struct ddb_info ddb_ctv7 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices Cine CT V7 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.board_control   = 3,
-	.board_control_2 = 4,
-};
-
-static struct ddb_info ddb_satixS2v3 = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Mystique SaTiX-S2 V3 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 3,
-	.i2c_mask = 0x07,
-};
-
-static struct ddb_info ddb_ci = {
-	.type     = DDB_OCTOPUS_CI,
-	.name     = "Digital Devices Octopus CI",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x03,
-};
-
-static struct ddb_info ddb_cis = {
-	.type     = DDB_OCTOPUS_CI,
-	.name     = "Digital Devices Octopus CI single",
-	.regmap   = &octopus_map,
-	.port_num = 3,
-	.i2c_mask = 0x03,
-};
-
-static struct ddb_info ddb_ci_s2_pro = {
-	.type     = DDB_OCTOPUS_CI,
-	.name     = "Digital Devices Octopus CI S2 Pro",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x01,
-	.board_control   = 2,
-	.board_control_2 = 4,
-};
-
-static struct ddb_info ddb_ci_s2_pro_a = {
-	.type     = DDB_OCTOPUS_CI,
-	.name     = "Digital Devices Octopus CI S2 Pro Advanced",
-	.regmap   = &octopus_map,
-	.port_num = 4,
-	.i2c_mask = 0x01,
-	.board_control   = 2,
-	.board_control_2 = 4,
-};
-
-static struct ddb_info ddb_dvbct = {
-	.type     = DDB_OCTOPUS,
-	.name     = "Digital Devices DVBCT V6.1 DVB adapter",
-	.regmap   = &octopus_map,
-	.port_num = 3,
-	.i2c_mask = 0x07,
-};
-
-/****************************************************************************/
-
-static struct ddb_info ddb_mod = {
-	.type     = DDB_MOD,
-	.name     = "Digital Devices DVB-C modulator",
-	.regmap   = &octopus_mod_map,
-	.port_num = 10,
-	.temp_num = 1,
-};
-
-static struct ddb_info ddb_mod_fsm_24 = {
-	.type     = DDB_MOD,
-	.version  = 2,
-	.name     = "Digital Devices DVB-C modulator FSM-24",
-	.regmap   = &octopus_mod_2_map,
-	.port_num = 24,
-	.temp_num = 1,
-	.tempmon_irq = 8,
-};
-
-static struct ddb_info ddb_mod_fsm_16 = {
-	.type     = DDB_MOD,
-	.version  = 2,
-	.name     = "Digital Devices DVB-C modulator FSM-16",
-	.regmap   = &octopus_mod_2_map,
-	.port_num = 16,
-	.temp_num = 1,
-	.tempmon_irq = 8,
-};
-
-static struct ddb_info ddb_mod_fsm_8 = {
-	.type     = DDB_MOD,
-	.name     = "Digital Devices DVB-C modulator FSM-8",
-	.version  = 2,
-	.regmap   = &octopus_mod_2_map,
-	.port_num = 8,
-	.temp_num = 1,
-	.tempmon_irq = 8,
-};
-
-static struct ddb_info ddb_sdr = {
-	.type     = DDB_MOD,
-	.name     = "Digital Devices SDR",
-	.version  = 3,
-	.regmap   = &octopus_sdr_map,
-	.port_num = 16,
-	.temp_num = 1,
-	.tempmon_irq = 8,
-};
-
-static struct ddb_info ddb_octopro_hdin = {
-	.type     = DDB_OCTOPRO_HDIN,
-	.name     = "Digital Devices OctopusNet Pro HDIN",
-	.regmap   = &octopro_hdin_map,
-	.port_num = 10,
-	.i2c_mask = 0x3ff,
-	.mdio_num = 1,
-};
-
-static struct ddb_info ddb_octopro = {
-	.type     = DDB_OCTOPRO,
-	.name     = "Digital Devices OctopusNet Pro",
-	.regmap   = &octopro_map,
-	.port_num = 10,
-	.i2c_mask = 0x3ff,
-	.mdio_num = 1,
-};
 
 /****************************************************************************/
 /****************************************************************************/

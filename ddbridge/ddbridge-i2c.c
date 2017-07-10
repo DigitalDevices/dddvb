@@ -23,8 +23,28 @@
  * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
  */
 
-static int i2c_io(struct i2c_adapter *adapter, u8 adr,
-		  u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen)
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/interrupt.h>
+#include <linux/delay.h>
+#include <linux/slab.h>
+#include <linux/poll.h>
+#include <linux/io.h>
+#include <linux/pci.h>
+#include <linux/pci_ids.h>
+#include <linux/timer.h>
+#include <linux/i2c.h>
+#include <linux/swab.h>
+#include <linux/vmalloc.h>
+
+#include "ddbridge.h"
+#include "ddbridge-regs.h"
+#include "ddbridge-io.h"
+
+/******************************************************************************/
+
+int i2c_io(struct i2c_adapter *adapter, u8 adr,
+	   u8 *wbuf, u32 wlen, u8 *rbuf, u32 rlen)
 {
 	struct i2c_msg msgs[2] = {{.addr = adr,  .flags = 0,
 				   .buf  = wbuf, .len   = wlen },
@@ -33,7 +53,7 @@ static int i2c_io(struct i2c_adapter *adapter, u8 adr,
 	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
 }
 
-static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
+int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
 {
 	struct i2c_msg msg = {.addr = adr, .flags = 0,
 			      .buf = data, .len = len};
@@ -41,15 +61,15 @@ static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
 	return (i2c_transfer(adap, &msg, 1) == 1) ? 0 : -1;
 }
 
-static int i2c_read(struct i2c_adapter *adapter, u8 adr, u8 *val)
+int i2c_read(struct i2c_adapter *adapter, u8 adr, u8 *val)
 {
 	struct i2c_msg msgs[1] = {{.addr = adr,  .flags = I2C_M_RD,
 				   .buf  = val,  .len   = 1 } };
 	return (i2c_transfer(adapter, msgs, 1) == 1) ? 0 : -1;
 }
 
-static int i2c_read_regs(struct i2c_adapter *adapter,
-			 u8 adr, u8 reg, u8 *val, u8 len)
+int i2c_read_regs(struct i2c_adapter *adapter,
+		  u8 adr, u8 reg, u8 *val, u8 len)
 {
 	struct i2c_msg msgs[2] = {{.addr = adr,  .flags = 0,
 				   .buf  = &reg, .len   = 1 },
@@ -58,8 +78,8 @@ static int i2c_read_regs(struct i2c_adapter *adapter,
 	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
 }
 
-static int i2c_read_regs16(struct i2c_adapter *adapter,
-			   u8 adr, u16 reg, u8 *val, u8 len)
+int i2c_read_regs16(struct i2c_adapter *adapter,
+		    u8 adr, u16 reg, u8 *val, u8 len)
 {
 	u8 reg16[2] = { reg >> 8, reg };
 	struct i2c_msg msgs[2] = {{.addr = adr,  .flags = 0,
@@ -69,7 +89,7 @@ static int i2c_read_regs16(struct i2c_adapter *adapter,
 	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
 }
 
-static int i2c_read_reg(struct i2c_adapter *adapter, u8 adr, u8 reg, u8 *val)
+int i2c_read_reg(struct i2c_adapter *adapter, u8 adr, u8 reg, u8 *val)
 {
 	struct i2c_msg msgs[2] = {{.addr = adr,  .flags = 0,
 				   .buf  = &reg, .len   = 1},
@@ -78,8 +98,8 @@ static int i2c_read_reg(struct i2c_adapter *adapter, u8 adr, u8 reg, u8 *val)
 	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
 }
 
-static int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
-			  u16 reg, u8 *val)
+int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
+		   u16 reg, u8 *val)
 {
 	u8 msg[2] = {reg >> 8, reg & 0xff};
 	struct i2c_msg msgs[2] = {{.addr = adr, .flags = 0,
@@ -89,16 +109,16 @@ static int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
 	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
 }
 
-static int i2c_write_reg16(struct i2c_adapter *adap, u8 adr,
-			   u16 reg, u8 val)
+int i2c_write_reg16(struct i2c_adapter *adap, u8 adr,
+		    u16 reg, u8 val)
 {
 	u8 msg[3] = {reg >> 8, reg & 0xff, val};
 
 	return i2c_write(adap, adr, msg, 3);
 }
 
-static int i2c_write_reg(struct i2c_adapter *adap, u8 adr,
-			 u8 reg, u8 val)
+int i2c_write_reg(struct i2c_adapter *adap, u8 adr,
+		  u8 reg, u8 val)
 {
 	u8 msg[2] = {reg, val};
 
@@ -202,12 +222,12 @@ static u32 ddb_i2c_functionality(struct i2c_adapter *adap)
 	return I2C_FUNC_I2C | I2C_FUNC_SMBUS_EMUL;
 }
 
-struct i2c_algorithm ddb_i2c_algo = {
+static const struct i2c_algorithm ddb_i2c_algo = {
 	.master_xfer   = ddb_i2c_master_xfer,
 	.functionality = ddb_i2c_functionality,
 };
 
-static void ddb_i2c_release(struct ddb *dev)
+void ddb_i2c_release(struct ddb *dev)
 {
 	int i;
 	struct ddb_i2c *i2c;
@@ -260,7 +280,7 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 	return i2c_add_adapter(adap);
 }
 
-static int ddb_i2c_init(struct ddb *dev)
+int ddb_i2c_init(struct ddb *dev)
 {
 	int stat = 0;
 	u32 i, j, num = 0, l, base;
