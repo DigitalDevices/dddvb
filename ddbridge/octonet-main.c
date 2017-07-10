@@ -40,6 +40,8 @@
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
 #include "ddbridge-hw.h"
+#include "ddbridge-io.h"
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
 #include <asm-generic/pci-dma-compat.h>
 #else

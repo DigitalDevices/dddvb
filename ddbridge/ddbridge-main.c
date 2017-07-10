@@ -30,6 +30,7 @@
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
 #include "ddbridge-hw.h"
+#include "ddbridge-io.h"
 
 static struct workqueue_struct *ddb_wq;
 
