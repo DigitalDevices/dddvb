@@ -739,25 +739,6 @@ int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 extern int adapter_alloc;
 
 /* ddbridge-core.c */
-/* hwmaps */
-extern struct ddb_regset octopus_input;
-extern struct ddb_regset octopus_output;
-extern struct ddb_regset octopus_i2c;
-extern struct ddb_regset octopus_i2c_buf;
-extern struct ddb_regmap octopus_map;
-extern struct ddb_regmap octopro_map;
-extern struct ddb_regmap octopro_hdin_map;
-extern struct ddb_regmap octopus_mod_map;
-extern struct ddb_regmap octopus_mod_2_map;
-extern struct ddb_regmap octopus_sdr_map;
-extern struct ddb_info ddb_s2_48;
-extern struct ddb_info ddb_ct2_8;
-extern struct ddb_info ddb_c2t2_8;
-extern struct ddb_info ddb_isdbt_8;
-extern struct ddb_info ddb_c2t2i_v0_8;
-extern struct ddb_info ddb_c2t2i_8;
-
-/* function prototypes */
 void ddb_ports_detach(struct ddb *dev);
 void ddb_ports_release(struct ddb *dev);
 void ddb_buffers_free(struct ddb *dev);

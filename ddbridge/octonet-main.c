@@ -39,6 +39,7 @@
 
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
+#include "ddbridge-hw.h"
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0))
 #include <asm-generic/pci-dma-compat.h>
 #else
@@ -49,69 +50,6 @@ int adapter_alloc = 3;
 module_param(adapter_alloc, int, 0444);
 MODULE_PARM_DESC(adapter_alloc,
 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
-
-static struct ddb_regmap octopus_net_map = {
-	.irq_version = 1,
-	.irq_base_i2c = 0,
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
-	.input = &octopus_input,
-	.output = &octopus_output,
-};
-
-static struct ddb_regset octopus_gtl = {
-	.base = 0x180,
-	.num  = 0x01,
-	.size = 0x20,
-};
-
-static struct ddb_regmap octopus_net_gtl = {
-	.irq_version = 1,
-	.irq_base_i2c = 0,
-	.irq_base_gtl = 10,
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
-	.input = &octopus_input,
-	.output = &octopus_output,
-	.gtl = &octopus_gtl,
-};
-
-static struct ddb_info ddb_octonet = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet network DVB adapter",
-	.regmap   = &octopus_net_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.ns_num   = 12,
-	.mdio_num = 1,
-};
-
-static struct ddb_info ddb_octonet_jse = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet network DVB adapter JSE",
-	.regmap   = &octopus_net_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.ns_num   = 15,
-	.mdio_num = 1,
-};
-
-static struct ddb_info ddb_octonet_gtl = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet GTL",
-	.regmap   = &octopus_net_gtl,
-	.port_num = 4,
-	.i2c_mask = 0x05,
-	.ns_num   = 12,
-	.mdio_num = 1,
-	.con_clock = 1,
-};
-
-static struct ddb_info ddb_octonet_tbd = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet",
-	.regmap   = &octopus_net_map,
-};
 
 static void octonet_unmap(struct ddb *dev)
 {
