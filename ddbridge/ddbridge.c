@@ -143,6 +143,7 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 			pr_info("DDBridge: MSI not available.\n");
 #endif
 	}
+#endif	
 	return stat;
 }
 
@@ -214,9 +215,7 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 			free_irq(dev->pdev->irq, dev);
 			return stat;
 		}
-	} else
-#endif
-	{
+	} else {
 #ifdef DDB_TEST_THREADED
 		stat = request_threaded_irq(dev->pdev->irq, irq_handler,
 					    irq_thread,
