@@ -31,7 +31,8 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/string.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0)
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0))
 #include <asm/uaccess.h>
 #else
 #include <linux/uaccess.h>
