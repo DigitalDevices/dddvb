@@ -217,7 +217,7 @@ static const struct of_device_id octonet_dt_ids[] = {
 MODULE_DEVICE_TABLE(of, octonet_dt_ids);
 #endif
 
-static struct platform_driver octonet_driver = {
+static struct platform_driver octonet_driver __refdata = {
 	.remove	= __exit_p(octonet_remove),
 	.probe	= octonet_probe,
 	.driver		= {
