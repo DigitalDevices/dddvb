@@ -29,33 +29,11 @@
 
 #include "ddbridge.h"
 #include "ddbridge-regs.h"
-
-static struct workqueue_struct *ddb_wq;
-
-static int adapter_alloc;
-module_param(adapter_alloc, int, 0444);
-MODULE_PARM_DESC(adapter_alloc,
-		 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
-
-#ifdef CONFIG_PCI_MSI
-static int msi = 1;
-module_param(msi, int, 0444);
-MODULE_PARM_DESC(msi,
-		 " Control MSI interrupts: 0-disable, 1-enable (default)");
-#endif
-
 #include "ddbridge-core.c"
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-static void ddb_unmap(struct ddb *dev)
-{
-	if (dev->regs)
-		iounmap(dev->regs);
-	vfree(dev);
-}
 
 static void __devexit ddb_irq_disable(struct ddb *dev)
 {

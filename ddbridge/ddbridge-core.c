@@ -26,6 +26,20 @@
 
 DEFINE_MUTEX(redirect_lock);
 
+static struct workqueue_struct *ddb_wq;
+
+static int adapter_alloc;
+module_param(adapter_alloc, int, 0444);
+MODULE_PARM_DESC(adapter_alloc,
+		 "0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
+
+#ifdef CONFIG_PCI_MSI
+static int msi = 1;
+module_param(msi, int, 0444);
+MODULE_PARM_DESC(msi,
+		 " Control MSI interrupts: 0-disable, 1-enable (default)");
+#endif
+
 static int ci_bitrate = 70000;
 module_param(ci_bitrate, int, 0444);
 MODULE_PARM_DESC(ci_bitrate, " Bitrate in KHz for output to CI.");
@@ -5480,3 +5494,11 @@ static void ddb_reset_ios(struct ddb *dev)
 				     rm->output->base + i * rm->output->size);
 	usleep_range(5000, 6000);
 }
+
+static void ddb_unmap(struct ddb *dev)
+{
+	if (dev->regs)
+		iounmap(dev->regs);
+	vfree(dev);
+}
+

@@ -125,7 +125,7 @@ static int __exit octonet_remove(struct platform_device *pdev)
 
 	free_irq(platform_get_irq(dev->pfdev, 0), dev);
 	ddb_ports_release(dev);
-	octonet_unmap(dev);
+	ddb_unmap(dev);
 	platform_set_drvdata(pdev, 0);
 	return 0;
 }
@@ -203,7 +203,7 @@ fail:
 	dev_err(dev->dev, "fail\n");
 	ddbwritel(dev, 0, ETHER_CONTROL);
 	ddbwritel(dev, 0, INTERRUPT_ENABLE);
-	octonet_unmap(dev);
+	ddb_unmap(dev);
 	platform_set_drvdata(pdev, 0);
 	return -1;
 }
