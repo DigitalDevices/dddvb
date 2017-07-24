@@ -662,15 +662,19 @@ static int read_data(struct dvb_ca_en50221 *ca, int slot, u8 *ebuf, int ecount)
 static int write_data(struct dvb_ca_en50221 *ca, int slot, u8 *ebuf, int ecount)
 {
 	struct cxd *ci = ca->data;
-
+	int status;
+	
 	if (ci->write_busy)
 		return -EAGAIN;
 	mutex_lock(&ci->lock);
 	write_reg(ci, 0x0d, ecount >> 8);
 	write_reg(ci, 0x0e, ecount & 0xff);
-	write_block(ci, 0x11, ebuf, ecount);
-	ci->write_busy = 1;
+	status = write_block(ci, 0x11, ebuf, ecount);
+	if (!status)
+		ci->write_busy = 1;
 	mutex_unlock(&ci->lock);
+	if (status)
+		return status;
 	return ecount;
 }
 #endif
