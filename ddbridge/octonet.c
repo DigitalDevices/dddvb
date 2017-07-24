@@ -31,82 +31,7 @@
 #include <linux/pci-dma-compat.h>
 #endif
 
-static int adapter_alloc = 3;
-module_param(adapter_alloc, int, 0444);
-MODULE_PARM_DESC(adapter_alloc,
-"0-one adapter per io, 1-one per tab with io, 2-one per tab, 3-one for all");
-
 #include "ddbridge-core.c"
-
-static struct ddb_regmap octopus_net_map = {
-	.irq_version = 1,
-	.irq_base_i2c = 0,
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
-	.input = &octopus_input,
-	.output = &octopus_output,
-};
-
-static struct ddb_regset octopus_gtl = {
-	.base = 0x180,
-	.num  = 0x01,
-	.size = 0x20,
-};
-
-static struct ddb_regmap octopus_net_gtl = {
-	.irq_version = 1,
-	.irq_base_i2c = 0,
-	.irq_base_gtl = 10,
-	.i2c = &octopus_i2c,
-	.i2c_buf = &octopus_i2c_buf,
-	.input = &octopus_input,
-	.output = &octopus_output,
-	.gtl = &octopus_gtl,
-};
-
-static struct ddb_info ddb_octonet = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet network DVB adapter",
-	.regmap   = &octopus_net_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.ns_num   = 12,
-	.mdio_num = 1,
-};
-
-static struct ddb_info ddb_octonet_jse = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet network DVB adapter JSE",
-	.regmap   = &octopus_net_map,
-	.port_num = 4,
-	.i2c_mask = 0x0f,
-	.ns_num   = 15,
-	.mdio_num = 1,
-};
-
-static struct ddb_info ddb_octonet_gtl = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet GTL",
-	.regmap   = &octopus_net_gtl,
-	.port_num = 4,
-	.i2c_mask = 0x05,
-	.ns_num   = 12,
-	.mdio_num = 1,
-	.con_clock = 1,
-};
-
-static struct ddb_info ddb_octonet_tbd = {
-	.type     = DDB_OCTONET,
-	.name     = "Digital Devices OctopusNet",
-	.regmap   = &octopus_net_map,
-};
-
-static void octonet_unmap(struct ddb *dev)
-{
-	if (dev->regs)
-		iounmap(dev->regs);
-	vfree(dev);
-}
 
 static int __exit octonet_remove(struct platform_device *pdev)
 {
@@ -168,6 +93,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 	dev->link[0].ids.subdevice = dev->link[0].ids.devid >> 16;
 
 	dev->link[0].dev = dev;
+#if 0
 	if (dev->link[0].ids.devid == 0x0300dd01)
 		dev->link[0].info = &ddb_octonet;
 	else if (dev->link[0].ids.devid == 0x0301dd01)
@@ -176,7 +102,11 @@ static int __init octonet_probe(struct platform_device *pdev)
 		dev->link[0].info = &ddb_octonet_gtl;
 	else
 		dev->link[0].info = &ddb_octonet_tbd;
-
+#else
+	dev->link[0].info = get_ddb_info(dev->link[0].ids.vendor,
+					 dev->link[0].ids.device,
+					 0xdd01, 0xffff);
+#endif
 	pr_info("DDBridge: HW  %08x REGMAP %08x\n",
 		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 	pr_info("DDBridge: MAC %08x DEVID  %08x\n",
