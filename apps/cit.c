@@ -93,7 +93,11 @@ void *get_ts(void *a)
 	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
 	printf("using %s for reading\n", fname);
 	fdi = open(fname, O_RDONLY);
-
+	if (fdi == -1) {
+		printf("Failed to open %s for read: %m\n", fname);
+		return NULL;
+	}
+	 
 	while (1) {
 		memset(buf, 0, 188*rnum);
 		len=read(fdi, buf, 188*rnum);
@@ -125,6 +129,10 @@ int send(void)
 	sprintf(fname, "/dev/dvb/adapter%u/ci%u", adapter, device);
 	printf("using %s for writing\n", fname);
 	fdo=open(fname, O_WRONLY);
+	if (fdo == -1) {
+		printf("Failed to open %s to write: %m\n", fname);
+		exit(2);
+	}
 
 	while (1) {
 		for (i=0; i<snum; i++) {
@@ -148,7 +156,7 @@ int send(void)
 int main(int argc, char **argv)
 {
 	pthread_t th;
-	
+
 	while (1) {
                 int option_index = 0;
 		int c;
@@ -180,6 +188,8 @@ int main(int argc, char **argv)
 			rnum = strtoul(optarg, NULL, 10);
 			break;
 		case 'h':
+			printf("cit -a<adapter> -d<device>\n");
+			exit(-1);
 		default:
 			break;
 			
@@ -188,6 +198,7 @@ int main(int argc, char **argv)
 	if (optind < argc) {
 		printf("Warning: unused arguments\n");
 	}
+	printf("adapter %d, device: %d\n", adapter, device);
 	memset(ts+8, 180, 0x5a);
 	pthread_create(&th, NULL, get_ts, NULL);
 	usleep(10000);
