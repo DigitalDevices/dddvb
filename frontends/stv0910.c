@@ -43,7 +43,7 @@
 static LIST_HEAD(stvlist);
 
 enum receive_mode { RCVMODE_NONE, RCVMODE_DVBS, RCVMODE_DVBS2, RCVMODE_AUTO };
-
+enum ScanMode { ColdStart, BlindScan };
 enum dvbs2_fec_type { DVBS2_64K, DVBS2_16K };
 
 enum dvbs2_modcod {
@@ -114,6 +114,7 @@ struct stv {
 	u32                  first_time_lock;
 	u8                   demod;
 	u32                  symbol_rate;
+	enum ScanMode        TuneMode;
 
 	enum fe_code_rate        puncture_rate;
 	enum fe_stv0910_modcod   modcod;
@@ -1093,8 +1094,10 @@ static int start(struct stv *state, struct dtv_frontend_properties *p)
 	write_reg(state, RSTV0910_P2_CFRINIT0 + state->regoff, 0);
 
 	write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x1F);
+
 	/* Trigger acq */
-	write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff, 0x15);
+	write_reg(state, RSTV0910_P2_DMDISTATE + state->regoff,
+			state->TuneMode == BlindScan ? 0x00 : 0x15);
 
 	state->demod_lock_time += TUNING_DELAY;
 	state->started = 1;
@@ -1249,6 +1252,8 @@ static int set_parameters(struct dvb_frontend *fe)
 		fe->ops.tuner_ops.set_params(fe);
 	if (fe->ops.tuner_ops.get_if_frequency)
 		fe->ops.tuner_ops.get_if_frequency(fe, &IF);
+	state->TuneMode = p->symbol_rate & 1 ? BlindScan : ColdStart;
+	p->symbol_rate &= ~(0x1);
 	state->symbol_rate = p->symbol_rate;
 	stat = start(state, p);
 	return stat;
