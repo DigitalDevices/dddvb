@@ -423,6 +423,7 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 				*con |= 0x810;  /* 96 MBit/s and gap */
 				max_bitrate = 96000;
 			}
+			*con |= 0x10;  /* enable gap */
 		}
 	}
 	if (max_bitrate > 0) {
@@ -4501,8 +4502,10 @@ static ssize_t gap_store(struct device *device, struct device_attribute *attr,
 
 	if (sscanf(buf, "%u\n", &val) != 1)
 		return -EINVAL;
-	if (val > 20)
+	if (val > 128)
 		return -EINVAL;
+	if (val == 128)
+		val = 0xffffffff;
 	dev->port[num].gap = val;
 	return count;
 }
