@@ -998,10 +998,9 @@ static int Start(struct stv *state, struct dtv_frontend_properties *p)
 		write_reg(state, RSTV0910_P2_PLROOT1 + state->regoff,
 			  (ScramblingCode >> 8) & 0xff);
 		write_reg(state, RSTV0910_P2_PLROOT2 + state->regoff,
-			  (ScramblingCode >> 16) & 0x07);
+			  (ScramblingCode >> 16) & 0x0f);
 		state->CurScramblingCode = ScramblingCode;
-		//pr_info("PLS=%08x\n",  ScramblingCode);
-        }
+	}
 
 	if (p->symbol_rate <= 1000000) {  /*SR <=1Msps*/
 		state->DemodTimeout = 3000;
