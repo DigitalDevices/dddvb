@@ -1,4 +1,4 @@
-all: cit citin flashprog modt ddtest setmod ddflash setmod2
+all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls
 
 cit: cit.c
 	$(CC) -o cit cit.c -lpthread
@@ -20,3 +20,6 @@ ddtest: ddtest.c
 
 ddflash: ddflash.c
 	$(CC) -o ddflash ddflash.c
+
+pls: pls.c
+	$(CC) -o pls pls.c
