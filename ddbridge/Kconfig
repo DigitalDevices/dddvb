@@ -1,0 +1,46 @@
+
+config DVB_DDBRIDGE
+	tristate "Digital Devices bridge support"
+	depends on MEDIA_PCI_SUPPORT && DVB_CORE && PCI && I2C
+	select DVB_LNBP21 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV6110x if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV090x if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_DRXK if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TDA18271C2DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TDA18212DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV0367DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_CXD2099 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_CXD2843 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_MXL5XX if MEDIA_SUBDRV_AUTOSELECT
+	---help---
+	  Support for cards with the Digital Devices PCI express bridge:
+	  - Octopus PCIe Bridge
+	  - Octopus mini PCIe Bridge
+	  - Octopus LE
+	  - DuoFlex S2 Octopus
+	  - DuoFlex CT Octopus
+	  - cineS2(v6)
+
+	  Say Y if you own such a card and want to use it.
+
+
+config DVB_OCTONET
+       tristate "Digital Devices octonet support"
+	depends on MEDIA_DIGITAL_TV_SUPPORT && DVB_CORE && I2C
+	select DVB_LNBP21 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV6110x if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV090x if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_DRXK if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TDA18271C2DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_TDA18212DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV0367DD if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_CXD2099 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_CXD2843 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV0910 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_STV6111 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_LNBH25 if MEDIA_SUBDRV_AUTOSELECT
+	select DVB_MXL5XX if MEDIA_SUBDRV_AUTOSELECT
+	---help---
+	  Support for OctopusNet
+
+	  Say Y if you own such a card and want to use it.
