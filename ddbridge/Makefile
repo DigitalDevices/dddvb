@@ -1,19 +1,14 @@
-KDIR	?= /lib/modules/$(shell uname -r)/build
-PWD	:= $(shell pwd)
+#
+# Makefile for the ddbridge device driver
+#
 
-MODDEFS := CONFIG_DVB_DDBRIDGE=m
+ddbridge-objs = ddbridge-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o
+octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o
 
-all:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) $(MODDEFS) modules
-	$(MAKE) -C apps
+obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o
+obj-$(CONFIG_DVB_OCTONET) += octonet.o
 
-dep:
-	DIR=`pwd`; (cd $(TOPDIR); make SUBDIRS=$$DIR dep)
-
-install: all
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules_install
-
-clean:
-	rm -rf */*.o */*.ko */*.mod.c */.*.cmd .tmp_versions Module* modules*
-
+ccflags-y += -Idrivers/media/dvb-core/
+ccflags-y += -Idrivers/media/dvb-frontends/
+ccflags-y += -Idrivers/media/tuners/
 

@@ -23,8 +23,7 @@
  * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
  */
 
-static int ddb_dvb_ns_input_start(struct ddb_input *input);
-static int ddb_dvb_ns_input_stop(struct ddb_input *input);
+#include "ddbridge.h"
 
 static u16 calc_pcs(struct dvb_ns_params *p)
 {
@@ -464,7 +463,7 @@ static int ns_stop(struct dvbnss *nss)
 	return 0;
 }
 
-static int netstream_init(struct ddb_input *input)
+int netstream_init(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct dvb_adapter *adap = dvb->adap;

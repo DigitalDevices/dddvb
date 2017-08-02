@@ -25,6 +25,9 @@
 #ifndef _DDBRIDGE_H_
 #define _DDBRIDGE_H_
 
+#define DDB_USE_WORK
+/*#define DDB_TEST_THREADED*/
+
 #include <linux/version.h>
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
@@ -89,6 +92,8 @@
 #include "stv6111.h"
 #include "lnbh25.h"
 #include "mxl5xx.h"
+
+#include "ddbridge-regs.h"
 
 #define DDB_MAX_I2C    32
 #define DDB_MAX_PORT   32
@@ -739,19 +744,39 @@ struct DDMOD_FLASH {
 #define DDMOD_FLASH_MAGIC   0x5F564d5F
 
 
+int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
+
+#define DDBRIDGE_VERSION "0.9.30"
+
+/* linked function prototypes */
+
+struct ddb_info *get_ddb_info(u16 vendor, u16 device, u16 subvendor, u16 subdevice);
+int netstream_init(struct ddb_input *input);
+int ddb_dvb_ns_input_start(struct ddb_input *input);
+int ddb_dvb_ns_input_stop(struct ddb_input *input);
+
 int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
 int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
 void ddbridge_mod_rate_handler(unsigned long data);
 
+void ddb_device_destroy(struct ddb *dev);
+void ddb_nsd_detach(struct ddb *dev);
+void ddb_ports_detach(struct ddb *dev);
+void ddb_ports_release(struct ddb *dev);
+void ddb_buffers_free(struct ddb *dev);
+void ddb_unmap(struct ddb *dev);
+irqreturn_t irq_handler0(int irq, void *dev_id);
+irqreturn_t irq_handler1(int irq, void *dev_id);
+irqreturn_t irq_handler(int irq, void *dev_id);
+irqreturn_t irq_handler_v2(int irq, void *dev_id);
+void ddb_reset_ios(struct ddb *dev);
+int ddb_init(struct ddb *dev);
+int ddb_class_create(void);
+void ddb_class_destroy(void);
 
-int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
-
-#define DDBRIDGE_VERSION "0.9.30"
-
-/* linked functions */
-
-struct ddb_info *get_ddb_info(u16 vendor, u16 device, u16 subvendor, u16 subdevice);
+int ddb_i2c_init(struct ddb *dev);
+void ddb_i2c_release(struct ddb *dev);
 
 #endif
