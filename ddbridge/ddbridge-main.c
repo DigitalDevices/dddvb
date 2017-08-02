@@ -24,6 +24,7 @@
  * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
  */
 #include "ddbridge.h"
+#include "ddbridge-io.h"
 
 #ifdef CONFIG_PCI_MSI
 static int msi = 1;

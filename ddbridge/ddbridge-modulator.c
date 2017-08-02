@@ -1,5 +1,5 @@
 /*
- * ddbridge.c: Digital Devices PCIe bridge driver
+ * ddbridge-modulator.c: Digital Devices modulator cards
  *
  * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
@@ -24,7 +24,7 @@
  */
 
 #include "ddbridge.h"
-#include "ddbridge-regs.h"
+#include "ddbridge-io.h"
 
 #include <linux/dvb/mod.h>
 

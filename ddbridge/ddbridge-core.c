@@ -25,6 +25,9 @@
  */
 
 #include "ddbridge.h"
+#include "ddbridge-i2c.h"
+#include "ddbridge-io.h"
+#include "dvb_net.h"
 
 struct workqueue_struct *ddb_wq;
 
@@ -84,7 +87,6 @@ static struct ddb *ddbs[DDB_MAX_ADAPTER];
 
 DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 
-#include "ddbridge-i2c.h"
 
 /****************************************************************************/
 /****************************************************************************/

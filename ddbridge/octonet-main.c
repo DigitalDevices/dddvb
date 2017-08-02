@@ -24,6 +24,7 @@
  */
 
 #include "ddbridge.h"
+#include "ddbridge-io.h"
 
 static int __exit octonet_remove(struct platform_device *pdev)
 {

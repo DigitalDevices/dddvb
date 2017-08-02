@@ -24,6 +24,7 @@
  */
 
 #include "ddbridge.h"
+#include "ddbridge-io.h"
 
 static u16 calc_pcs(struct dvb_ns_params *p)
 {

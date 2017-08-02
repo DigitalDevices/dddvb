@@ -24,6 +24,7 @@
  */
 
 #include "ddbridge.h"
+#include "ddbridge-io.h"
 
 static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 {
