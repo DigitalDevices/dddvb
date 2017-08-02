@@ -1248,13 +1248,17 @@ static int set_parameters(struct dvb_frontend *fe)
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
 	stop(state);
-	if (fe->ops.tuner_ops.set_params)
-		fe->ops.tuner_ops.set_params(fe);
 	if (fe->ops.tuner_ops.get_if_frequency)
 		fe->ops.tuner_ops.get_if_frequency(fe, &IF);
 	state->TuneMode = p->symbol_rate & 1 ? BlindScan : ColdStart;
 	p->symbol_rate &= ~(0x1);
 	state->symbol_rate = p->symbol_rate;
+	if (state->TuneMode == BlindScan)
+		p->symbol_rate = max((u32)(p->symbol_rate + p->symbol_rate/4),
+				(u32)70000000);
+
+	if (fe->ops.tuner_ops.set_params)
+		fe->ops.tuner_ops.set_params(fe);
 	stat = start(state, p);
 	return stat;
 }
