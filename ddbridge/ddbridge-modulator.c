@@ -516,6 +516,7 @@ static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan,
 	else
 		ddbwritel(dev, FSM_GAIN_N96, FSM_GAIN);
 
+	ddbwritel(dev, FSM_CONTROL_ENABLE, FSM_CONTROL);
 	dev->link[0].info->port_num = MaxUsedChannels;
 
 	return status;
@@ -1644,6 +1645,13 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		mod_set_symbolrate(mod, 6900000);
 		mod_set_frequency(mod, dev->mod_base.frequency + i * 8000000);
 	}
+	if (streams <= 8)
+		mod_set_vga(dev, RF_VGA_GAIN_N8);
+	else if (streams <= 16)
+		mod_set_vga(dev, RF_VGA_GAIN_N16);
+	else
+		mod_set_vga(dev, RF_VGA_GAIN_N24);
+	
 	mod_set_attenuator(dev, 0);
 	return 0;
 }

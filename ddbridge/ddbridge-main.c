@@ -286,7 +286,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		ddbwritel(dev, 0, DMA_BASE_WRITE);
 
 	if (dev->link[0].info->type == DDB_MOD) {
-		if (dev->link[0].info->version == 1)
+		if (dev->link[0].info->version <= 1)
 			if (ddbreadl(dev, 0x1c) == 4)
 				dev->link[0].info->port_num = 4;
 	}
