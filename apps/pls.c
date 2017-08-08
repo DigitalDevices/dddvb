@@ -1,3 +1,28 @@
+/*
+ * pls.c: Convert between Gold and Root Codes for DVB-S2 PLS
+ *
+ * Copyright (C) 2017 Marcus Metzler <mocm@metzlerbros.de>
+ *                    Ralph Metzler <rjkm@metzlerbros.de>
+ *
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 only, as published by the Free Software Foundation.
+ *
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA
+ * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ */
+
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -9,6 +34,51 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdint.h>
+
+/* According to ETSI EN 302 307 5.5.4 the PLS (Physical Layer
+   Scrambling) for DVB-S2 consists of a complex randomization
+   sequence which is ultimately derived from two recursively
+   defined m-sequences  (=MLS or maximum length sequences)
+   x(i) and y(i) of polynomials over GF(2) with m=18
+   (thus their length is 2^18 - 1).
+   These m-sequences with sequence y starting from y(0) and
+   sequence x starting from x(n) are combined to form a set
+   of 2^18 - 1 different Gold code sequences.
+
+   This starting number n of sequence x selects which
+   of those 2^18 - 1 Gold code sequences to use.
+   As a DVB-S2 tuning parameter n is called the scrambling sequence index 
+   (cf. ETSI EN 300 468 table 41) or Gold sequence index,
+   commonly also just called "Gold code".
+   The 18 values of the sequence x starting from x(n)
+   (x(n) ... x(n+17)) are also called the "Root code".
+   So, Gold and Root codes are not different ways of PLS, they are
+   just different ways to select the same sequence start point.
+     
+   The initial values for x(i), i=0..18 are x(0)=1, x(1)=0, .., x(17)=0 .  
+   The polynomial used for the x sequence recursion is 1+x^7+x^18.
+   If the lower 18 bits of a variable "uint32_t X" contain x(n) ... x(n+17),
+   then we can simply calculate x(n+1) ... x(n+18) by doing:
+   X = (((X ^ (X >> 7)) & 1) << 17) | (X >> 1);
+  
+   So, if X contained the "Root code" corresponding to "Gold code" n,
+   it will now contain the "Root code" corresponding to "Gold code" (n+1).
+   Note that X=0 and n=2^18 - 1 do not exist (or rather the lattter is the same
+   as n = 0) and for n=0 to 2^18 - 2 and X=1 to 2^18 - 1 there is a
+   one-to-one correspondence (bijection).
+
+   Note that PLS has nothing to do with encryption for DRM purposes. It is used
+   to minimize interference between transponders.
+
+
+   "Combo code":
+   There is no such thing as a combo code. It is the result of a bug in older
+   STV090x drivers which resulted in a crazy race condition between a Gold->Root
+   conversion in the STV and an ongoing I2C write. 
+   Better forget about it and determine the proper Root or Gold code.
+      
+ */
+
 
 static uint32_t gold2root(uint32_t gold)
 {
@@ -58,7 +128,9 @@ int main(int argc, char **argv)
 			root = strtoul(optarg, NULL, 0);
 			break;
 		case 'h':
-			printf("cit -a<adapter> -d<device>\n");
+			printf("pls -g gold_code\n");
+			printf("or\n");
+			printf("pls -r root_code\n");
 			exit(-1);
 		default:
 			break;
