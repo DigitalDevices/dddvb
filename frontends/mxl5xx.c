@@ -424,9 +424,22 @@ static int get_algo(struct dvb_frontend *fe)
 	return DVBFE_ALGO_HW;
 }
 
-/*
-static int cfg_scrambler(struct mxl *state)
+/* This should maybe go into dvb-core/dvb_math.c */
+
+static u32 gold2root(u32 gold)
 {
+	u32 x, g;
+	
+	if (gold >= 0x3ffff)
+		gold = 0;
+	for (g = 0, x = 1; g < gold; g++)
+		x = (((x ^ (x >> 7)) & 1) << 17) | (x >> 1);
+	return x;
+}
+
+static int cfg_scrambler(struct mxl *state, u32 gold)
+{
+	u32 root;
 	u8 buf[26] = {
 		MXL_HYDRA_PLID_CMD_WRITE, 24,
 		0, MXL_HYDRA_DEMOD_SCRAMBLE_CODE_CMD, 0, 0,
@@ -435,10 +448,17 @@ static int cfg_scrambler(struct mxl *state)
 		0, 0, 0, 0, 1, 0, 0, 0,
 	};
 
+	if (gold != NO_SCRAMBLING_CODE)
+		root = gold2root(gold);
+	else
+		root = 1;
+	buf[25] = (root >> 24) & 0xff;
+	buf[24] = (root >> 16) & 0xff;
+	buf[23] = (root >> 8) & 0xff;
+	buf[22] = root & 0xff;
+
 	return send_command(state, sizeof(buf), buf);
 }
-
-*/
 
 static int CfgDemodAbortTune(struct mxl *state)
 {
@@ -510,7 +530,7 @@ static int set_parameters(struct dvb_frontend *fe)
 		demodChanCfg.rollOff = MXL_HYDRA_ROLLOFF_AUTO;
 		demodChanCfg.modulationScheme = MXL_HYDRA_MOD_AUTO;
 		demodChanCfg.pilots = MXL_HYDRA_PILOTS_AUTO;
-		//cfg_scrambler(state);
+		cfg_scrambler(state, p->pls);
 		break;
 	default:
 		return -EINVAL;
