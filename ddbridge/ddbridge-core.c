@@ -2470,7 +2470,7 @@ static int wait_ci_ready(struct ddb_ci *ci)
 			break;
 		usleep_range(1, 2);
 		if ((--count) == 0)
-			return -1;
+			return -EIO;
 	} while (1);
 	return 0;
 }
@@ -2483,10 +2483,12 @@ static int read_attribute_mem(struct dvb_ca_en50221 *ca,
 
 	if (address > CI_BUFFER_SIZE)
 		return -1;
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, CI_READ_CMD | (1 << 16) | address,
 		  CI_DO_READ_ATTRIBUTES(ci->nr));
 	wait_ci_ready(ci);
 	val = 0xff & ddbreadl(ci->port->dev, CI_BUFFER(ci->nr) + off);
+	mutex_unlock(&ci->lock);
 	return val;
 }
 
@@ -2495,9 +2497,11 @@ static int write_attribute_mem(struct dvb_ca_en50221 *ca, int slot,
 {
 	struct ddb_ci *ci = ca->data;
 
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, CI_WRITE_CMD | (value << 16) | address,
 		  CI_DO_ATTRIBUTE_RW(ci->nr));
 	wait_ci_ready(ci);
+	mutex_unlock(&ci->lock);
 	return 0;
 }
 
@@ -2508,6 +2512,7 @@ static int read_cam_control(struct dvb_ca_en50221 *ca,
 	struct ddb_ci *ci = ca->data;
 	u32 res;
 
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, CI_READ_CMD | address,
 		  CI_DO_IO_RW(ci->nr));
 	ndelay(500);
@@ -2516,9 +2521,12 @@ static int read_cam_control(struct dvb_ca_en50221 *ca,
 		if (res & CI_READY)
 			break;
 		usleep_range(1, 2);
-		if ((--count) == 0)
-			return -1;
+		if ((--count) == 0) {
+			mutex_unlock(&ci->lock);
+			return -EIO;
+		}
 	} while (1);
+	mutex_unlock(&ci->lock);
 	return 0xff & res;
 }
 
@@ -2527,9 +2535,11 @@ static int write_cam_control(struct dvb_ca_en50221 *ca, int slot,
 {
 	struct ddb_ci *ci = ca->data;
 
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, CI_WRITE_CMD | (value << 16) | address,
 		  CI_DO_IO_RW(ci->nr));
 	wait_ci_ready(ci);
+	mutex_unlock(&ci->lock);
 	return 0;
 }
 
@@ -2537,6 +2547,7 @@ static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, CI_POWER_ON,
 		  CI_CONTROL(ci->nr));
 	msleep(100);
@@ -2547,6 +2558,7 @@ static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
 	udelay(20);
 	ddbwritel(ci->port->dev, CI_ENABLE | CI_POWER_ON,
 		  CI_CONTROL(ci->nr));
+	mutex_unlock(&ci->lock);
 	return 0;
 }
 
@@ -2554,26 +2566,35 @@ static int slot_shutdown(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
+	mutex_lock(&ci->lock);
 	ddbwritel(ci->port->dev, 0, CI_CONTROL(ci->nr));
 	msleep(300);
+	mutex_unlock(&ci->lock);
 	return 0;
 }
 
 static int slot_ts_enable(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
-	u32 val = ddbreadl(ci->port->dev, CI_CONTROL(ci->nr));
+	u32 val;
 
+	mutex_lock(&ci->lock);
+	val = ddbreadl(ci->port->dev, CI_CONTROL(ci->nr));
 	ddbwritel(ci->port->dev, val | CI_BYPASS_DISABLE,
 		  CI_CONTROL(ci->nr));
+	mutex_unlock(&ci->lock);
 	return 0;
 }
 
 static int poll_slot_status(struct dvb_ca_en50221 *ca, int slot, int open)
 {
 	struct ddb_ci *ci = ca->data;
-	u32 val = ddbreadl(ci->port->dev, CI_CONTROL(ci->nr));
+	u32 val;
 	int stat = 0;
+
+	mutex_lock(&ci->lock);
+	val = ddbreadl(ci->port->dev, CI_CONTROL(ci->nr));
+	mutex_unlock(&ci->lock);
 
 	if (val & CI_CAM_DETECT)
 		stat |= DVB_CA_EN50221_POLL_CAM_PRESENT;
@@ -2605,6 +2626,7 @@ static void ci_attach(struct ddb_port *port)
 	port->en = &ci->en;
 	ci->port = port;
 	ci->nr = port->nr - 2;
+	mutex_init(&ci->lock);
 }
 
 /****************************************************************************/
