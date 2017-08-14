@@ -178,6 +178,7 @@ static enum dvbv3_emulation_type dvbv3_type(u32 delivery_system)
 	case SYS_DVBT2:
 	case SYS_ISDBT:
 	case SYS_DTMB:
+	case SYS_DVBC2:
 		return DVBV3_OFDM;
 	case SYS_ATSC:
 	case SYS_ATSCMH:
