@@ -3446,11 +3446,11 @@ err:
 static int stv090x_set_pls(struct stv090x_state *state, u8 pls_mode, u32 pls_code)
 {
 	dprintk(FE_DEBUG, 1, "Set PLS code %d (mode %d)", pls_code, pls_mode);
-	if (STV090x_WRITE_DEMOD(state, PLROOT2, (pls_mode << 2) | (pls_code >> 16)) < 0)
+	if (STV090x_WRITE_DEMOD(state, PLROOT0, pls_code & 0xff) < 0)
 		goto err;
 	if (STV090x_WRITE_DEMOD(state, PLROOT1, (pls_code >> 8) & 0xff) < 0)
 		goto err;
-	if (STV090x_WRITE_DEMOD(state, PLROOT0, pls_code & 0xff) < 0)
+	if (STV090x_WRITE_DEMOD(state, PLROOT2, (pls_mode << 2) | (pls_code >> 16)) < 0)
 		goto err;
 	return 0;
 err:
