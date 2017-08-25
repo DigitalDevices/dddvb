@@ -36,8 +36,8 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 	stat = wait_for_completion_timeout(&i2c->completion, HZ);
 	val = ddbreadl(dev, i2c->regs + I2C_COMMAND);
 	if (stat == 0) {
-		pr_err("DDBridge: I2C timeout, card %d, port %d, link %u\n",
-		       dev->nr, i2c->nr, i2c->link);
+		dev_err(dev->dev, "I2C timeout, card %d, port %d, link %u\n",
+			dev->nr, i2c->nr, i2c->link);
 #if 1
 		{
 			u32 istat = ddbreadl(dev, INTERRUPT_STATUS);

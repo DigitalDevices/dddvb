@@ -151,7 +151,6 @@ static int ddb_unredirect(struct ddb_port *port)
 	struct ddb_input *oredi, *iredi = 0;
 	struct ddb_output *iredo = 0;
 
-	/*pr_info("DDBridge: unredirect %d.%d\n", port->dev->nr, port->nr);*/
 	mutex_lock(&redirect_lock);
 	if (port->output->dma->running) {
 		mutex_unlock(&redirect_lock);
@@ -445,7 +444,6 @@ static void ddb_output_start(struct ddb_output *output)
 	struct ddb *dev = output->port->dev;
 	u32 con = 0x11c, con2 = 0;
 
-	pr_info("Channel Base = %08x\n", output->regs);
 	if (output->dma) {
 		spin_lock_irq(&output->dma->lock);
 		output->dma->cbuf = 0;
@@ -781,7 +779,7 @@ static u32 ddb_input_avail(struct ddb_input *input)
 	off = (stat & 0x7ff) << 7;
 
 	if (ctrl & 4) {
-		pr_err("DDBridge: IA %d %d %08x\n", idx, off, ctrl);
+		dev_err(dev->dev, "IA %d %d %08x\n", idx, off, ctrl);
 		ddbwritel(dev, stat, DMA_BUFFER_ACK(input->dma));
 		return 0;
 	}
@@ -1061,7 +1059,8 @@ static int demod_attach_drxk(struct ddb_input *input)
 				  i2c, 0x29 + (input->nr & 1),
 				  &dvb->fe2);
 	if (!fe) {
-		pr_err("DDBridge: No DRXK found!\n");
+		dev_err(input->port->dev->dev,
+			"No DRXK found!\n");
 		return -ENODEV;
 	}
 	fe->sec_priv = input;
@@ -1085,7 +1084,8 @@ static int demod_attach_cxd2843(struct ddb_input *input, int par, int osc24)
 	fe = dvb->fe = dvb_attach(cxd2843_attach, i2c, &cfg);
 
 	if (!dvb->fe) {
-		pr_err("DDBridge: No cxd2837/38/43/54 found!\n");
+		dev_err(input->port->dev->dev,
+			"No cxd2837/38/43/54 found!\n");
 		return -ENODEV;
 	}
 	fe->sec_priv = input;
@@ -1108,7 +1108,8 @@ static int demod_attach_stv0367dd(struct ddb_input *input)
 				  &cfg,
 				  &dvb->fe2);
 	if (!dvb->fe) {
-		pr_err("DDBridge: No stv0367 found!\n");
+		dev_err(input->port->dev->dev,
+			"No stv0367 found!\n");
 		return -ENODEV;
 	}
 	fe->sec_priv = input;
@@ -1129,7 +1130,8 @@ static int tuner_attach_tda18271(struct ddb_input *input)
 	if (dvb->fe->ops.i2c_gate_ctrl)
 		dvb->fe->ops.i2c_gate_ctrl(dvb->fe, 0);
 	if (!fe) {
-		pr_err("DDBridge: No TDA18271 found!\n");
+		dev_err(input->port->dev->dev,
+			"No TDA18271 found!\n");
 		return -ENODEV;
 	}
 	return 0;
@@ -1144,7 +1146,8 @@ static int tuner_attach_tda18212dd(struct ddb_input *input)
 	fe = dvb_attach(tda18212dd_attach, dvb->fe, i2c,
 			(input->nr & 1) ? 0x63 : 0x60);
 	if (!fe) {
-		pr_err("DDBridge: No TDA18212 found!\n");
+		dev_err(input->port->dev->dev,
+			"No TDA18212 found!\n");
 		return -ENODEV;
 	}
 	return 0;
@@ -1169,7 +1172,8 @@ static int tuner_attach_tda18212(struct ddb_input *input)
 	cfg = (input->nr & 1) ? &tda18212_1 : &tda18212_0;
 	fe = dvb_attach(tda18212_attach, dvb->fe, i2c, cfg);
 	if (!fe) {
-		pr_err("DDBridge: No TDA18212 found!\n");
+		dev_err(input->port->dev->dev,
+			"No TDA18212 found!\n");
 		return -ENODEV;
 	}
 	return 0;
@@ -1246,13 +1250,15 @@ static int demod_attach_stv0900(struct ddb_input *input, int type)
 			     (input->nr & 1) ? STV090x_DEMODULATOR_1
 			     : STV090x_DEMODULATOR_0);
 	if (!dvb->fe) {
-		pr_err("DDBridge: No STV0900 found!\n");
+		dev_err(input->port->dev->dev,
+			"No STV0900 found!\n");
 		return -ENODEV;
 	}
 	if (!dvb_attach(lnbh24_attach, dvb->fe, i2c, 0,
 			0, (input->nr & 1) ?
 			(0x09 - type) : (0x0b - type))) {
-		pr_err("DDBridge: No LNBH24 found!\n");
+		dev_err(input->port->dev->dev,
+			"No LNBH24 found!\n");
 		return -ENODEV;
 	}
 	return 0;
@@ -1269,11 +1275,13 @@ static int tuner_attach_stv6110(struct ddb_input *input, int type)
 
 	ctl = dvb_attach(stv6110x_attach, dvb->fe, tunerconf, i2c);
 	if (!ctl) {
-		pr_err("DDBridge: No STV6110X found!\n");
+		dev_err(input->port->dev->dev,
+			"No STV6110X found!\n");
 		return -ENODEV;
 	}
-	pr_info("DDBridge: attach tuner input %d adr %02x\n",
-		input->nr, tunerconf->addr);
+	dev_info(input->port->dev->dev,
+		 "attach tuner input %d adr %02x\n",
+		 input->nr, tunerconf->addr);
 
 	feconf->tuner_init          = ctl->tuner_init;
 	feconf->tuner_sleep         = ctl->tuner_sleep;
@@ -1314,14 +1322,16 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 				     &cfg, (input->nr & 1));
 	}
 	if (!dvb->fe) {
-		pr_err("DDBridge: No STV0910 found!\n");
+		dev_err(input->port->dev->dev,
+			"No STV0910 found!\n");
 		return -ENODEV;
 	}
 	if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
 			((input->nr & 1) ? 0x0d : 0x0c))) {
 		if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
 				((input->nr & 1) ? 0x09 : 0x08))) {
-			pr_err("DDBridge: No LNBH25 found!\n");
+			dev_err(input->port->dev->dev,
+				"No LNBH25 found!\n");
 			return -ENODEV;
 		}
 	}
@@ -1339,7 +1349,8 @@ static int tuner_attach_stv6111(struct ddb_input *input, int type)
 	if (!fe) {
 		fe = dvb_attach(stv6111_attach, dvb->fe, i2c, adr & ~4);
 		if (!fe) {
-			pr_err("DDBridge: No STV6111 found at 0x%02x!\n", adr);
+			dev_err(input->port->dev->dev,
+				"No STV6111 found at 0x%02x!\n", adr);
 			return -ENODEV;
 		}
 	}
@@ -1351,18 +1362,17 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	u32 c, v = 0, tag = DDB_LINK_TAG(link);
 
 	v = LNB_TONE & (dev->link[link].lnb.tone << (15 - lnb));
-	/*pr_info("lnb_control[%u] = %08x\n", lnb, cmd | v);*/
 	ddbwritel(dev, cmd | v, tag | LNB_CONTROL(lnb));
 	for (c = 0; c < 10; c++) {
 		v = ddbreadl(dev, tag | LNB_CONTROL(lnb));
-		/*pr_info("ctrl = %08x\n", v);*/
 		if ((v & LNB_BUSY) == 0)
 			break;
 		msleep(20);
 	}
 	if (c == 10)
-		pr_info("DDBridge: lnb_command lnb = %08x  cmd = %08x\n",
-			lnb, cmd);
+		dev_info(dev->dev,
+			 "lnb_command lnb = %08x  cmd = %08x\n",
+			 lnb, cmd);
 	return 0;
 }
 
@@ -1654,7 +1664,8 @@ static int mxl_fw_read(void *priv, u8 *buf, u32 len)
 	struct ddb_link *link = priv;
 	struct ddb *dev = link->dev;
 
-	pr_info("DDBridge: Read mxl_fw from link %u\n", link->nr);
+	dev_info(dev->dev,
+		 "Read mxl_fw from link %u\n", link->nr);
 
 	return ddbridge_flashread(dev, link->nr, buf, 0xc0000, len);
 }
@@ -1665,7 +1676,7 @@ static int lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm)
 
 	if (link->lnb.fmode == fm)
 		return 0;
-	pr_info("DDBridge: Set fmode link %u = %u\n", l, fm);
+	dev_info(dev->dev, "Set fmode link %u = %u\n", l, fm);
 	mutex_lock(&link->lnb.lock);
 	if (fm == 2 || fm == 1) {
 		if (fmode_sat >= 0) {
@@ -1724,7 +1735,7 @@ static int fe_attach_mxl5xx(struct ddb_input *input)
 		tuner = 0;
 	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg, demod, tuner);
 	if (!dvb->fe) {
-		pr_err("DDBridge: No MXL5XX found!\n");
+		dev_err(dev->dev, "No MXL5XX found!\n");
 		return -ENODEV;
 	}
 	if (input->nr < 4) {
@@ -2091,7 +2102,8 @@ static int port_has_encti(struct ddb_port *port)
 	int ret = i2c_read_reg(&port->i2c->adap, 0x20, 0, &val);
 
 	if (!ret)
-		pr_info("DDBridge: [0x20]=0x%02x\n", val);
+		dev_info(port->dev->dev,
+			 "[0x20]=0x%02x\n", val);
 	return ret ? 0 : 1;
 }
 
@@ -2187,7 +2199,7 @@ static int init_xo2(struct ddb_port *port)
 		return res;
 
 	if (data[0] != 0x01)  {
-		pr_info("DDBridge: Port %d: invalid XO2\n", port->nr);
+		dev_info(dev->dev, "Port %d: invalid XO2\n", port->nr);
 		return -1;
 	}
 
@@ -2206,7 +2218,7 @@ static int init_xo2(struct ddb_port *port)
 	i2c_write_reg(i2c, 0x10, 0x09, xo2_speed);
 
 	if (dev->link[port->lnr].info->con_clock) {
-		pr_info("DDBridge: Setting continuous clock for XO2\n");
+		dev_info(dev->dev, "Setting continuous clock for XO2\n");
 		i2c_write_reg(i2c, 0x10, 0x0a, 0x03);
 		i2c_write_reg(i2c, 0x10, 0x0b, 0x03);
 	} else {
@@ -2233,12 +2245,12 @@ static int init_xo2_ci(struct ddb_port *port)
 		return res;
 
 	if (data[0] > 1)  {
-		pr_info("DDBridge: Port %d: invalid XO2 CI %02x\n",
-			port->nr, data[0]);
+		dev_info(dev->dev, "Port %d: invalid XO2 CI %02x\n",
+			 port->nr, data[0]);
 		return -1;
 	}
-	pr_info("DDBridge: Port %d: DuoFlex CI %u.%u\n",
-		port->nr, data[0], data[1]);
+	dev_info(dev->dev, "Port %d: DuoFlex CI %u.%u\n",
+		 port->nr, data[0], data[1]);
 
 	i2c_read_reg(i2c, 0x10, 0x08, &val);
 	if (val != 0) {
@@ -2257,7 +2269,7 @@ static int init_xo2_ci(struct ddb_port *port)
 	usleep_range(2000, 3000);
 
 	if (dev->link[port->lnr].info->con_clock) {
-		pr_info("DDBridge: Setting continuous clock for DuoFLex CI\n");
+		dev_info(dev->dev, "Setting continuous clock for DuoFLex CI\n");
 		i2c_write_reg(i2c, 0x10, 0x0a, 0x03);
 		i2c_write_reg(i2c, 0x10, 0x0b, 0x03);
 	} else {
@@ -2366,13 +2378,13 @@ static void ddb_port_probe(struct ddb_port *port)
 			ddbwritel(dev, I2C_SPEED_400,
 				  port->i2c->regs + I2C_TIMING);
 		} else {
-			pr_info("DDBridge: Port %d: Uninitialized DuoFlex\n",
-			       port->nr);
+			dev_info(dev->dev, "Port %d: Uninitialized DuoFlex\n",
+				 port->nr);
 			return;
 		}
 	} else if (port_has_xo2(port, &type, &id)) {
 		ddbwritel(dev, I2C_SPEED_400, port->i2c->regs + I2C_TIMING);
-		pr_info("DDBridge: XO2 ID %02x\n", id);
+		dev_info(dev->dev, "XO2 ID %02x\n", id);
 		if (type == 2) {
 			port->name = "DuoFlex CI";
 			port->class = DDB_PORT_CI;
@@ -2674,7 +2686,6 @@ static int slot_reset_xo2(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
-	pr_info("DDBridge: %s\n", __func__);
 	write_creg(ci, 0x01, 0x01);
 	write_creg(ci, 0x04, 0x04);
 	msleep(20);
@@ -2688,7 +2699,6 @@ static int slot_shutdown_xo2(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
-	pr_info("DDBridge: %s\n", __func__);
 	/*i2c_write_reg(i2c, adr, 0x03, 0x60);*/
 	/*i2c_write_reg(i2c, adr, 0x00, 0xc0);*/
 	write_creg(ci, 0x10, 0xff);
@@ -2700,7 +2710,6 @@ static int slot_ts_enable_xo2(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
-	pr_info("DDBridge: %s\n", __func__);
 	write_creg(ci, 0x00, 0x10);
 	return 0;
 }
@@ -2830,7 +2839,7 @@ static int ddb_port_attach(struct ddb_port *port)
 		break;
 	}
 	if (ret < 0)
-		pr_err("DDBridge: port_attach on port %d failed\n", port->nr);
+		dev_err(port->dev->dev, "port_attach on port %d failed\n", port->nr);
 	return ret;
 }
 
@@ -2842,12 +2851,12 @@ static int ddb_ports_attach(struct ddb *dev)
 	dev->ns_num = dev->link[0].info->ns_num;
 	for (i = 0; i < dev->ns_num; i++)
 		dev->ns[i].nr = i;
-	pr_info("DDBridge: %d netstream channels\n", dev->ns_num);
+	dev_info(dev->dev, "%d netstream channels\n", dev->ns_num);
 
 	if (dev->port_num) {
 		ret = dvb_register_adapters(dev);
 		if (ret < 0) {
-			pr_err("DDBridge: Registering adapters failed. Check DVB_MAX_ADAPTERS in config.\n");
+			dev_err(dev->dev, "Registering adapters failed. Check DVB_MAX_ADAPTERS in config.\n");
 			return ret;
 		}
 	}
@@ -2932,16 +2941,16 @@ static void input_write_dvb(struct ddb_input *input,
 	while (dma->cbuf != ((dma->stat >> 11) & 0x1f)
 	       || (4 & dma->ctrl)) {
 		if (4 & dma->ctrl) {
-			/*pr_err("DDBridge: Overflow dma %d\n", dma->nr);*/
+			/*dev_err(dev->dev, "Overflow dma %d\n", dma->nr);*/
 			ack = 1;
 		}
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
 #if 0
-		pr_info("DDBridge: %02x %02x %02x %02x\n",
-			dma2->vbuf[dma->cbuf][0], dma2->vbuf[dma->cbuf][1],
-			dma2->vbuf[dma->cbuf][2], dma2->vbuf[dma->cbuf][3]);
+		dev_info(dev->dev, "%02x %02x %02x %02x\n",
+			 dma2->vbuf[dma->cbuf][0], dma2->vbuf[dma->cbuf][1],
+			 dma2->vbuf[dma->cbuf][2], dma2->vbuf[dma->cbuf][3]);
 #endif
 		dvb_dmx_swfilter_packets(&dvb->demux,
 					 dma2->vbuf[dma->cbuf],
@@ -2979,7 +2988,7 @@ static void input_tasklet(unsigned long data)
 
 #if 0
 	if (4 & dma->ctrl)
-		pr_err("DDBridge: Overflow dma %d\n", dma->nr);
+		dev_err(dev->dev, "Overflow dma %d\n", dma->nr);
 #endif
 	if (input->redi)
 		input_write_dvb(input, input->redi);
@@ -3085,8 +3094,8 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 		dma->div = INPUT_DMA_IRQ_DIV;
 	}
 	ddbwritel(io->port->dev, 0, DMA_BUFFER_ACK(dma));
-	pr_info("DDBridge: init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
-		io->port->lnr, io->nr, nr, dma->regs, dma->bufregs);
+	dev_info(io->port->dev->dev, "init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
+		 io->port->lnr, io->nr, nr, dma->regs, dma->bufregs);
 }
 
 static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
@@ -3101,7 +3110,7 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 	rm = io_regmap(input, 1);
 	input->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->input->base + rm->input->size * nr);
-	pr_info("DDBridge: init link %u, input %u, regs %08x\n",
+	dev_info(dev->dev, "init link %u, input %u, regs %08x\n",
 		 port->lnr, nr, input->regs);
 	if (dev->has_dma) {
 		struct ddb_regmap *rm0 = io_regmap(input, 0);
@@ -3111,7 +3120,7 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 		if (port->lnr)
 			dma_nr += 32 + (port->lnr - 1) * 8;
 
-		pr_info("DDBridge: init link %u, input %u, handler %u\n",
+		dev_info(dev->dev, "init link %u, input %u, handler %u\n",
 			 port->lnr, nr, dma_nr + base);
 		dev->handler[0][dma_nr + base] = input_handler;
 		dev->handler_data[0][dma_nr + base] = (unsigned long) input;
@@ -3131,12 +3140,12 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	rm = io_regmap(output, 1);
 	output->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->output->base + rm->output->size * nr);
-	pr_info("DDBridge: init link %u, output %u, regs %08x\n",
+	dev_info(dev->dev, "init link %u, output %u, regs %08x\n",
 		 port->lnr, nr, output->regs);
 	if (dev->has_dma) {
 		struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
-
+		
 		dev->handler[0][nr + base] = output_handler;
 		dev->handler_data[0][nr + base] = (unsigned long) output;
 		ddb_dma_init(output, nr, 1);
@@ -3210,9 +3219,9 @@ static void ddb_ports_init(struct ddb *dev)
 				port->name = "DuoFlex CI_B";
 				port->i2c = dev->port[p - 1].i2c;
 			}
-			pr_info("DDBridge: Port %u: Link %u, Link Port %u (TAB %u): %s\n",
-				port->pnr, port->lnr, port->nr,
-				port->nr + 1, port->name);
+			dev_info(dev->dev, "Port %u: Link %u, Link Port %u (TAB %u): %s\n",
+				 port->pnr, port->lnr, port->nr,
+				 port->nr + 1, port->name);
 
 			if (port->class == DDB_PORT_CI &&
 			    port->type == DDB_CI_EXTERNAL_XO2) {
@@ -3507,8 +3516,6 @@ static irqreturn_t irq_thread(int irq, void *dev_id)
 {
 	/* struct ddb *dev = (struct ddb *) dev_id; */
 
-	/*pr_info("DDBridge: %s\n", __func__);*/
-
 	return IRQ_HANDLED;
 }
 #endif
@@ -3576,7 +3583,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 			((ts->filter_mask & 3) << 2);
 
 		if (ddbreadl(dev, TS_CAPTURE_CONTROL) & 1) {
-			pr_info("DDBridge: ts capture busy\n");
+			dev_info(dev->dev, "ts capture busy\n");
 			return -EBUSY;
 		}
 		ddb_dvb_ns_input_start(input);
@@ -3609,10 +3616,8 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 
 		if (ctrl & 1)
 			return -EBUSY;
-		if (ctrl & (1 << 14)) {
-			/*pr_info("DDBridge: ts capture timeout\n");*/
+		if (ctrl & (1 << 14))
 			return -EAGAIN;
-		}
 		ddbcpyfrom(dev, dev->tsbuf, TS_CAPTURE_MEMORY,
 			   TS_CAPTURE_LEN);
 		ts->len = ddbreadl(dev, TS_CAPTURE_RECEIVED) & 0x1fff;
@@ -3624,10 +3629,8 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	{
 		u32 ctrl = 0;
 
-		/*pr_info("DDBridge: cancel ts capture: 0x%x\n", ctrl);*/
 		ddbwritel(dev, ctrl, TS_CAPTURE_CONTROL);
 		ctrl = ddbreadl(dev, TS_CAPTURE_CONTROL);
-		/*pr_info("DDBridge: control register is 0x%x\n", ctrl);*/
 		break;
 	}
 	case NSD_STOP_GET_TS:
@@ -3639,10 +3642,10 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		if (!input)
 			return -EINVAL;
 		if (ctrl & 1) {
-			pr_info("DDBridge: cannot stop ts capture, while it was neither finished nor canceled\n");
+			dev_info(dev->dev,
+				 "cannot stop ts capture, while it was neither finished nor canceled\n");
 			return -EBUSY;
 		}
-		/*pr_info("DDBridge: ts capture stopped\n");*/
 		ddb_dvb_ns_input_stop(input);
 		break;
 	}
@@ -4451,7 +4454,7 @@ static ssize_t redirect_store(struct device *device,
 	res = ddb_redirect(i, p);
 	if (res < 0)
 		return res;
-	pr_info("DDBridge: redirect: %02x, %02x\n", i, p);
+	dev_info(device, "redirect: %02x, %02x\n", i, p);
 	return count;
 }
 
@@ -4476,7 +4479,7 @@ static ssize_t redirect2_store(struct device *device,
 	res = ddb_redirect(i, p);
 	if (res < 0)
 		return res;
-	pr_info("DDBridge: redirect: %02x, %02x\n", i, p);
+	dev_info(device, "redirect: %02x, %02x\n", i, p);
 	return count;
 }
 #endif
@@ -4799,7 +4802,7 @@ static int ddb_device_create(struct ddb *dev)
 				     dev, "ddbridge%d", dev->nr);
 	if (IS_ERR(dev->ddb_dev)) {
 		res = PTR_ERR(dev->ddb_dev);
-		pr_info("DDBridge: Could not create ddbridge%d\n", dev->nr);
+		dev_info(dev->dev, "Could not create ddbridge%d\n", dev->nr);
 		goto fail;
 	}
 	res = ddb_device_attrs_add(dev);
@@ -4832,9 +4835,9 @@ static void gtl_link_handler(unsigned long priv)
 {
 	struct ddb *dev = (struct ddb *) priv;
 	u32 regs = dev->link[0].info->regmap->gtl->base;
-
-	pr_info("DDBridge: GT link change: %u\n",
-		(1 & ddbreadl(dev, regs)));
+	
+	dev_info(dev->dev, "GT link change: %u\n",
+		 (1 & ddbreadl(dev, regs)));
 }
 
 static void link_tasklet(unsigned long data)
@@ -4845,7 +4848,7 @@ static void link_tasklet(unsigned long data)
 	u32 l = link->nr;
 
 	s = ddbreadl(dev, tag | INTERRUPT_STATUS);
-	pr_info("DDBridge: gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
+	dev_info(dev->dev, "gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
 
 	if (!s)
 		return;
@@ -4866,7 +4869,6 @@ static void gtl_irq_handler(unsigned long priv)
 
 	while ((s = ddbreadl(dev, tag | INTERRUPT_STATUS)))  {
 		ddbwritel(dev, s, tag | INTERRUPT_ACK);
-		//pr_info("DDBridge: gtlirq %08x\n", s);
 		LINK_IRQ_HANDLE(l, 0);
 		LINK_IRQ_HANDLE(l, 1);
 		LINK_IRQ_HANDLE(l, 2);
@@ -4885,8 +4887,8 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 		(l - 1) * dev->link[0].info->regmap->gtl->size;
 	u32 id, subid, base = dev->link[0].info->regmap->irq_base_gtl;
 
-	pr_info("DDBridge: Checking GT link %u: regs = %08x\n", l, regs);
-
+	dev_info(dev->dev, "Checking GT link %u: regs = %08x\n", l, regs);
+	
 	spin_lock_init(&link->lock);
 	mutex_init(&link->lnb.lock);
 	link->lnb.fmode = 0xffffffff;
@@ -4916,7 +4918,8 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 				  subid & 0xffff, subid >> 16);
 	if (link->info->type != DDB_OCTOPUS_MAX_CT &&
 	    link->info->type != DDB_OCTOPUS_MAX) {
-		pr_info("DDBridge: Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
+		dev_info(dev->dev,
+			 "Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
 			id);
 		return -1;
 	}
@@ -4934,13 +4937,13 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	dev->link[l].ids.subvendor = subid & 0xffff;
 	dev->link[l].ids.subdevice = subid >> 16;
 
-	pr_info("DDBridge: GTL %s\n", dev->link[l].info->name);
+	dev_info(dev->dev, "GTL %s\n", dev->link[l].info->name);
 
-	pr_info("DDBridge: GTL HW %08x REGMAP %08x\n",
-		dev->link[l].ids.hwid,
-		dev->link[l].ids.regmapid);
-	pr_info("DDBridge: GTL ID %08x\n",
-		ddbreadl(dev, DDB_LINK_TAG(l) | 8));
+	dev_info(dev->dev, "GTL HW %08x REGMAP %08x\n",
+		 dev->link[l].ids.hwid,
+		 dev->link[l].ids.regmapid);
+	dev_info(dev->dev, "GTL ID %08x\n",
+		 ddbreadl(dev, DDB_LINK_TAG(l) | 8));
 
 	tasklet_init(&link->tasklet, link_tasklet, (unsigned long) link);
 	ddbwritel(dev, 0xffffffff, DDB_LINK_TAG(l) | INTERRUPT_ACK);
@@ -4970,7 +4973,7 @@ static void tempmon_setfan(struct ddb_link *link)
 
 	if ((ddblreadl(link, TEMPMON_CONTROL) &
 	     TEMPMON_CONTROL_OVERTEMP) != 0) {
-		pr_info("DDBridge: Over temperature condition\n");
+		dev_info(link->dev->dev, "Over temperature condition\n");
 		link->OverTemperatureError = 1;
 	}
 	temp  = (ddblreadl(link, TEMPMON_SENSOR0) >> 8) & 0xFF;
@@ -5031,7 +5034,7 @@ static int tempmon_init(struct ddb_link *link, int FirstTime)
 		((ddblreadl(link, TEMPMON_CONTROL) &
 		  TEMPMON_CONTROL_OVERTEMP) != 0);
 	if (link->OverTemperatureError)	{
-		pr_info("DDBridge: Over temperature condition\n");
+		dev_info(dev->dev, "Over temperature condition\n");
 		status = -1;
 	}
 	tempmon_setfan(link);
@@ -5068,11 +5071,12 @@ static int ddb_init_boards(struct ddb *dev)
 		info = link->info;
 		if (!info)
 			continue;
-		pr_info("DDBridge: link %u vendor %04x device %04x subvendor %04x subdevice %04x\n",
-			l,
-			dev->link[l].ids.vendor, dev->link[l].ids.device,
-			dev->link[l].ids.subvendor, dev->link[l].ids.subdevice);
-
+		dev_info(dev->dev,
+			 "link %u vendor %04x device %04x subvendor %04x subdevice %04x\n",
+			 l,
+			 dev->link[l].ids.vendor, dev->link[l].ids.device,
+			 dev->link[l].ids.subvendor, dev->link[l].ids.subdevice);
+		
 		if (info->board_control) {
 			ddbwritel(dev, 0, DDB_LINK_TAG(l) | BOARD_CONTROL);
 			msleep(100);
@@ -5112,7 +5116,8 @@ int ddb_init(struct ddb *dev)
 		goto fail;
 	ddb_ports_init(dev);
 	if (ddb_buffers_alloc(dev) < 0) {
-		pr_info("DDBridge: Could not allocate buffer memory\n");
+		dev_info(dev->dev,
+			 "Could not allocate buffer memory\n");
 		goto fail2;
 	}
 	if (ddb_ports_attach(dev) < 0)
@@ -5131,14 +5136,14 @@ int ddb_init(struct ddb *dev)
 
 fail3:
 	ddb_ports_detach(dev);
-	pr_err("DDBridge: fail3\n");
+	dev_err(dev->dev, "fail3\n");
 	ddb_ports_release(dev);
 fail2:
-	pr_err("DDBridge: fail2\n");
+	dev_err(dev->dev, "fail2\n");
 	ddb_buffers_free(dev);
 	ddb_i2c_release(dev);
 fail:
-	pr_err("DDBridge: fail1\n");
+	dev_err(dev->dev, "fail1\n");
 	return -1;
 }
 

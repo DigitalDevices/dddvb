@@ -197,8 +197,8 @@ static int ns_set_ci(struct dvbnss *nss, u8 ci)
 	if (ciport < 0)
 		return -EINVAL;
 
-	pr_info("DDBridge: input %d.%d to ci %d at port %d\n",
-		input->port->lnr, input->nr, ci, ciport);
+	dev_info(dev->dev, "DDBridge: input %d.%d to ci %d at port %d\n",
+		 input->port->lnr, input->nr, ci, ciport);
 	ddbwritel(dev, (input->port->lnr << 21) | (input->nr << 16) | 0x1c,
 		  TS_CONTROL(dev->port[ciport].output));
 	usleep_range(1, 5);

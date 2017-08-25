@@ -107,22 +107,22 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 #endif
 		if (stat >= 1) {
 			dev->msi = stat;
-			pr_info("DDBridge: using %d MSI interrupt(s)\n",
-				dev->msi);
+			dev_info(dev->dev, "using %d MSI interrupt(s)\n",
+				 dev->msi);
 		} else
-			pr_info("DDBridge: MSI not available.\n");
+			dev_info(dev->dev, "MSI not available.\n");
 
 #else
 		stat = pci_enable_msi_block(dev->pdev, nr);
 		if (stat == 0) {
 			dev->msi = nr;
-			pr_info("DDBridge: using %d MSI interrupts\n", nr);
+			dev_info(dev->dev, "using %d MSI interrupts\n", nr);
 		} else if (stat == 1) {
 			stat = pci_enable_msi(dev->pdev);
 			dev->msi = 1;
 		}
 		if (stat < 0)
-			pr_info("DDBridge: MSI not available.\n");
+			dev_info(dev->dev, "MSI not available.\n");
 #endif
 	}
 #endif	
@@ -134,7 +134,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	int stat;
 	int irq_flag = IRQF_SHARED;
 
-	pr_info("DDBridge: init type 2 IRQ hardware block\n");
+	dev_info(dev->dev, "init type 2 IRQ hardware block\n");
 
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
 	ddbwritel(dev, 0x00000000, INTERRUPT_V2_ENABLE_1);
@@ -254,19 +254,19 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
 					 id->subvendor, pdev->subsystem_device);
-	pr_info("DDBridge: device name: %s\n", dev->link[0].info->name);
+	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
 			    pci_resource_len(dev->pdev, 0));
 
 	if (!dev->regs) {
-		pr_err("DDBridge: not enough memory for register map\n");
+		dev_err(dev->dev, "not enough memory for register map\n");
 		stat = -ENOMEM;
 		goto fail;
 	}
 	if (ddbreadl(dev, 0) == 0xffffffff) {
-		pr_err("DDBridge: cannot read registers\n");
+		dev_err(dev->dev, "cannot read registers\n");
 		stat = -ENODEV;
 		goto fail;
 	}
@@ -274,8 +274,8 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
-	pr_info("DDBridge: HW %08x REGMAP %08x\n",
-		dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
+	dev_info(dev->dev, "HW %08x REGMAP %08x\n",
+		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 
 	if (dev->link[0].info->ns_num) {
 		ddbwritel(dev, 0, ETHER_CONTROL);
@@ -300,11 +300,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	ddb_irq_exit(dev);
 fail0:
-	pr_err("DDBridge: fail0\n");
+	dev_err(dev->dev, "fail0\n");
 	if (dev->msi)
 		pci_disable_msi(dev->pdev);
 fail:
-	pr_err("DDBridge: fail\n");
+	dev_err(dev->dev, "fail\n");
 
 	ddb_unmap(dev);
 	pci_set_drvdata(pdev, NULL);
@@ -353,7 +353,7 @@ static __init int module_init_ddbridge(void)
 {
 	int stat = -1;
 
-	pr_info("DDBridge: Digital Devices PCIE bridge driver "
+	pr_info("Digital Devices PCIE bridge driver "
 		DDBRIDGE_VERSION
 		", Copyright (C) 2010-17 Digital Devices GmbH\n");
 	if (ddb_class_create() < 0)
