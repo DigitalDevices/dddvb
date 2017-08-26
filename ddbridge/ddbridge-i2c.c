@@ -71,7 +71,7 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 static int ddb_i2c_master_xfer(struct i2c_adapter *adapter,
 			       struct i2c_msg msg[], int num)
 {
-	struct ddb_i2c *i2c = (struct ddb_i2c *) i2c_get_adapdata(adapter);
+	struct ddb_i2c *i2c = (struct ddb_i2c *)i2c_get_adapdata(adapter);
 	struct ddb *dev = i2c->dev;
 	u8 addr = 0;
 
@@ -139,7 +139,7 @@ void ddb_i2c_release(struct ddb *dev)
 
 static void i2c_handler(unsigned long priv)
 {
-	struct ddb_i2c *i2c = (struct ddb_i2c *) priv;
+	struct ddb_i2c *i2c = (struct ddb_i2c *)priv;
 
 	complete(&i2c->completion);
 }
@@ -165,7 +165,7 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 	adap = &i2c->adap;
 	i2c_set_adapdata(adap, i2c);
 #ifdef I2C_ADAP_CLASS_TV_DIGITAL
-	adap->class = I2C_ADAP_CLASS_TV_DIGITAL|I2C_CLASS_TV_ANALOG;
+	adap->class = I2C_ADAP_CLASS_TV_DIGITAL | I2C_CLASS_TV_ANALOG;
 #else
 #ifdef I2C_CLASS_TV_ANALOG
 	adap->class = I2C_CLASS_TV_ANALOG;
@@ -174,7 +174,7 @@ static int ddb_i2c_add(struct ddb *dev, struct ddb_i2c *i2c,
 	snprintf(adap->name, I2C_NAME_SIZE, "ddbridge_%02x.%x.%x",
 		 dev->nr, i2c->link, i);
 	adap->algo = &ddb_i2c_algo;
-	adap->algo_data = (void *) i2c;
+	adap->algo_data = (void *)i2c;
 	adap->dev.parent = dev->dev;
 	return i2c_add_adapter(adap);
 }
@@ -198,7 +198,7 @@ int ddb_i2c_init(struct ddb *dev)
 			if (!(dev->link[l].info->i2c_mask & (1 << i)))
 				continue;
 			i2c = &dev->i2c[num];
-			dev->handler_data[l][i + base] = (unsigned long) i2c;
+			dev->handler_data[l][i + base] = (unsigned long)i2c;
 			dev->handler[l][i + base] = i2c_handler;
 			stat = ddb_i2c_add(dev, i2c, regmap, l, i, num);
 			if (stat)
@@ -212,8 +212,9 @@ int ddb_i2c_init(struct ddb *dev)
 			adap = &i2c->adap;
 			i2c_del_adapter(adap);
 		}
-	} else
+	} else {
 		dev->i2c_num = num;
+	}
 	return stat;
 }
 

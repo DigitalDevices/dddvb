@@ -100,7 +100,7 @@
 #define DDB_MAX_LINK    4
 #define DDB_LINK_SHIFT 28
 
-#define DDB_LINK_TAG(_x) (_x << DDB_LINK_SHIFT)
+#define DDB_LINK_TAG(_x) ((_x) << DDB_LINK_SHIFT)
 
 struct ddb_regset {
 	u32 base;
@@ -183,25 +183,24 @@ struct ddb_info {
 
 #ifdef SMALL_DMA_BUFS
 #define INPUT_DMA_BUFS 32
-#define INPUT_DMA_SIZE (128*47*5)
+#define INPUT_DMA_SIZE (128 * 47 * 5)
 #define INPUT_DMA_IRQ_DIV 1
 
 #define OUTPUT_DMA_BUFS 32
-#define OUTPUT_DMA_SIZE (128*47*5)
+#define OUTPUT_DMA_SIZE (128 * 47 * 5)
 #define OUTPUT_DMA_IRQ_DIV 1
 #else
 #define INPUT_DMA_BUFS 8
-#define INPUT_DMA_SIZE (128*47*21)
+#define INPUT_DMA_SIZE (128 * 47 * 21)
 #define INPUT_DMA_IRQ_DIV 1
 
 #define OUTPUT_DMA_BUFS 8
-#define OUTPUT_DMA_SIZE (128*47*21)
+#define OUTPUT_DMA_SIZE (128 * 47 * 21)
 #define OUTPUT_DMA_IRQ_DIV 1
 #endif
 #define OUTPUT_DMA_BUFS_SDR 32
-#define OUTPUT_DMA_SIZE_SDR (256*1024)
+#define OUTPUT_DMA_SIZE_SDR (256 * 1024)
 #define OUTPUT_DMA_IRQ_DIV_SDR 1
-
 
 struct ddb;
 struct ddb_port;
@@ -223,7 +222,7 @@ struct ddb_dma {
 #else
 	struct tasklet_struct  tasklet;
 #endif
-	spinlock_t             lock;
+	spinlock_t             lock; /* DMA lock */
 	wait_queue_head_t      wq;
 	int                    running;
 	u32                    stat;
@@ -262,7 +261,6 @@ struct ddb_ci {
 	struct dvb_ca_en50221  en;
 	struct ddb_port       *port;
 	u32                    nr;
-	struct mutex           lock;
 };
 
 struct ddb_io {
@@ -296,7 +294,7 @@ struct ddb_port {
 	u32                    regs;
 	u32                    lnr;
 	struct ddb_i2c        *i2c;
-	struct mutex           i2c_gate_lock;
+	struct mutex           i2c_gate_lock; /* I2C access lock */
 	u32                    class;
 #define DDB_PORT_NONE           0
 #define DDB_PORT_CI             1
@@ -406,7 +404,7 @@ struct ddb_ns {
 };
 
 struct ddb_lnb {
-	struct mutex           lock;
+	struct mutex           lock; /* lock lnb access */
 	u32                    tone;
 	fe_sec_voltage_t       oldvoltage[4];
 	u32                    voltage[4];
@@ -419,14 +417,14 @@ struct ddb_link {
 	struct ddb_info       *info;
 	u32                    nr;
 	u32                    regs;
-	spinlock_t             lock;
-	struct mutex           flash_mutex;
+	spinlock_t             lock; /* lock link access */
+	struct mutex           flash_mutex; /* lock flash access */
 	struct ddb_lnb         lnb;
 	struct tasklet_struct  tasklet;
 	struct ddb_ids         ids;
 
-	spinlock_t             temp_lock;
-	int                    OverTemperatureError;
+	spinlock_t             temp_lock; /* lock temp chip access */
+	int                    over_temperature_error;
 	u8                     temp_tab[11];
 };
 
@@ -468,7 +466,7 @@ struct ddb {
 	int                    ns_num;
 	struct ddb_ns          ns[DDB_NS_MAX];
 	int                    vlan;
-	struct mutex           mutex;
+	struct mutex           mutex; /* lock accces to global ddb array */
 
 	struct dvb_device     *nsd_dev;
 	u8                     tsbuf[TS_CAPTURE_LEN];
@@ -529,7 +527,6 @@ struct DDMOD_FLASH {
 };
 
 #define DDMOD_FLASH_MAGIC   0x5F564d5F
-
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 

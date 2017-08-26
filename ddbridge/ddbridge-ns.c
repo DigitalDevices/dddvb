@@ -60,7 +60,7 @@ static u16 calc_pcs16(struct dvb_ns_params *p, int ipv)
 
 static void ns_free(struct dvbnss *nss)
 {
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
@@ -97,7 +97,7 @@ static int ns_set_pids(struct dvbnss *nss)
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 
 	if (dev->link[0].ids.devid == 0x0301dd01) {
 		u32 sys = 0;
@@ -115,8 +115,9 @@ static int ns_set_pids(struct dvbnss *nss)
 		/* disable unused pids */
 		for (; j < 5; j++)
 			ddbwritel(dev, 0, PID_FILTER_PID(dns->nr, j));
-	} else
+	} else {
 		ddbcpyto(dev, STREAM_PIDS(dns->nr), nss->pids, 0x400);
+	}
 	return 0;
 }
 
@@ -125,7 +126,7 @@ static int ns_set_pid(struct dvbnss *nss, u16 pid)
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	u16 byte = (pid & 0x1fff) >> 3;
 	u8 bit = 1 << (pid & 7);
 	u32 off = STREAM_PIDS(dns->nr);
@@ -184,7 +185,7 @@ static int ns_set_ci(struct dvbnss *nss, u8 ci)
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	int ciport;
 
 	if (ci == 255) {
@@ -244,7 +245,7 @@ static int ns_set_rtcp_msg(struct dvbnss *nss, u8 *msg, u32 len)
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	u32 off = STREAM_PACKET_ADR(dns->nr);
 	u32 coff = 96;
 	u16 wlen;
@@ -368,7 +369,7 @@ static u32 set_nsbuf(struct dvb_ns_params *p, u8 *buf,
 
 static int ns_set_ts_packets(struct dvbnss *nss, u8 *buf, u32 len)
 {
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
@@ -385,7 +386,7 @@ static int ns_set_ts_packets(struct dvbnss *nss, u8 *buf, u32 len)
 
 static int ns_insert_ts_packets(struct dvbnss *nss, u8 count)
 {
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
@@ -407,7 +408,7 @@ static int ns_set_net(struct dvbnss *nss)
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
 	struct dvb_ns_params *p = &nss->params;
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	u32 off = STREAM_PACKET_ADR(dns->nr);
 	u32 coff = 96;
 
@@ -426,7 +427,7 @@ static int ns_set_net(struct dvbnss *nss)
 
 static int ns_start(struct dvbnss *nss)
 {
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;
@@ -450,7 +451,7 @@ static int ns_start(struct dvbnss *nss)
 
 static int ns_stop(struct dvbnss *nss)
 {
-	struct ddb_ns *dns = (struct ddb_ns *) nss->priv;
+	struct ddb_ns *dns = (struct ddb_ns *)nss->priv;
 	struct dvb_netstream *ns = nss->ns;
 	struct ddb_input *input = ns->priv;
 	struct ddb *dev = input->port->dev;

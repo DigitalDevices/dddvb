@@ -104,7 +104,6 @@
 #define INTMASK_TSOUTPUT3   (0x00040000)
 #define INTMASK_TSOUTPUT4   (0x00080000)
 
-
 #define INTERRUPT_V2_CONTROL  (INTERRUPT_BASE + 0x00)
 #define INTERRUPT_V2_ENABLE_1 (INTERRUPT_BASE + 0x04)
 #define INTERRUPT_V2_ENABLE_2 (INTERRUPT_BASE + 0x08)
@@ -123,9 +122,6 @@
 #define INTERRUPT_V2_STATUS_6 (INTERRUPT_BASE + 0x38)
 #define INTERRUPT_V2_STATUS_7 (INTERRUPT_BASE + 0x3c)
 
-
-
-
 /* Modulator registers */
 
 /*  Clock Generator ( Sil598 @ 0xAA I2c ) */
@@ -138,8 +134,8 @@
 /* DAC ( AD9781/AD9783 SPI ) */
 #define DAC_BASE            (0x090)
 #define DAC_CONTROL         (DAC_BASE)
-#define DAC_WRITE_DATA      (DAC_BASE+4)
-#define DAC_READ_DATA       (DAC_BASE+8)
+#define DAC_WRITE_DATA      (DAC_BASE + 4)
+#define DAC_READ_DATA       (DAC_BASE + 8)
 
 #define DAC_CONTROL_INSTRUCTION_REG (0xFF)
 #define DAC_CONTROL_STARTIO         (0x100)
@@ -154,8 +150,7 @@
 #define TEMPMON_CONTROL_INTENABLE   (0x00000004)
 #define TEMPMON_CONTROL_OVERTEMP    (0x00008000)
 
-
-/* SHORT Temperature in °C x 256 */
+/* Temperature in C x 256 */
 #define TEMPMON_CORE       (TEMPMON_BASE + 0x04)
 #define TEMPMON_SENSOR0    (TEMPMON_BASE + 0x04)
 #define TEMPMON_SENSOR1    (TEMPMON_BASE + 0x08)
@@ -171,22 +166,22 @@
  * ( 1x LM75A @ 0x90, 1x ADM1032 @ 0x9A )
  */
 
-/* Temperature in °C x 256 (ADM1032 ext) */
+/* Temperature in C x 256 (ADM1032 ext) */
 #define TEMPMON1_CORE       (TEMPMON_SENSOR0)
-/* Temperature in °C x 256 (LM75A 0x90) */
+/* Temperature in C x 256 (LM75A 0x90) */
 #define TEMPMON1_SENSOR1    (TEMPMON_BASE + 0x08)
-/* Temperature in °C x 256 (LM75A 0x92 or ADM1032 Int) */
+/* Temperature in C x 256 (LM75A 0x92 or ADM1032 Int) */
 #define TEMPMON1_SENSOR2    (TEMPMON_BASE + 0x0C)
 
 /* V2 Temperature Monitor 2 ADM1032 */
 
-/* Temperature in °C x 256 (ADM1032 int) */
+/* Temperature in C x 256 (ADM1032 int) */
 #define TEMPMON2_BOARD      (TEMPMON_SENSOR0)
-/* Temperature in °C x 256 (ADM1032 ext) */
+/* Temperature in C x 256 (ADM1032 ext) */
 #define TEMPMON2_FPGACORE   (TEMPMON_SENSOR1)
-/* Temperature in °C x 256 (ADM1032 ext) */
+/* Temperature in C x 256 (ADM1032 ext) */
 #define TEMPMON2_QAMCORE    (TEMPMON_SENSOR2)
-/* SHORT Temperature in °C x 256 (ADM1032 ext) */
+/* SHORT Temperature in C x 256 (ADM1032 ext) */
 #define TEMPMON2_DACCORE    (TEMPMON_SENSOR2)
 
 /* ------------------------------------------------------------------------- */
@@ -205,7 +200,6 @@
 #define I2C_SPEED_100   (0x13121313)
 #define I2C_SPEED_77    (0x19181919)
 #define I2C_SPEED_50    (0x27262727)
-
 
 /* ------------------------------------------------------------------------- */
 /* DMA  Controller */
@@ -226,18 +220,16 @@
 #define DMA_DIAG_WAITOVERFLOWCOUNTER    (0x38)
 #define DMA_DIAG_WAITCOUNTER            (0x3C)
 
-#define TS_CONTROL(_io)         (_io->regs + 0x00)
-#define TS_CONTROL2(_io)        (_io->regs + 0x04)
-
+#define TS_CONTROL(_io)         ((_io)->regs + 0x00)
+#define TS_CONTROL2(_io)        ((_io)->regs + 0x04)
 
 /* ------------------------------------------------------------------------- */
 /* DMA  Buffer */
 
-#define DMA_BUFFER_CONTROL(_dma)       (_dma->regs + 0x00)
-#define DMA_BUFFER_ACK(_dma)           (_dma->regs + 0x04)
-#define DMA_BUFFER_CURRENT(_dma)       (_dma->regs + 0x08)
-#define DMA_BUFFER_SIZE(_dma)          (_dma->regs + 0x0c)
-
+#define DMA_BUFFER_CONTROL(_dma)       ((_dma)->regs + 0x00)
+#define DMA_BUFFER_ACK(_dma)           ((_dma)->regs + 0x04)
+#define DMA_BUFFER_CURRENT(_dma)       ((_dma)->regs + 0x08)
+#define DMA_BUFFER_SIZE(_dma)          ((_dma)->regs + 0x0c)
 
 /* ------------------------------------------------------------------------- */
 
@@ -253,8 +245,8 @@
 #define LNB_CMD_DISEQC 6
 #define LNB_CMD_SCIF   7
 
-#define LNB_BUSY  (1ULL <<  4)
-#define LNB_TONE  (1ULL << 15)
+#define LNB_BUSY  BIT_ULL(4)
+#define LNB_TONE  BIT_ULL(15)
 
 #define LNB_STATUS(i)                (LNB_BASE + (i) * 0x20 + 0x04)
 #define LNB_VOLTAGE(i)               (LNB_BASE + (i) * 0x20 + 0x08)
@@ -300,7 +292,7 @@
 
 #define CI_BUFFER_BASE                  (0x3000)
 #define CI_BUFFER_SIZE                  (0x0800)
-#define CI_BLOCKIO_BUFFER_SIZE          (CI_BUFFER_SIZE/2)
+#define CI_BLOCKIO_BUFFER_SIZE          (CI_BUFFER_SIZE / 2)
 
 #define CI_BUFFER(i)                  (CI_BUFFER_BASE + (i) * CI_BUFFER_SIZE)
 #define CI_BLOCKIO_RECEIVE_BUFFER(i)  (CI_BUFFER_BASE + (i) * CI_BUFFER_SIZE)
@@ -369,7 +361,6 @@
 #define FSM_STATUS_READY        (0x00010000)
 #define FSM_STATUS_QAMREADY     (0x00020000)
 
-
 #define FSM_CAPACITY            (FSM_BASE + 0x04)
 #define FSM_CAPACITY_MAX        (0x3F000000)
 #define FSM_CAPACITY_CUR        (0x003F0000)
@@ -385,7 +376,6 @@
 #define FSM_GAIN_N16            (0x0000002D)
 #define FSM_GAIN_N24            (0x00000029)
 #define FSM_GAIN_N96            (0x00000011)
-
 
 /* Attenuator/VGA */
 
@@ -408,7 +398,6 @@
 
 #define RF_VGA_GAIN_MAX         (200)
 
-
 /* V1 only */
 
 #define RF_POWER        (0xE0)
@@ -420,7 +409,6 @@
 #define RF_POWER_CONTROL_DONE      (0x00000002)
 #define RF_POWER_CONTROL_VALIDMASK (0x00000700)
 #define RF_POWER_CONTROL_VALID     (0x00000500)
-
 
 /*
  *  Output control
@@ -453,14 +441,13 @@
 #define IQOUTPUT_CONTROL_ENABLE_PEAK        (0x00000008)
 #define IQOUTPUT_CONTROL_BYPASS_EQUALIZER   (0x00000010)
 
-
 /* Modulator Base  V1 */
 
 #define MODULATOR_BASE          (0x200)
 #define MODULATOR_CONTROL         (MODULATOR_BASE)
-#define MODULATOR_IQTABLE_END     (MODULATOR_BASE+4)
-#define MODULATOR_IQTABLE_INDEX   (MODULATOR_BASE+8)
-#define MODULATOR_IQTABLE_DATA    (MODULATOR_BASE+12)
+#define MODULATOR_IQTABLE_END     (MODULATOR_BASE + 4)
+#define MODULATOR_IQTABLE_INDEX   (MODULATOR_BASE + 8)
+#define MODULATOR_IQTABLE_DATA    (MODULATOR_BASE + 12)
 
 #define MODULATOR_IQTABLE_INDEX_CHANNEL_MASK  (0x000F0000)
 #define MODULATOR_IQTABLE_INDEX_IQ_MASK       (0x00008000)
@@ -468,7 +455,6 @@
 #define MODULATOR_IQTABLE_INDEX_SEL_I         (0x00000000)
 #define MODULATOR_IQTABLE_INDEX_SEL_Q     (MODULATOR_IQTABLE_INDEX_IQ_MASK)
 #define MODULATOR_IQTABLE_SIZE    (2048)
-
 
 /* Modulator Channels */
 
@@ -521,11 +507,10 @@
 #define CHANNEL_SETTINGS2_OUTPUT_MASK       (0x0000007F)
 
 #define KFLF_MAX                            (0x07FFFFFFUL)
-#define KF_INIT(Symbolrate)                 (Symbolrate)
-#define LF_INIT(Symbolrate)                 (9000000UL)
+#define KF_INIT(_symbol_rate)               (_symbol_rate)
+#define LF_INIT(_symbol_rate)               (9000000UL)
 #define MIN_SYMBOLRATE                      (1000000)
 #define MAX_SYMBOLRATE                      (7100000)
-
 
 /* OCTONET */
 
@@ -563,8 +548,6 @@
 #define PID_FILTER_SYSTEM_PIDS(i)     (PID_FILTER_BASE + (i) * 0x20)
 #define PID_FILTER_PID(i, j)     (PID_FILTER_BASE + (i) * 0x20 + (j) * 4)
 
-
-
 /* V2 */
 
 /* MAX2871 same as DVB Modulator V2 */
@@ -589,7 +572,6 @@
 /* Additional Status Bits */
 
 #define DMA_PCIE_LANES_MASK       (0x00070000)
-
 
 /* Modulator Channels, partially compatible to DVB Modulator V1 */
 

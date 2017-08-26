@@ -68,7 +68,7 @@ static void __devexit ddb_irq_exit(struct ddb *dev)
 
 static void __devexit ddb_remove(struct pci_dev *pdev)
 {
-	struct ddb *dev = (struct ddb *) pci_get_drvdata(pdev);
+	struct ddb *dev = (struct ddb *)pci_get_drvdata(pdev);
 
 	ddb_device_destroy(dev);
 	ddb_nsd_detach(dev);
@@ -107,9 +107,9 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 			dev->msi = stat;
 			dev_info(dev->dev, "using %d MSI interrupt(s)\n",
 				 dev->msi);
-		} else
+		} else {
 			dev_info(dev->dev, "MSI not available.\n");
-
+		}
 #else
 		stat = pci_enable_msi_block(dev->pdev, nr);
 		if (stat == 0) {
@@ -148,7 +148,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 		irq_flag = 0;
 
 	stat = request_irq(dev->pdev->irq, irq_handler_v2,
-			   irq_flag, "ddbridge", (void *) dev);
+			   irq_flag, "ddbridge", (void *)dev);
 	if (stat < 0)
 		return stat;
 
@@ -186,11 +186,11 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 		irq_flag = 0;
 	if (dev->msi == 2) {
 		stat = request_irq(dev->pdev->irq, irq_handler0,
-				   irq_flag, "ddbridge", (void *) dev);
+				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0)
 			return stat;
 		stat = request_irq(dev->pdev->irq + 1, irq_handler1,
-				   irq_flag, "ddbridge", (void *) dev);
+				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0) {
 			free_irq(dev->pdev->irq, dev);
 			return stat;
@@ -200,10 +200,10 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 		stat = request_threaded_irq(dev->pdev->irq, irq_handler,
 					    irq_thread,
 					    irq_flag,
-					    "ddbridge", (void *) dev);
+					    "ddbridge", (void *)dev);
 #else
 		stat = request_irq(dev->pdev->irq, irq_handler,
-				   irq_flag, "ddbridge", (void *) dev);
+				   irq_flag, "ddbridge", (void *)dev);
 #endif
 		if (stat < 0)
 			return stat;
@@ -234,8 +234,8 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
 			return -ENODEV;
 
-	dev = vzalloc(sizeof(struct ddb));
-	if (dev == NULL)
+	dev = vzalloc(sizeof(*dev));
+	if (!dev)
 		return -ENOMEM;
 
 	mutex_init(&dev->mutex);
@@ -358,7 +358,7 @@ static __init int module_init_ddbridge(void)
 	if (ddb_class_create() < 0)
 		return -1;
 	ddb_wq = create_workqueue("ddbridge");
-	if (ddb_wq == NULL)
+	if (!ddb_wq)
 		goto exit1;
 	stat = pci_register_driver(&ddb_pci_driver);
 	if (stat < 0)

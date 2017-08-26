@@ -181,7 +181,6 @@ static struct ddb_regset octopro_gtl = {
 /****************************************************************************/
 /****************************************************************************/
 
-
 static struct ddb_regmap octopus_map = {
 	.irq_version = 1,
 	.irq_base_i2c = 0,
@@ -258,7 +257,6 @@ static struct ddb_regmap octopus_sdr_map = {
 	.odma_buf = &octopus_mod_2_odma_buf,
 	.channel = &octopus_mod_2_channel,
 };
-
 
 /****************************************************************************/
 /****************************************************************************/
@@ -361,7 +359,7 @@ static struct ddb_info ddb_ctv7 = {
 	.board_control_2 = 4,
 };
 
-static struct ddb_info ddb_satixS2v3 = {
+static struct ddb_info ddb_satixs2v3 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Mystique SaTiX-S2 V3 DVB adapter",
 	.regmap   = &octopus_map,
@@ -481,7 +479,6 @@ static struct ddb_info ddb_octopro = {
 	.mdio_num = 1,
 };
 
-
 static struct ddb_info ddb_s2_48 = {
 	.type     = DDB_OCTOPUS_MAX,
 	.name     = "Digital Devices MAX S8 4/8",
@@ -552,7 +549,6 @@ static struct ddb_info ddb_c2t2i_8 = {
 	.tempmon_irq = 24,
 };
 
-
 /****************************************************************************/
 /****************************************************************************/
 
@@ -564,7 +560,6 @@ static struct ddb_regmap octopus_net_map = {
 	.input = &octopus_input,
 	.output = &octopus_output,
 };
-
 
 static struct ddb_regset octopus_gtl = {
 	.base = 0x180,
@@ -614,7 +609,6 @@ static struct ddb_info ddb_octonet_gtl = {
 	.con_clock = 1,
 };
 
-
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -632,7 +626,7 @@ struct ddb_device_id {
 		.device = _device, \
 		.subvendor = 0xdd01, \
 		.subdevice = _subdevice, \
-		.info = &_info }
+		.info = &(_info) }
 
 static struct ddb_device_id ddb_device_ids[] = {
 	/* OctopusNet */
@@ -652,7 +646,7 @@ static struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0006, 0x0022, ddb_v7),
 	DDB_DEVID(0x0006, 0x0024, ddb_v7a),
 	DDB_DEVID(0x0003, 0x0030, ddb_dvbct),
-	DDB_DEVID(0x0003, 0xdb03, ddb_satixS2v3),
+	DDB_DEVID(0x0003, 0xdb03, ddb_satixs2v3),
 	DDB_DEVID(0x0006, 0x0031, ddb_ctv7),
 	DDB_DEVID(0x0006, 0x0032, ddb_ctv7),
 	DDB_DEVID(0x0006, 0x0033, ddb_ctv7),
@@ -685,13 +679,13 @@ static struct ddb_device_id ddb_device_ids[] = {
 };
 
 struct ddb_info *get_ddb_info(u16 vendor, u16 device,
-			      u16 subvendor, u16 subdevice)
+				    u16 subvendor, u16 subdevice)
 {
 	int i;
-
+	
 	for (i = 0; i < ARRAY_SIZE(ddb_device_ids); i++) {
 		struct ddb_device_id *id  = &ddb_device_ids[i];
-
+		
 		if (vendor == id->vendor &&
 		    device == id->device &&
 		    subvendor == id->subvendor &&

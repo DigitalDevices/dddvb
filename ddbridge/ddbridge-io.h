@@ -36,22 +36,22 @@ void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count);
 
 static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)
 {
-	writeb(val, (char *) (dev->regs + (adr)));
+	writeb(val, (char *)(dev->regs + (adr)));
 }
 
 static inline u32 ddbreadb(struct ddb *dev, u32 adr)
 {
-	return readb((char *) (dev->regs + (adr)));
+	return readb((char *)(dev->regs + (adr)));
 }
 
 static inline void ddbwritel0(struct ddb_link *link, u32 val, u32 adr)
 {
-	writel(val, (char *) (link->dev->regs + (adr)));
+	writel(val, (char *)(link->dev->regs + (adr)));
 }
 
 static inline u32 ddbreadl0(struct ddb_link *link, u32 adr)
 {
-	return readl((char *) (link->dev->regs + (adr)));
+	return readl((char *)(link->dev->regs + (adr)));
 }
 
 #if 0
@@ -82,6 +82,6 @@ static inline void gtlw(struct ddb_link *link)
 #endif
 
 #define ddbmemset(_dev, _adr, _val, _count) \
-	memset_io((char *) (_dev->regs + (_adr)), (_val), (_count))
+	memset_io((char *)((_dev)->regs + (_adr)), (_val), (_count))
 
 #endif

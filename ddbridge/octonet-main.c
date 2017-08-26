@@ -52,7 +52,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 	struct resource *regs;
 	int irq;
 
-	dev = vzalloc(sizeof(struct ddb));
+	dev = vzalloc(sizeof(*dev));
 	if (!dev)
 		return -ENOMEM;
 	platform_set_drvdata(pdev, dev);
@@ -65,7 +65,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 		return -ENXIO;
 	dev->regs_len = (regs->end - regs->start) + 1;
 	dev_info(dev->dev, "regs_start=%08x regs_len=%08x\n",
-		 (u32) regs->start, (u32) dev->regs_len);
+		 (u32)regs->start, (u32)dev->regs_len);
 	dev->regs = ioremap(regs->start, dev->regs_len);
 
 	if (!dev->regs) {
@@ -84,20 +84,9 @@ static int __init octonet_probe(struct platform_device *pdev)
 	dev->link[0].ids.subdevice = dev->link[0].ids.devid >> 16;
 
 	dev->link[0].dev = dev;
-#if 0
-	if (dev->link[0].ids.devid == 0x0300dd01)
-		dev->link[0].info = &ddb_octonet;
-	else if (dev->link[0].ids.devid == 0x0301dd01)
-		dev->link[0].info = &ddb_octonet_jse;
-	else if (dev->link[0].ids.devid == 0x0307dd01)
-		dev->link[0].info = &ddb_octonet_gtl;
-	else
-		dev->link[0].info = &ddb_octonet_tbd;
-#else
 	dev->link[0].info = get_ddb_info(dev->link[0].ids.vendor,
 					 dev->link[0].ids.device,
 					 0xdd01, 0xffff);
-#endif
 	dev_info(dev->dev, "DDBridge: HW  %08x REGMAP %08x\n",
 		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 	dev_info(dev->dev, "DDBridge: MAC %08x DEVID  %08x\n",
@@ -113,7 +102,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 		goto fail;
 	if (request_irq(irq, irq_handler,
 			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-			"octonet-dvb", (void *) dev) < 0)
+			"octonet-dvb", (void *)dev) < 0)
 		goto fail;
 	ddbwritel(dev, 0x0fffff0f, INTERRUPT_ENABLE);
 

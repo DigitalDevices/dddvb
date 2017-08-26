@@ -39,7 +39,7 @@ u32 ddblreadl(struct ddb_link *link, u32 adr)
 		spin_unlock_irqrestore(&link->lock, flags);
 		return val;
 	}
-	return readl((char *) (link->dev->regs + (adr)));
+	return readl((char *)(link->dev->regs + (adr)));
 }
 
 void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
@@ -55,7 +55,7 @@ void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 		spin_unlock_irqrestore(&link->lock, flags);
 		return;
 	}
-	writel(val, (char *) (link->dev->regs + (adr)));
+	writel(val, (char *)(link->dev->regs + (adr)));
 }
 
 u32 ddbreadl(struct ddb *dev, u32 adr)
@@ -74,7 +74,7 @@ u32 ddbreadl(struct ddb *dev, u32 adr)
 		spin_unlock_irqrestore(&link->lock, flags);
 		return val;
 	}
-	return readl((char *) (dev->regs + (adr)));
+	return readl((char *)(dev->regs + (adr)));
 }
 
 void ddbwritel(struct ddb *dev, u32 val, u32 adr)
@@ -92,7 +92,7 @@ void ddbwritel(struct ddb *dev, u32 val, u32 adr)
 		spin_unlock_irqrestore(&link->lock, flags);
 		return;
 	}
-	writel(val, (char *) (dev->regs + (adr)));
+	writel(val, (char *)(dev->regs + (adr)));
 }
 
 void gtlcpyto(struct ddb *dev, u32 adr, const u8 *buf,
@@ -167,15 +167,12 @@ void ddbcpyto(struct ddb *dev, u32 adr, void *src, long count)
 {
 	if (unlikely(adr & 0xf0000000))
 		return gtlcpyto(dev, adr, src, count);
-	return memcpy_toio((char *) (dev->regs + adr), src, count);
+	return memcpy_toio((char *)(dev->regs + adr), src, count);
 }
 
 void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 {
 	if (unlikely(adr & 0xf0000000))
 		return gtlcpyfrom(dev, dst, adr, count);
-	return memcpy_fromio(dst, (char *) (dev->regs + adr), count);
+	return memcpy_fromio(dst, (char *)(dev->regs + adr), count);
 }
-
-
-
