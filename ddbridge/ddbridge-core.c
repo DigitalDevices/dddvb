@@ -18,10 +18,8 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ * along with this program; if not, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
  */
 
 #include "ddbridge.h"
@@ -31,7 +29,7 @@
 
 struct workqueue_struct *ddb_wq;
 
-DEFINE_MUTEX(redirect_lock);
+DEFINE_MUTEX(redirect_lock); /* lock for redirect */
 
 static int adapter_alloc;
 module_param(adapter_alloc, int, 0444);
@@ -266,7 +264,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 		return 0;
 	for (i = 0; i < dma->num; i++) {
 		if (alt_dma) {
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0))
+#if (KERNEL_VERSION(4, 12, 0) >= LINUX_VERSION_CODE)
 			dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
 #else
 			dma->vbuf[i] = kmalloc(dma->size, __GFP_RETRY_MAYFAIL);
@@ -1371,8 +1369,8 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	}
 	if (c == 10)
 		dev_info(dev->dev,
-			 "lnb_command lnb = %08x  cmd = %08x\n",
-			 lnb, cmd);
+			 "%s lnb = %08x  cmd = %08x\n",
+			 __func__, lnb, cmd);
 	return 0;
 }
 
@@ -2839,7 +2837,8 @@ static int ddb_port_attach(struct ddb_port *port)
 		break;
 	}
 	if (ret < 0)
-		dev_err(port->dev->dev, "port_attach on port %d failed\n", port->nr);
+		dev_err(port->dev->dev,
+			"port_attach on port %d failed\n", port->nr);
 	return ret;
 }
 
@@ -3145,7 +3144,7 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	if (dev->has_dma) {
 		struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
-		
+
 		dev->handler[0][nr + base] = output_handler;
 		dev->handler_data[0][nr + base] = (unsigned long) output;
 		ddb_dma_init(output, nr, 1);
@@ -4115,7 +4114,7 @@ static const struct file_operations ddb_fops = {
 	.release        = ddb_release,
 };
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+#if (KERNEL_VERSION(3, 4, 0) >= LINUX_VERSION_CODE)
 static char *ddb_devnode(struct device *device, mode_t *mode)
 #else
 static char *ddb_devnode(struct device *device, umode_t *mode)
@@ -4835,7 +4834,7 @@ static void gtl_link_handler(unsigned long priv)
 {
 	struct ddb *dev = (struct ddb *) priv;
 	u32 regs = dev->link[0].info->regmap->gtl->base;
-	
+
 	dev_info(dev->dev, "GT link change: %u\n",
 		 (1 & ddbreadl(dev, regs)));
 }
@@ -4888,7 +4887,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	u32 id, subid, base = dev->link[0].info->regmap->irq_base_gtl;
 
 	dev_info(dev->dev, "Checking GT link %u: regs = %08x\n", l, regs);
-	
+
 	spin_lock_init(&link->lock);
 	mutex_init(&link->lnb.lock);
 	link->lnb.fmode = 0xffffffff;
@@ -5017,14 +5016,14 @@ static int tempmon_init(struct ddb_link *link, int FirstTime)
 
 	spin_lock_irq(&link->temp_lock);
 	if (FirstTime) {
-		static u8 TemperatureTable[11] = {
+		static u8 temperature_table[11] = {
 			30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80};
 
-		memcpy(link->temp_tab, TemperatureTable,
-		       sizeof(TemperatureTable));
+		memcpy(link->temp_tab, temperature_table,
+		       sizeof(temperature_table));
 	}
 	dev->handler[l][link->info->tempmon_irq] = temp_handler;
-	dev->handler_data[l][link->info->tempmon_irq] = (unsigned long) link;
+	dev->handler_data[l][link->info->tempmon_irq] = (unsigned long)link;
 	ddblwritel(link, (TEMPMON_CONTROL_OVERTEMP | TEMPMON_CONTROL_AUTOSCAN |
 			  TEMPMON_CONTROL_INTENABLE),
 		   TEMPMON_CONTROL);
@@ -5049,7 +5048,7 @@ static int ddb_init_tempmon(struct ddb_link *link)
 	if (!info->tempmon_irq)
 		return 0;
 	if (info->type == DDB_OCTOPUS_MAX ||
-	     info->type == DDB_OCTOPUS_MAX_CT)
+	    info->type == DDB_OCTOPUS_MAX_CT)
 		if (link->ids.regmapid < 0x00010002)
 			return 0;
 	spin_lock_init(&link->temp_lock);
@@ -5074,9 +5073,11 @@ static int ddb_init_boards(struct ddb *dev)
 		dev_info(dev->dev,
 			 "link %u vendor %04x device %04x subvendor %04x subdevice %04x\n",
 			 l,
-			 dev->link[l].ids.vendor, dev->link[l].ids.device,
-			 dev->link[l].ids.subvendor, dev->link[l].ids.subdevice);
-		
+			 dev->link[l].ids.vendor,
+			 dev->link[l].ids.device,
+			 dev->link[l].ids.subvendor,
+			 dev->link[l].ids.subdevice);
+
 		if (info->board_control) {
 			ddbwritel(dev, 0, DDB_LINK_TAG(l) | BOARD_CONTROL);
 			msleep(100);

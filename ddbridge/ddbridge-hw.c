@@ -18,10 +18,8 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ * along with this program; if not, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
  */
 
 #include "ddbridge.h"
@@ -686,16 +684,17 @@ static struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0329, 0xffff, ddb_octopro_hdin),
 };
 
-struct ddb_info *get_ddb_info(u16 vendor, u16 device, u16 subvendor, u16 subdevice)
+struct ddb_info *get_ddb_info(u16 vendor, u16 device,
+			      u16 subvendor, u16 subdevice)
 {
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(ddb_device_ids); i++) {
 		struct ddb_device_id *id  = &ddb_device_ids[i];
-		
+
 		if (vendor == id->vendor &&
 		    device == id->device &&
-		    subvendor == id->subvendor && 
+		    subvendor == id->subvendor &&
 		    ((subdevice == id->subdevice) ||
 		     id->subdevice == 0xffff))
 			return id->info;

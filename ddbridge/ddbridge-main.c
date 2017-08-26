@@ -18,10 +18,8 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ * along with this program; if not, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
  */
 #include "ddbridge.h"
 #include "ddbridge-io.h"
@@ -88,7 +86,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if (KERNEL_VERSION(3, 8, 0) < LINUX_VERSION_CODE)
 #define __devinit
 #define __devinitdata
 #endif
@@ -99,8 +97,8 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 
 #ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+#if (KERNEL_VERSION(3, 15, 0) < LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(4, 11, 0) < LINUX_VERSION_CODE)
 		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
 #else
 		stat = pci_enable_msi_range(dev->pdev, 1, nr);
@@ -125,7 +123,7 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 			dev_info(dev->dev, "MSI not available.\n");
 #endif
 	}
-#endif	
+#endif
 	return stat;
 }
 
@@ -250,7 +248,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.device = id->device;
 	dev->link[0].ids.subvendor = id->subvendor;
 	dev->link[0].ids.subdevice = pdev->subsystem_device;
-	
+
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
 					 id->subvendor, pdev->subsystem_device);
@@ -316,7 +314,8 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 
-#define DDB_DEVICE_ANY(_device) { PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID) }
+#define DDB_DEVICE_ANY(_device) \
+	{ PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID) }
 
 static const struct pci_device_id ddb_id_table[] __devinitconst = {
 	DDB_DEVICE_ANY(0x0002),

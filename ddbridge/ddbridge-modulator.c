@@ -6,7 +6,7 @@
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
  * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
+ * modify dit under the terms of the GNU General Public License
  * version 2 only, as published by the Free Software Foundation.
  *
  *
@@ -17,10 +17,8 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ * along with this program; if not, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
  */
 
 #include "ddbridge.h"
@@ -682,7 +680,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 		mod_si598_readreg(dev, 10, &Data[3]);
 		mod_si598_readreg(dev, 11, &Data[4]);
 		mod_si598_readreg(dev, 12, &Data[5]);
-		
+
 		dev_info(dev->dev, "Data = %02x %02x %02x %02x %02x %02x\n",
 			 Data[0], Data[1], Data[2], Data[3], Data[4], Data[5]);
 		RFreq = (((u64)Data[1] & 0x3F) << 32) | ((u64)Data[2] << 24) |
@@ -699,10 +697,10 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 		m_fXtal = fDCO << 28;
 		dev_info(dev->dev, "fxtal %016llx  rfreq %016llx\n",
 			 m_fXtal, RFreq);
-		
+
 		m_fXtal += RFreq >> 1;
 		m_fXtal = div64_u64(m_fXtal, RFreq);
-		
+
 		dev_info(dev->dev, "fOut = %d fXtal = %d fDCO = %d HDIV = %2d, N = %3d\n",
 			 (u32) fOut, (u32) m_fXtal, (u32) fDCO, (u32) HSDiv, N);
 	}
@@ -770,7 +768,7 @@ static int mod_set_si598(struct ddb *dev, u32 freq)
 
 	dev_info(dev->dev, "fOut = %u fXtal = %llu fDCO = %llu HSDIV = %llu, N = %u, RFreq = %llu\n",
 		 fOut, m_fXtal, fDCO, HSDiv, N, RFreq);
-	
+
 	Data[0] = (u8)(((HSDiv - 4) << 5) | ((N - 1) >> 2));
 	Data[1] = (u8)((((N - 1) & 0x03) << 6) | ((RF >> 32) & 0x3F));
 	Data[2] = (u8)((RF >> 24) & 0xFF);
@@ -917,7 +915,7 @@ static int mod_init_dac_input(struct ddb *dev)
 	}
 
 	dev_err(dev->dev, "Window = %d - %d\n", Sample1, Sample2);
-	
+
 	for (Sample = Sample1; Sample < Sample2; Sample += 1) {
 		if (SetTable[Sample] < HldTable[Sample]) {
 			if (HldTable[Sample] - SetTable[Sample] < DiffMin) {
@@ -1025,7 +1023,7 @@ static int mod_set_dac_clock(struct ddb *dev, u32 Frequency)
 			break;
 		msleep(100);
 	}
-	dev_info(dev->dev, "mod_set_dac_clock OK\n");
+	dev_info(dev->dev, "%s OK\n", __func__);
 	return hr;
 }
 
@@ -1195,13 +1193,13 @@ static int mod_init_1(struct ddb *dev, u32 Frequency)
 		UP1Frequency + UP2Frequency;
 	dev_info(dev->dev, "CH10 = %d, Down = %d\n",
 		 FrequencyCH10, DownFrequency);
-	
+
 	if ((FrequencyCH10 + 9 * 8) > (flash->DataSet[0].FlatEnd - 4)) {
 		dev_err(dev->dev, "Frequency out of range %d\n", FrequencyCH10);
 		stat = -EINVAL;
 		goto fail;
 	}
-	
+
 	if (DownFrequency % 8 != 0) {
 		dev_err(dev->dev, "Invalid Frequency %d\n", DownFrequency);
 		stat = -EINVAL;
@@ -1501,10 +1499,10 @@ static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 
 	case MODULATOR_BASE_FREQUENCY:
 		return mod3_set_base_frequency(mod->port->dev, tvp->u.data);
-      
+
 	case MODULATOR_ATTENUATOR:
 		return mod_set_attenuator(mod->port->dev, tvp->u.data);
-      
+
 	case MODULATOR_GAIN:
 		return mod_set_vga(mod->port->dev, tvp->u.data);
 	}
@@ -1560,8 +1558,9 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
 			return -EINVAL;
 
-		tvp = kmalloc(tvps->num * sizeof(struct dtv_property),
-			      GFP_KERNEL);
+		tvp = kmalloc_array(tvps->num,
+				    sizeof(struct dtv_property),
+				    GFP_KERNEL);
 		if (!tvp) {
 			ret = -ENOMEM;
 			goto out;
@@ -1654,7 +1653,7 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		mod_set_vga(dev, RF_VGA_GAIN_N16);
 	else
 		mod_set_vga(dev, RF_VGA_GAIN_N24);
-	
+
 	mod_set_attenuator(dev, 0);
 	return 0;
 }

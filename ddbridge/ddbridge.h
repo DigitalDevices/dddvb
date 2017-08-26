@@ -16,10 +16,8 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
+ * along with this program; if not, point your browser to
+ * http://www.gnu.org/copyleft/gpl.html
  */
 
 #ifndef _DDBRIDGE_H_
@@ -30,7 +28,7 @@
 
 #include <linux/version.h>
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if (KERNEL_VERSION(3, 8, 0) < LINUX_VERSION_CODE)
 #define __devexit
 #define __devinit
 #define __devinitconst
@@ -129,11 +127,7 @@ struct ddb_regmap {
 	struct ddb_regset *output;
 
 	struct ddb_regset *channel;
-	//struct ddb_regset *ci;
-	//struct ddb_regset *pid_filter;
-	//struct ddb_regset *ns;
 	struct ddb_regset *gtl;
-	//struct ddb_regset *mdio;
 };
 
 struct ddb_ids {
@@ -354,8 +348,6 @@ struct mod_base {
 
 struct ddb_mod {
 	struct ddb_port       *port;
-	//u32                    nr;
-	//u32                    regs;
 
 	u32                    frequency;
 	u32                    modulation;
@@ -545,7 +537,8 @@ int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
 /* linked function prototypes */
 
-struct ddb_info *get_ddb_info(u16 vendor, u16 device, u16 subvendor, u16 subdevice);
+struct ddb_info *get_ddb_info(u16 vendor, u16 device,
+			      u16 subvendor, u16 subdevice);
 int netstream_init(struct ddb_input *input);
 int ddb_dvb_ns_input_start(struct ddb_input *input);
 int ddb_dvb_ns_input_stop(struct ddb_input *input);
