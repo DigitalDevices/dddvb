@@ -3358,7 +3358,7 @@ static void irq_handle_io(struct ddb *dev, u32 s)
 	}
 }
 
-irqreturn_t irq_handler0(int irq, void *dev_id)
+irqreturn_t ddb_irq_handler0(int irq, void *dev_id)
 {
 	struct ddb *dev = (struct ddb *) dev_id;
 	u32 s = ddbreadl(dev, INTERRUPT_STATUS);
@@ -3375,7 +3375,7 @@ irqreturn_t irq_handler0(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t irq_handler1(int irq, void *dev_id)
+irqreturn_t ddb_irq_handler1(int irq, void *dev_id)
 {
 	struct ddb *dev = (struct ddb *) dev_id;
 	u32 s = ddbreadl(dev, INTERRUPT_STATUS);
@@ -3392,7 +3392,7 @@ irqreturn_t irq_handler1(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t irq_handler(int irq, void *dev_id)
+irqreturn_t ddb_irq_handler(int irq, void *dev_id)
 {
 	struct ddb *dev = (struct ddb *) dev_id;
 	u32 s = ddbreadl(dev, INTERRUPT_STATUS);
@@ -3471,7 +3471,7 @@ static irqreturn_t irq_handle_v2_n(struct ddb *dev, u32 n)
 	return IRQ_HANDLED;
 }
 
-irqreturn_t irq_handler_v2(int irq, void *dev_id)
+irqreturn_t ddb_irq_handler_v2(int irq, void *dev_id)
 {
 	struct ddb *dev = (struct ddb *) dev_id;
 	u32 s = 0xffff & ddbreadl(dev, INTERRUPT_V2_STATUS);
