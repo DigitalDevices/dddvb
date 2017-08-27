@@ -147,7 +147,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	if (dev->msi)
 		irq_flag = 0;
 
-	stat = request_irq(dev->pdev->irq, irq_handler_v2,
+	stat = request_irq(dev->pdev->irq, ddb_irq_handler_v2,
 			   irq_flag, "ddbridge", (void *)dev);
 	if (stat < 0)
 		return stat;
@@ -185,11 +185,11 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 	if (dev->msi)
 		irq_flag = 0;
 	if (dev->msi == 2) {
-		stat = request_irq(dev->pdev->irq, irq_handler0,
+		stat = request_irq(dev->pdev->irq, ddb_irq_handler0,
 				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0)
 			return stat;
-		stat = request_irq(dev->pdev->irq + 1, irq_handler1,
+		stat = request_irq(dev->pdev->irq + 1, ddb_irq_handler1,
 				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0) {
 			free_irq(dev->pdev->irq, dev);
@@ -197,12 +197,12 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 		}
 	} else {
 #ifdef DDB_TEST_THREADED
-		stat = request_threaded_irq(dev->pdev->irq, irq_handler,
+		stat = request_threaded_irq(dev->pdev->irq, ddb_irq_handler,
 					    irq_thread,
 					    irq_flag,
 					    "ddbridge", (void *)dev);
 #else
-		stat = request_irq(dev->pdev->irq, irq_handler,
+		stat = request_irq(dev->pdev->irq, ddb_irq_handler,
 				   irq_flag, "ddbridge", (void *)dev);
 #endif
 		if (stat < 0)

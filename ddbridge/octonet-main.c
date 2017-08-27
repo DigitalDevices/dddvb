@@ -100,7 +100,7 @@ static int __init octonet_probe(struct platform_device *pdev)
 	irq = platform_get_irq(dev->pfdev, 0);
 	if (irq < 0)
 		goto fail;
-	if (request_irq(irq, irq_handler,
+	if (request_irq(irq, ddb_irq_handler,
 			IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 			"octonet-dvb", (void *)dev) < 0)
 		goto fail;
