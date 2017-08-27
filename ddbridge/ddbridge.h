@@ -566,4 +566,7 @@ void ddb_i2c_release(struct ddb *dev);
 
 int ddb_ci_attach(struct ddb_port *port, u32 bitrate);
 
+int ddb_fe_attach_mxl5xx(struct ddb_input *input);
+int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm);
+
 #endif
