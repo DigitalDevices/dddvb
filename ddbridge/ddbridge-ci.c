@@ -1,5 +1,5 @@
 /*
- * ddbridge-i2c.c: Digital Devices bridge i2c driver
+ * ddbridge-ci.c: Digital Devices bridge and DuoFlex CI driver
  *
  * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
