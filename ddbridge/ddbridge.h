@@ -564,4 +564,6 @@ void ddb_class_destroy(void);
 int ddb_i2c_init(struct ddb *dev);
 void ddb_i2c_release(struct ddb *dev);
 
+int ddb_ci_attach(struct ddb_port *port, u32 bitrate);
+
 #endif
