@@ -490,7 +490,10 @@ static int mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 		return -1;
 
 	if (MaxUsedChannels == 0)
+        {
 		MaxUsedChannels = (Capacity & FSM_CAPACITY_CUR) >> 16;
+                dev->port_num = MaxUsedChannels;
+        }
 
 	if (MaxUsedChannels <= 1)
 		ddbwritel(dev, FSM_GAIN_N1, FSM_GAIN);
