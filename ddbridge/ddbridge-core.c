@@ -857,6 +857,8 @@ static ssize_t ts_read(struct file *file, __user char *buf,
 
 	if (!dev->has_dma)
 		return -EINVAL;
+	if (!input)
+		return -EINVAL;
 	while (left) {
 		if (ddb_input_avail(input) < 188) {
 			if (file->f_flags & O_NONBLOCK)
