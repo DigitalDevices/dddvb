@@ -4927,15 +4927,6 @@ static int stv090x_init(struct dvb_frontend *fe)
 	if (stv090x_i2c_gate_ctrl(state, 0) < 0)
 		goto err;
 
-#if 0
-	if (state->device == STV0900) {
-		if (stv0900_set_tspath(state) < 0)
-			goto err;
-	} else {
-		if (stv0903_set_tspath(state) < 0)
-			goto err;
-	}
-#endif
 	return 0;
 
 err_gateoff:
