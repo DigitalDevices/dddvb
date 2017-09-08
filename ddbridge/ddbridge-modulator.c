@@ -518,8 +518,9 @@ static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan,
 		ddbwritel(dev, FSM_GAIN_N96, FSM_GAIN);
 
 	ddbwritel(dev, FSM_CONTROL_ENABLE, FSM_CONTROL);
-	dev->link[0].info->port_num = MaxUsedChannels;
-
+	if (MaxUsedChannels == 4)
+		dev->link[0].info = get_ddb_info(0xdd01, 0x0210,
+						 0xdd01, 0x0004);
 	return status;
 }
 

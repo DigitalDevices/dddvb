@@ -1920,7 +1920,7 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->class = DDB_PORT_MOD;
 		return;
 	}
-
+#if 0
 	if (dev->link[l].info->type == DDB_OCTOPRO_HDIN) {
 		if (port->nr == 0) {
 			dev->link[l].info->type = DDB_OCTOPUS;
@@ -1929,7 +1929,7 @@ static void ddb_port_probe(struct ddb_port *port)
 		}
 		return;
 	}
-
+#endif
 	if (dev->link[l].info->type == DDB_OCTOPUS_MAX) {
 		port->name = "DUAL DVB-S2 MAX";
 		port->type_name = "MXL5XX";
@@ -2296,9 +2296,9 @@ static void output_handler(unsigned long data)
 /****************************************************************************/
 /****************************************************************************/
 
-static struct ddb_regmap *io_regmap(struct ddb_io *io, int link)
+static const struct ddb_regmap *io_regmap(struct ddb_io *io, int link)
 {
-	struct ddb_info *info;
+	const struct ddb_info *info;
 
 	if (link)
 		info = io->port->dev->link[io->port->lnr].info;
@@ -2312,7 +2312,7 @@ static struct ddb_regmap *io_regmap(struct ddb_io *io, int link)
 static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 {
 	struct ddb_dma *dma;
-	struct ddb_regmap *rm = io_regmap(io, 0);
+	const struct ddb_regmap *rm = io_regmap(io, 0);
 
 	dma = out ? &io->port->dev->odma[nr] : &io->port->dev->idma[nr];
 	io->dma = dma;
@@ -2353,7 +2353,7 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 {
 	struct ddb *dev = port->dev;
 	struct ddb_input *input = &dev->input[anr];
-	struct ddb_regmap *rm;
+	const struct ddb_regmap *rm;
 
 	port->input[pnr] = input;
 	input->nr = nr;
@@ -2364,7 +2364,7 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 	dev_info(dev->dev, "init link %u, input %u, regs %08x\n",
 		 port->lnr, nr, input->regs);
 	if (dev->has_dma) {
-		struct ddb_regmap *rm0 = io_regmap(input, 0);
+		const struct ddb_regmap *rm0 = io_regmap(input, 0);
 		u32 base = rm0->irq_base_idma;
 		u32 dma_nr = nr;
 
@@ -2383,7 +2383,7 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 {
 	struct ddb *dev = port->dev;
 	struct ddb_output *output = &dev->output[nr];
-	struct ddb_regmap *rm;
+	const struct ddb_regmap *rm;
 
 	port->output = output;
 	output->nr = nr;
@@ -2394,7 +2394,7 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	dev_info(dev->dev, "init link %u, output %u, regs %08x\n",
 		 port->lnr, nr, output->regs);
 	if (dev->has_dma) {
-		struct ddb_regmap *rm0 = io_regmap(output, 0);
+		const struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
 
 		dev->handler[0][nr + base] = output_handler;
@@ -2436,8 +2436,8 @@ static void ddb_ports_init(struct ddb *dev)
 {
 	u32 i, l, p;
 	struct ddb_port *port;
-	struct ddb_info *info;
-	struct ddb_regmap *rm;
+	const struct ddb_info *info;
+	const struct ddb_regmap *rm;
 
 	for (p = l = 0; l < DDB_MAX_LINK; l++) {
 		info = dev->link[l].info;
@@ -4289,7 +4289,7 @@ static int tempmon_init(struct ddb_link *link, int first_time)
 
 static int ddb_init_tempmon(struct ddb_link *link)
 {
-	struct ddb_info *info = link->info;
+	const struct ddb_info *info = link->info;
 
 	if (!info->tempmon_irq)
 		return 0;
@@ -4307,7 +4307,7 @@ static int ddb_init_tempmon(struct ddb_link *link)
 
 static int ddb_init_boards(struct ddb *dev)
 {
-	struct ddb_info *info;
+	const struct ddb_info *info;
 	struct ddb_link *link;
 	u32 l;
 
@@ -4404,7 +4404,7 @@ static void ddb_reset_io(struct ddb *dev, u32 reg)
 void ddb_reset_ios(struct ddb *dev)
 {
 	u32 i;
-	struct ddb_regmap *rm = dev->link[0].info->regmap;
+	const struct ddb_regmap *rm = dev->link[0].info->regmap;
 
 	if (rm->input)
 		for (i = 0; i < rm->input->num; i++)

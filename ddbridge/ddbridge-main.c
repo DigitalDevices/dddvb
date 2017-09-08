@@ -283,10 +283,12 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (dev->link[0].info->type != DDB_MOD)
 		ddbwritel(dev, 0, DMA_BASE_WRITE);
 
-	if (dev->link[0].info->type == DDB_MOD) {
-		if (dev->link[0].info->version <= 1)
-			if (ddbreadl(dev, 0x1c) == 4)
-				dev->link[0].info->port_num = 4;
+	if (dev->link[0].info->type == DDB_MOD
+	    && dev->link[0].info->version <= 1) {
+		if (ddbreadl(dev, 0x1c) == 4)
+			dev->link[0].info =
+				get_ddb_info(0xdd01, 0x0201,
+					     0xdd01, 0x0004);
 	}
 
 	stat = ddb_irq_init(dev);

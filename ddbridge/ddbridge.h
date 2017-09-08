@@ -116,18 +116,18 @@ struct ddb_regmap {
 	u32 irq_base_gtl;
 	u32 irq_base_rate;
 
-	struct ddb_regset *i2c;
-	struct ddb_regset *i2c_buf;
-	struct ddb_regset *idma;
-	struct ddb_regset *idma_buf;
-	struct ddb_regset *odma;
-	struct ddb_regset *odma_buf;
+	const struct ddb_regset *i2c;
+	const struct ddb_regset *i2c_buf;
+	const struct ddb_regset *idma;
+	const struct ddb_regset *idma_buf;
+	const struct ddb_regset *odma;
+	const struct ddb_regset *odma_buf;
 
-	struct ddb_regset *input;
-	struct ddb_regset *output;
+	const struct ddb_regset *input;
+	const struct ddb_regset *output;
 
-	struct ddb_regset *channel;
-	struct ddb_regset *gtl;
+	const struct ddb_regset *channel;
+	const struct ddb_regset *gtl;
 };
 
 struct ddb_ids {
@@ -172,7 +172,7 @@ struct ddb_info {
 #define TS_QUIRK_NO_OUTPUT 4
 #define TS_QUIRK_ALT_OSC   8
 	u32 tempmon_irq;
-	struct ddb_regmap *regmap;
+	const struct ddb_regmap *regmap;
 };
 
 /* DMA_SIZE MUST be smaller than 256k and
@@ -414,7 +414,7 @@ struct ddb_lnb {
 
 struct ddb_link {
 	struct ddb            *dev;
-	struct ddb_info       *info;
+	const struct ddb_info *info;
 	u32                    nr;
 	u32                    regs;
 	spinlock_t             lock; /* lock link access */
@@ -534,8 +534,8 @@ int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
 /* linked function prototypes */
 
-struct ddb_info *get_ddb_info(u16 vendor, u16 device,
-			      u16 subvendor, u16 subdevice);
+const struct ddb_info *get_ddb_info(u16 vendor, u16 device,
+				    u16 subvendor, u16 subdevice);
 int netstream_init(struct ddb_input *input);
 int ddb_dvb_ns_input_start(struct ddb_input *input);
 int ddb_dvb_ns_input_stop(struct ddb_input *input);

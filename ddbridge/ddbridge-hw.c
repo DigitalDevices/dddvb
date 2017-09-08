@@ -1,5 +1,5 @@
 /*
- * ddbridge.c: Digital Devices PCIe bridge driver
+ * ddbridge-hw.c: Digital Devices device information tables
  *
  * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
@@ -28,19 +28,19 @@
 /****************************************************************************/
 /****************************************************************************/
 
-static struct ddb_regset octopus_mod_odma = {
+static const struct ddb_regset octopus_mod_odma = {
 	.base = 0x300,
 	.num  = 0x0a,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_mod_odma_buf = {
+static const struct ddb_regset octopus_mod_odma_buf = {
 	.base = 0x2000,
 	.num  = 0x0a,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopus_mod_channel = {
+static const struct ddb_regset octopus_mod_channel = {
 	.base = 0x400,
 	.num  = 0x0a,
 	.size = 0x40,
@@ -48,25 +48,25 @@ static struct ddb_regset octopus_mod_channel = {
 
 /****************************************************************************/
 
-static struct ddb_regset octopus_mod_2_odma = {
+static const struct ddb_regset octopus_mod_2_odma = {
 	.base = 0x400,
 	.num  = 0x18,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_mod_2_odma_buf = {
+static const struct ddb_regset octopus_mod_2_odma_buf = {
 	.base = 0x8000,
 	.num  = 0x18,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopus_mod_2_channel = {
+static const struct ddb_regset octopus_mod_2_channel = {
 	.base = 0x800,
 	.num  = 0x18,
 	.size = 0x40,
 };
 
-static struct ddb_regset octopus_sdr_output = {
+static const struct ddb_regset octopus_sdr_output = {
 	.base = 0x240,
 	.num  = 0x14,
 	.size = 0x10,
@@ -74,49 +74,49 @@ static struct ddb_regset octopus_sdr_output = {
 
 /****************************************************************************/
 
-static struct ddb_regset octopus_input = {
+static const struct ddb_regset octopus_input = {
 	.base = 0x200,
 	.num  = 0x08,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_output = {
+static const struct ddb_regset octopus_output = {
 	.base = 0x280,
 	.num  = 0x08,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_idma = {
+static const struct ddb_regset octopus_idma = {
 	.base = 0x300,
 	.num  = 0x08,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_idma_buf = {
+static const struct ddb_regset octopus_idma_buf = {
 	.base = 0x2000,
 	.num  = 0x08,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopus_odma = {
+static const struct ddb_regset octopus_odma = {
 	.base = 0x380,
 	.num  = 0x04,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopus_odma_buf = {
+static const struct ddb_regset octopus_odma_buf = {
 	.base = 0x2800,
 	.num  = 0x04,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopus_i2c = {
+static const struct ddb_regset octopus_i2c = {
 	.base = 0x80,
 	.num  = 0x04,
 	.size = 0x20,
 };
 
-static struct ddb_regset octopus_i2c_buf = {
+static const struct ddb_regset octopus_i2c_buf = {
 	.base = 0x1000,
 	.num  = 0x04,
 	.size = 0x200,
@@ -124,55 +124,55 @@ static struct ddb_regset octopus_i2c_buf = {
 
 /****************************************************************************/
 
-static struct ddb_regset octopro_input = {
+static const struct ddb_regset octopro_input = {
 	.base = 0x400,
 	.num  = 0x14,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopro_output = {
+static const struct ddb_regset octopro_output = {
 	.base = 0x600,
 	.num  = 0x0a,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopro_idma = {
+static const struct ddb_regset octopro_idma = {
 	.base = 0x800,
 	.num  = 0x40,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopro_idma_buf = {
+static const struct ddb_regset octopro_idma_buf = {
 	.base = 0x4000,
 	.num  = 0x40,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopro_odma = {
+static const struct ddb_regset octopro_odma = {
 	.base = 0xc00,
 	.num  = 0x20,
 	.size = 0x10,
 };
 
-static struct ddb_regset octopro_odma_buf = {
+static const struct ddb_regset octopro_odma_buf = {
 	.base = 0x8000,
 	.num  = 0x20,
 	.size = 0x100,
 };
 
-static struct ddb_regset octopro_i2c = {
+static const struct ddb_regset octopro_i2c = {
 	.base = 0x200,
 	.num  = 0x0a,
 	.size = 0x20,
 };
 
-static struct ddb_regset octopro_i2c_buf = {
+static const struct ddb_regset octopro_i2c_buf = {
 	.base = 0x2000,
 	.num  = 0x0a,
 	.size = 0x200,
 };
 
-static struct ddb_regset octopro_gtl = {
+static const struct ddb_regset octopro_gtl = {
 	.base = 0xe00,
 	.num  = 0x03,
 	.size = 0x40,
@@ -181,7 +181,7 @@ static struct ddb_regset octopro_gtl = {
 /****************************************************************************/
 /****************************************************************************/
 
-static struct ddb_regmap octopus_map = {
+static const struct ddb_regmap octopus_map = {
 	.irq_version = 1,
 	.irq_base_i2c = 0,
 	.irq_base_idma = 8,
@@ -196,7 +196,7 @@ static struct ddb_regmap octopus_map = {
 	.output = &octopus_output,
 };
 
-static struct ddb_regmap octopro_map = {
+static const struct ddb_regmap octopro_map = {
 	.irq_version = 2,
 	.irq_base_i2c = 32,
 	.irq_base_idma = 64,
@@ -213,7 +213,7 @@ static struct ddb_regmap octopro_map = {
 	.gtl = &octopro_gtl,
 };
 
-static struct ddb_regmap octopro_hdin_map = {
+static const struct ddb_regmap octopro_hdin_map = {
 	.irq_version = 2,
 	.irq_base_i2c = 32,
 	.irq_base_idma = 64,
@@ -228,7 +228,7 @@ static struct ddb_regmap octopro_hdin_map = {
 	.output = &octopro_output,
 };
 
-static struct ddb_regmap octopus_mod_map = {
+static const struct ddb_regmap octopus_mod_map = {
 	.irq_version = 1,
 	.irq_base_odma = 8,
 	.irq_base_rate = 18,
@@ -238,7 +238,7 @@ static struct ddb_regmap octopus_mod_map = {
 	.channel = &octopus_mod_channel,
 };
 
-static struct ddb_regmap octopus_mod_2_map = {
+static const struct ddb_regmap octopus_mod_2_map = {
 	.irq_version = 2,
 	.irq_base_odma = 64,
 	.irq_base_rate = 32,
@@ -248,7 +248,7 @@ static struct ddb_regmap octopus_mod_2_map = {
 	.channel = &octopus_mod_2_channel,
 };
 
-static struct ddb_regmap octopus_sdr_map = {
+static const struct ddb_regmap octopus_sdr_map = {
 	.irq_version = 2,
 	.irq_base_odma = 64,
 	.irq_base_rate = 32,
@@ -261,13 +261,13 @@ static struct ddb_regmap octopus_sdr_map = {
 /****************************************************************************/
 /****************************************************************************/
 
-static struct ddb_info ddb_none = {
+static const struct ddb_info ddb_none = {
 	.type     = DDB_NONE,
 	.name     = "unknown Digital Devices device, install newer driver",
 	.regmap   = &octopus_map,
 };
 
-static struct ddb_info ddb_octopus = {
+static const struct ddb_info ddb_octopus = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus DVB adapter",
 	.regmap   = &octopus_map,
@@ -275,7 +275,7 @@ static struct ddb_info ddb_octopus = {
 	.i2c_mask = 0x0f,
 };
 
-static struct ddb_info ddb_octopusv3 = {
+static const struct ddb_info ddb_octopusv3 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus V3 DVB adapter",
 	.regmap   = &octopus_map,
@@ -283,7 +283,7 @@ static struct ddb_info ddb_octopusv3 = {
 	.i2c_mask = 0x0f,
 };
 
-static struct ddb_info ddb_octopus_le = {
+static const struct ddb_info ddb_octopus_le = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus LE DVB adapter",
 	.regmap   = &octopus_map,
@@ -291,7 +291,7 @@ static struct ddb_info ddb_octopus_le = {
 	.i2c_mask = 0x03,
 };
 
-static struct ddb_info ddb_octopus_oem = {
+static const struct ddb_info ddb_octopus_oem = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus OEM",
 	.regmap   = &octopus_map,
@@ -303,7 +303,7 @@ static struct ddb_info ddb_octopus_oem = {
 	.temp_bus = 0,
 };
 
-static struct ddb_info ddb_octopus_mini = {
+static const struct ddb_info ddb_octopus_mini = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus Mini",
 	.regmap   = &octopus_map,
@@ -311,7 +311,7 @@ static struct ddb_info ddb_octopus_mini = {
 	.i2c_mask = 0x0f,
 };
 
-static struct ddb_info ddb_v6 = {
+static const struct ddb_info ddb_v6 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V6 DVB adapter",
 	.regmap   = &octopus_map,
@@ -319,7 +319,7 @@ static struct ddb_info ddb_v6 = {
 	.i2c_mask = 0x07,
 };
 
-static struct ddb_info ddb_v6_5 = {
+static const struct ddb_info ddb_v6_5 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V6.5 DVB adapter",
 	.regmap   = &octopus_map,
@@ -327,7 +327,7 @@ static struct ddb_info ddb_v6_5 = {
 	.i2c_mask = 0x0f,
 };
 
-static struct ddb_info ddb_v7a = {
+static const struct ddb_info ddb_v7a = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V7 Advanced DVB adapter",
 	.regmap   = &octopus_map,
@@ -338,7 +338,7 @@ static struct ddb_info ddb_v7a = {
 	.ts_quirks = TS_QUIRK_REVERSED,
 };
 
-static struct ddb_info ddb_v7 = {
+static const struct ddb_info ddb_v7 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine S2 V7 DVB adapter",
 	.regmap   = &octopus_map,
@@ -349,7 +349,7 @@ static struct ddb_info ddb_v7 = {
 	.ts_quirks = TS_QUIRK_REVERSED,
 };
 
-static struct ddb_info ddb_ctv7 = {
+static const struct ddb_info ddb_ctv7 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Cine CT V7 DVB adapter",
 	.regmap   = &octopus_map,
@@ -359,7 +359,7 @@ static struct ddb_info ddb_ctv7 = {
 	.board_control_2 = 4,
 };
 
-static struct ddb_info ddb_satixs2v3 = {
+static const struct ddb_info ddb_satixs2v3 = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Mystique SaTiX-S2 V3 DVB adapter",
 	.regmap   = &octopus_map,
@@ -367,7 +367,7 @@ static struct ddb_info ddb_satixs2v3 = {
 	.i2c_mask = 0x07,
 };
 
-static struct ddb_info ddb_ci = {
+static const struct ddb_info ddb_ci = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI",
 	.regmap   = &octopus_map,
@@ -375,7 +375,7 @@ static struct ddb_info ddb_ci = {
 	.i2c_mask = 0x03,
 };
 
-static struct ddb_info ddb_cis = {
+static const struct ddb_info ddb_cis = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI single",
 	.regmap   = &octopus_map,
@@ -383,7 +383,7 @@ static struct ddb_info ddb_cis = {
 	.i2c_mask = 0x03,
 };
 
-static struct ddb_info ddb_ci_s2_pro = {
+static const struct ddb_info ddb_ci_s2_pro = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI S2 Pro",
 	.regmap   = &octopus_map,
@@ -393,7 +393,7 @@ static struct ddb_info ddb_ci_s2_pro = {
 	.board_control_2 = 4,
 };
 
-static struct ddb_info ddb_ci_s2_pro_a = {
+static const struct ddb_info ddb_ci_s2_pro_a = {
 	.type     = DDB_OCTOPUS_CI,
 	.name     = "Digital Devices Octopus CI S2 Pro Advanced",
 	.regmap   = &octopus_map,
@@ -403,7 +403,7 @@ static struct ddb_info ddb_ci_s2_pro_a = {
 	.board_control_2 = 4,
 };
 
-static struct ddb_info ddb_dvbct = {
+static const struct ddb_info ddb_dvbct = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices DVBCT V6.1 DVB adapter",
 	.regmap   = &octopus_map,
@@ -413,7 +413,7 @@ static struct ddb_info ddb_dvbct = {
 
 /****************************************************************************/
 
-static struct ddb_info ddb_mod = {
+static const struct ddb_info ddb_mod = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices DVB-C modulator",
 	.regmap   = &octopus_mod_map,
@@ -421,7 +421,15 @@ static struct ddb_info ddb_mod = {
 	.temp_num = 1,
 };
 
-static struct ddb_info ddb_mod_fsm_24 = {
+static const struct ddb_info ddb_mod_4 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C modulator",
+	.regmap   = &octopus_mod_map,
+	.port_num = 4,
+	.temp_num = 1,
+};
+
+static const struct ddb_info ddb_mod_fsm_24 = {
 	.type     = DDB_MOD,
 	.version  = 2,
 	.name     = "Digital Devices DVB-C modulator FSM-24",
@@ -431,7 +439,7 @@ static struct ddb_info ddb_mod_fsm_24 = {
 	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_mod_fsm_16 = {
+static const struct ddb_info ddb_mod_fsm_16 = {
 	.type     = DDB_MOD,
 	.version  = 2,
 	.name     = "Digital Devices DVB-C modulator FSM-16",
@@ -441,7 +449,7 @@ static struct ddb_info ddb_mod_fsm_16 = {
 	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_mod_fsm_8 = {
+static const struct ddb_info ddb_mod_fsm_8 = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices DVB-C modulator FSM-8",
 	.version  = 2,
@@ -451,7 +459,17 @@ static struct ddb_info ddb_mod_fsm_8 = {
 	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_sdr = {
+static const struct ddb_info ddb_mod_fsm_4 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C modulator FSM-8",
+	.version  = 2,
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 4,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
+static const struct ddb_info ddb_sdr = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices SDR",
 	.version  = 3,
@@ -461,7 +479,7 @@ static struct ddb_info ddb_sdr = {
 	.tempmon_irq = 8,
 };
 
-static struct ddb_info ddb_octopro_hdin = {
+static const struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
 	.regmap   = &octopro_hdin_map,
@@ -470,7 +488,7 @@ static struct ddb_info ddb_octopro_hdin = {
 	.mdio_num = 1,
 };
 
-static struct ddb_info ddb_octopro = {
+static const struct ddb_info ddb_octopro = {
 	.type     = DDB_OCTOPRO,
 	.name     = "Digital Devices OctopusNet Pro",
 	.regmap   = &octopro_map,
@@ -479,7 +497,7 @@ static struct ddb_info ddb_octopro = {
 	.mdio_num = 1,
 };
 
-static struct ddb_info ddb_s2_48 = {
+static const struct ddb_info ddb_s2_48 = {
 	.type     = DDB_OCTOPUS_MAX,
 	.name     = "Digital Devices MAX S8 4/8",
 	.regmap   = &octopus_map,
@@ -489,7 +507,7 @@ static struct ddb_info ddb_s2_48 = {
 	.tempmon_irq = 24,
 };
 
-static struct ddb_info ddb_ct2_8 = {
+static const struct ddb_info ddb_ct2_8 = {
 	.type     = DDB_OCTOPUS_MAX_CT,
 	.name     = "Digital Devices MAX A8 CT2",
 	.regmap   = &octopus_map,
@@ -501,7 +519,7 @@ static struct ddb_info ddb_ct2_8 = {
 	.tempmon_irq = 24,
 };
 
-static struct ddb_info ddb_c2t2_8 = {
+static const struct ddb_info ddb_c2t2_8 = {
 	.type     = DDB_OCTOPUS_MAX_CT,
 	.name     = "Digital Devices MAX A8 C2T2",
 	.regmap   = &octopus_map,
@@ -513,7 +531,7 @@ static struct ddb_info ddb_c2t2_8 = {
 	.tempmon_irq = 24,
 };
 
-static struct ddb_info ddb_isdbt_8 = {
+static const struct ddb_info ddb_isdbt_8 = {
 	.type     = DDB_OCTOPUS_MAX_CT,
 	.name     = "Digital Devices MAX A8 ISDBT",
 	.regmap   = &octopus_map,
@@ -525,7 +543,7 @@ static struct ddb_info ddb_isdbt_8 = {
 	.tempmon_irq = 24,
 };
 
-static struct ddb_info ddb_c2t2i_v0_8 = {
+static const struct ddb_info ddb_c2t2i_v0_8 = {
 	.type     = DDB_OCTOPUS_MAX_CT,
 	.name     = "Digital Devices MAX A8 C2T2I V0",
 	.regmap   = &octopus_map,
@@ -537,7 +555,7 @@ static struct ddb_info ddb_c2t2i_v0_8 = {
 	.tempmon_irq = 24,
 };
 
-static struct ddb_info ddb_c2t2i_8 = {
+static const struct ddb_info ddb_c2t2i_8 = {
 	.type     = DDB_OCTOPUS_MAX_CT,
 	.name     = "Digital Devices MAX A8 C2T2I",
 	.regmap   = &octopus_map,
@@ -552,7 +570,7 @@ static struct ddb_info ddb_c2t2i_8 = {
 /****************************************************************************/
 /****************************************************************************/
 
-static struct ddb_regmap octopus_net_map = {
+static const struct ddb_regmap octopus_net_map = {
 	.irq_version = 1,
 	.irq_base_i2c = 0,
 	.i2c = &octopus_i2c,
@@ -561,13 +579,13 @@ static struct ddb_regmap octopus_net_map = {
 	.output = &octopus_output,
 };
 
-static struct ddb_regset octopus_gtl = {
+static const struct ddb_regset octopus_gtl = {
 	.base = 0x180,
 	.num  = 0x01,
 	.size = 0x20,
 };
 
-static struct ddb_regmap octopus_net_gtl = {
+static const struct ddb_regmap octopus_net_gtl = {
 	.irq_version = 1,
 	.irq_base_i2c = 0,
 	.irq_base_gtl = 10,
@@ -578,7 +596,7 @@ static struct ddb_regmap octopus_net_gtl = {
 	.gtl = &octopus_gtl,
 };
 
-static struct ddb_info ddb_octonet = {
+static const struct ddb_info ddb_octonet = {
 	.type     = DDB_OCTONET,
 	.name     = "Digital Devices OctopusNet network DVB adapter",
 	.regmap   = &octopus_net_map,
@@ -588,7 +606,7 @@ static struct ddb_info ddb_octonet = {
 	.mdio_num = 1,
 };
 
-static struct ddb_info ddb_octonet_jse = {
+static const struct ddb_info ddb_octonet_jse = {
 	.type     = DDB_OCTONET,
 	.name     = "Digital Devices OctopusNet network DVB adapter JSE",
 	.regmap   = &octopus_net_map,
@@ -598,7 +616,7 @@ static struct ddb_info ddb_octonet_jse = {
 	.mdio_num = 1,
 };
 
-static struct ddb_info ddb_octonet_gtl = {
+static const struct ddb_info ddb_octonet_gtl = {
 	.type     = DDB_OCTONET,
 	.name     = "Digital Devices OctopusNet GTL",
 	.regmap   = &octopus_net_gtl,
@@ -618,7 +636,7 @@ struct ddb_device_id {
 	u16 device;
 	u16 subvendor;
 	u16 subdevice;
-	struct ddb_info *info;
+	const struct ddb_info *info;
 };
 
 #define DDB_DEVID(_device, _subdevice, _info) { \
@@ -628,7 +646,7 @@ struct ddb_device_id {
 		.subdevice = _subdevice, \
 		.info = &(_info) }
 
-static struct ddb_device_id ddb_device_ids[] = {
+static const struct ddb_device_id ddb_device_ids[] = {
 	/* OctopusNet */
 	DDB_DEVID(0x0300, 0xffff, ddb_octonet),
 	DDB_DEVID(0x0301, 0xffff, ddb_octonet_jse),
@@ -664,10 +682,12 @@ static struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),
 	DDB_DEVID(0x0201, 0x0002, ddb_mod),
+	DDB_DEVID(0x0201, 0x0004, ddb_mod_4),  /* dummy entry ! */
 	DDB_DEVID(0x0203, 0x0001, ddb_mod),
 	DDB_DEVID(0x0210, 0x0001, ddb_mod_fsm_24),
 	DDB_DEVID(0x0210, 0x0002, ddb_mod_fsm_16),
 	DDB_DEVID(0x0210, 0x0003, ddb_mod_fsm_8),
+	DDB_DEVID(0x0210, 0x0004, ddb_mod_fsm_4), /* dummy entry ! */
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr),
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),
@@ -678,18 +698,18 @@ static struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0329, 0xffff, ddb_octopro_hdin),
 };
 
-struct ddb_info *get_ddb_info(u16 vendor, u16 device,
+const struct ddb_info *get_ddb_info(u16 vendor, u16 device,
 				    u16 subvendor, u16 subdevice)
 {
 	int i;
 	
 	for (i = 0; i < ARRAY_SIZE(ddb_device_ids); i++) {
-		struct ddb_device_id *id  = &ddb_device_ids[i];
+		const struct ddb_device_id *id = &ddb_device_ids[i];
 		
 		if (vendor == id->vendor &&
 		    device == id->device &&
 		    subvendor == id->subvendor &&
-		    ((subdevice == id->subdevice) ||
+		    (subdevice == id->subdevice ||
 		     id->subdevice == 0xffff))
 			return id->info;
 	}
