@@ -545,6 +545,7 @@ int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
 void ddbridge_mod_rate_handler(unsigned long data);
+int ddb_mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels);
 
 void ddb_device_destroy(struct ddb *dev);
 void ddb_nsd_detach(struct ddb *dev);

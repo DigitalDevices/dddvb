@@ -468,8 +468,7 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 	return status;
 }
 
-static int mod_fsm_setup(struct ddb *dev, u32 FrequencyPlan,
-			 u32 MaxUsedChannels)
+int ddb_mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 {
 	int status = 0;
 	u32 Capacity;
@@ -1630,16 +1629,17 @@ out:
 
 static int mod_init_2(struct ddb *dev, u32 Frequency)
 {
-	int status, i;
-	int streams = dev->link[0].info->port_num;
+	int i, streams = dev->link[0].info->port_num;
 
 	dev->mod_base.frequency = Frequency;
-	status = mod_fsm_setup(dev, 0, 0);
 
+#if 0
+	status = mod_fsm_setup(dev, 0);
 	if (status) {
 		dev_err(dev->dev, "FSM setup failed!\n");
 		return -1;
 	}
+#endif
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
@@ -1790,11 +1790,15 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 
 int ddbridge_mod_init(struct ddb *dev)
 {
-	if (dev->link[0].info->version <= 1)
+	switch (dev->link[0].info->version) {
+	case 0:
+	case 1:
 		return mod_init_1(dev, 722000000);
-	if (dev->link[0].info->version == 2)
+	case 2:
 		return mod_init_2(dev, 114000000);
-	if (dev->link[0].info->version == 3)
+	case 3:
 		return mod_init_3(dev, 503250000);
-	return -1;
+	default:
+		return -1;
+	}
 }
