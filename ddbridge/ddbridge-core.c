@@ -2118,10 +2118,8 @@ static int ddb_ports_attach(struct ddb *dev)
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
 		ret = ddb_port_attach(port);
-#if 0
 		if (ret < 0)
 			break;
-#endif
 	}
 	return ret;
 }
