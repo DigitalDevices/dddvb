@@ -4358,15 +4358,6 @@ int ddb_init(struct ddb *dev)
 		ddb_gtl_init(dev);
 
 	ddb_init_boards(dev);
-	if (dev->link[0].info->type == DDB_MOD &&
-	    dev->link[0].info->version == 2) {
-		int ret = ddb_mod_fsm_setup(dev, 0);
-
-		if (ret < 0) {
-			dev_err(dev->dev, "FSM setup failed!\n");
-			return ret;
-		}
-	}
 	if (ddb_i2c_init(dev) < 0)
 		goto fail;
 	ddb_ports_init(dev);

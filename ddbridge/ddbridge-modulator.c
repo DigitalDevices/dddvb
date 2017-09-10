@@ -468,7 +468,7 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 	return status;
 }
 
-int ddb_mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
+static int mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 {
 	int status = 0;
 	u32 Capacity;
@@ -500,7 +500,6 @@ int ddb_mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 	if (MaxUsedChannels == 0)
 		MaxUsedChannels = (Capacity & FSM_CAPACITY_CUR) >> 16;
 
-	dev_info(dev->dev, "max used chan = %u\n", MaxUsedChannels);
 	if (MaxUsedChannels <= 1)
 		ddbwritel(dev, FSM_GAIN_N1, FSM_GAIN);
 	else if (MaxUsedChannels <= 2)
@@ -517,9 +516,6 @@ int ddb_mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 		ddbwritel(dev, FSM_GAIN_N96, FSM_GAIN);
 
 	ddbwritel(dev, FSM_CONTROL_ENABLE, FSM_CONTROL);
-	if (MaxUsedChannels == 4)
-		dev->link[0].info = get_ddb_info(0xdd01, 0x0210,
-						 0xdd01, 0x0004);
 	return status;
 }
 
@@ -1629,17 +1625,15 @@ out:
 
 static int mod_init_2(struct ddb *dev, u32 Frequency)
 {
-	int i, streams = dev->link[0].info->port_num;
+	int i, status, streams = dev->link[0].info->port_num;
 
 	dev->mod_base.frequency = Frequency;
 
-#if 0
 	status = mod_fsm_setup(dev, 0);
 	if (status) {
 		dev_err(dev->dev, "FSM setup failed!\n");
 		return -1;
 	}
-#endif
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
