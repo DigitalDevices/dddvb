@@ -111,7 +111,7 @@ static int lnb_set_sat(struct ddb *dev, u32 link,
 }
 
 static int lnb_set_tone(struct ddb *dev, u32 link, u32 input,
-			fe_sec_tone_mode_t tone)
+			enum fe_sec_tone_mode tone)
 {
 	int s = 0;
 	u32 mask = (1ULL << input);
@@ -130,14 +130,14 @@ static int lnb_set_tone(struct ddb *dev, u32 link, u32 input,
 	default:
 		s = -EINVAL;
 		break;
-	};
+	}
 	if (!s)
 		s = lnb_command(dev, link, input, LNB_CMD_NOP);
 	return s;
 }
 
 static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input,
-			   fe_sec_voltage_t voltage)
+			   enum fe_sec_voltage voltage)
 {
 	int s = 0;
 
@@ -158,7 +158,7 @@ static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input,
 	default:
 		s = -EINVAL;
 		break;
-	};
+	}
 	dev->link[link].lnb.oldvoltage[input] = voltage;
 	return s;
 }
@@ -198,7 +198,7 @@ static int max_set_input(struct dvb_frontend *fe, int in)
 	return res;
 }
 
-static int max_set_tone(struct dvb_frontend *fe, fe_sec_tone_mode_t tone)
+static int max_set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 {
 	struct ddb_input *input = fe->sec_priv;
 	struct ddb_port *port = input->port;
@@ -236,7 +236,7 @@ static int max_set_tone(struct dvb_frontend *fe, fe_sec_tone_mode_t tone)
 	return res;
 }
 
-static int max_set_voltage(struct dvb_frontend *fe, fe_sec_voltage_t voltage)
+static int max_set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 {
 	struct ddb_input *input = fe->sec_priv;
 	struct ddb_port *port = input->port;
@@ -337,7 +337,7 @@ static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	return 0;
 }
 
-static int max_send_burst(struct dvb_frontend *fe, fe_sec_mini_cmd_t burst)
+static int max_send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
 	return 0;
 }
