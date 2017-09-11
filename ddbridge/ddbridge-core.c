@@ -267,7 +267,11 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 		return 0;
 	for (i = 0; i < dma->num; i++) {
 		if (alt_dma) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0))
 			dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
+#else
+			dma->vbuf[i] = kmalloc(dma->size, __GFP_RETRY_MAYFAIL);
+#endif
 			if (!dma->vbuf[i])
 				return -ENOMEM;
 			dma->pbuf[i] = dma_map_single(&pdev->dev,
