@@ -1319,6 +1319,120 @@ int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 
 }
 
+int i2cread(int dev, int argc, char* argv[], uint32_t Flags)
+{
+	uint8_t BusNumber     = 0;
+	uint8_t DeviceAddress = 0;
+	int i;
+	uint32_t tmp;
+	char *p;
+	uint32_t BufferLength;
+	uint32_t ReadLen;
+	uint8_t *Buffer;
+	int Repeat = (Flags & REPEAT_FLAG) != 0;
+	int Silent = (Flags & SILENT_FLAG) != 0;
+	
+	if (argc < 2)
+		return -1;
+	
+	tmp = strtoul(argv[0],&p,16);
+	if (tmp > 255)
+		return -1;
+	
+	if (*p == ':') {
+		BusNumber = (uint8_t) (tmp - 1);
+		tmp = strtoul(&p[1],NULL,16);
+	}
+	if (tmp > 255 || BusNumber > 3)
+		return -1;
+	
+	DeviceAddress = (uint8_t) tmp;
+	BufferLength = (argc-2);
+	ReadLen = strtoul(argv[argc-1],NULL,0);
+	if (ReadLen > BufferLength)
+		BufferLength = ReadLen ;
+	
+	printf(" BufferLength = %d tmp = %d\n", BufferLength, ReadLen);
+	Buffer = malloc(BufferLength);
+	
+	for (i = 1; i < (argc-1); i += 1 ) {
+		tmp = strtoul(argv[i],NULL,16);
+		if (tmp > 255) {
+			free(Buffer);
+			return -1;
+		}
+		Buffer[i-1] = (uint8_t) tmp;
+	}
+	
+	do {
+		int hr = i2c_read(dev, BusNumber, DeviceAddress, Buffer, argc-2, Buffer, ReadLen);
+		if (hr < 0) {
+			printf("ioctl error\n");
+			free(Buffer);
+			return 0;
+		}
+		if (!Silent) {
+			printf("OK\n");
+			Dump(&Buffer[0],0,ReadLen);
+		}
+	} while (Repeat);
+	free(Buffer);
+	return 0;
+}
+
+int i2cwrite(int dev, int argc, char* argv[], uint32_t Flags)
+{
+    uint8_t BusNumber     = 0;
+    uint8_t DeviceAddress = 0;
+    uint32_t tmp;
+    char *p;
+    uint8_t *Buffer;
+    int i;
+    int Repeat = (Flags & REPEAT_FLAG) != 0;
+    int Silent = (Flags & SILENT_FLAG) != 0;
+
+    
+    if( argc < 1 )
+		return -1;
+    tmp = strtoul(argv[0],&p,16);
+    if( tmp > 255 )
+	    return -1;
+
+    if (*p == ':') {
+	    BusNumber = (uint8_t) (tmp - 1);
+	    tmp = strtoul(&p[1],NULL,16);
+    }
+    if( tmp > 255 || BusNumber > 3)
+	    return -1;
+
+    DeviceAddress = (uint8_t) tmp;
+    Buffer = malloc(argc - 1);
+
+    for (i = 1; i < argc; i += 1)  {
+        tmp = strtoul(argv[i],NULL,16);
+        if (tmp > 255 ) {
+		free(Buffer);
+		return -1;
+        }
+        Buffer[i-1] = (uint8_t) tmp;
+    }
+
+    do {
+	    int hr =i2c_write(dev, BusNumber,DeviceAddress,NULL,0,Buffer,argc-1);
+	    if (hr < 0) {
+		    printf("ioctl error\n");
+		    free(Buffer);
+		    return 0;
+	    }
+	    if( !Silent )
+		    printf("OK\n");
+    } while( Repeat );
+
+    free(Buffer);
+    return 0;
+}
+
+
 struct SCommand CommandTable[] = 
 {
 	{ "memread",    ReadDeviceMemory,   1,   "Read Device Memory   : memread <start> <count>" },
@@ -1343,6 +1457,8 @@ struct SCommand CommandTable[] =
 	{ "licexport",   lic_export,       1,   "License Export           : licexport" },
 	{ "licerase",    lic_erase,        1,   "License Erase            : licerase"  },
 	{ "read_id",    read_id,        1,      "Read Unique ID           : read_id"  },
+	{ "i2cread",    i2cread,        1,     "I2C Read : I2CRead  <[BusNumber:]DeviceAddress> [<write data>..] <read count>" },
+	{ "i2write",    i2cwrite,        1,    "I2C Write            : I2CWrite <[BusNumber:]DeviceAddress> [<write data>..]"},
  	{ NULL,NULL,0 }
 };
 
