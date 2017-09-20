@@ -132,6 +132,7 @@ struct stv {
 	u8    ber_scale;
 
 	u8    vth[6];
+	unsigned long stat_time;
 };
 
 struct slookup {
@@ -1347,8 +1348,8 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber);
 static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 {
 	struct stv *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 dmdstate = 0;
-	u8 dstatus  = 0;
 	enum receive_mode cur_receive_mode = RCVMODE_NONE;
 	u32 fec_lock = 0;
 	u16 val;
@@ -1356,12 +1357,10 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	s32 foff;
 
 	*status = 0;
-	get_frequency_offset(state, &foff);
-	read_signal_strength(fe, &val);
-	read_snr(fe, &val);
-	read_ber(fe, &ber);
 	read_reg(state, RSTV0910_P2_DMDSTATE + state->regoff, &dmdstate);
 	if (dmdstate & 0x40) {
+		u8 dstatus  = 0;
+
 		read_reg(state, RSTV0910_P2_DSTATUS + state->regoff,
 			 &dstatus);
 		if (dstatus & 0x08)
@@ -1370,10 +1369,15 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 	}
 	if (cur_receive_mode == RCVMODE_NONE) {
 		set_vth(state);
-		//if( Time >= state->demod_timeout ) *pLockStatus = NEVER_LOCK;
-		return 0;
+		/*if( Time >= state->demod_timeout )
+		 **pLockStatus = NEVER_LOCK;
+		 */
+		goto get_stat;
 	}
-	*status |= 0x0f;
+
+	*status = (FE_HAS_SIGNAL | FE_HAS_CARRIER |
+		   FE_HAS_VITERBI | FE_HAS_SYNC);
+
 	if (state->receive_mode == RCVMODE_NONE) {
 		state->receive_mode = cur_receive_mode;
 		state->demod_lock_time = jiffies;
@@ -1382,12 +1386,12 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		get_signal_parameters(state);
 		tracking_optimization(state);
 #if 0
-		if (cur_receive_mode == RCVMODE_DVBS2 && m_bpilots &&
+		if (cur_receive_mode == RCVMODE_DVBS2 && state->pilots &&
 		    (m_modcod == FE_8PSK_23 || m_modcod == FE_8PSK_35)) {
-			u32 C_N;
+			u32 cn;
 
-			get_signal_to_noise(&C_N);
-			if (C_N < 80) {
+			get_signal_to_noise(&cn);
+			if (cn < 80) {
 				write_reg(RSTV0910_P2_CARHDR + state->regoff,
 					  0x04);
 				write_reg(RSTV0910_P2_BCLC2S28 + state->regoff,
@@ -1421,87 +1425,104 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		}
 	}
 
-	if (!fec_lock) {
-  //if( Time >= m_demod_lock_time + state->fec_timeout ) *status = NEVER_LOCK;
-		return 0;
-	}
+	if (fec_lock) {
+		*status |= FE_HAS_LOCK;
 
-	*status |= 0x10;
+		if (state->first_time_lock) {
+			u8 tmp;
 
-	if (state->first_time_lock) {
-		u8 tmp;
-
-		state->first_time_lock = 0;
-
-		manage_matype_info(state);
+			state->first_time_lock = 0;
+			manage_matype_info(state);
 #if 0
-		u32 bitrate = get_bitrate(&bitrate);
-		u8 new_tsspeed = (bitrate > 67000000) ? 0x30 : 0x40;
+			u32 bitrate = get_bitrate(&bitrate);
+			u8 new_tsspeed = (bitrate > 67000000) ? 0x30 : 0x40;
 
-		if (new_tsspeed != state->tsspeed) {
-			write_reg(state, RSTV0910_P2_TSSPEED + state->regoff,
-				  new_tsspeed);
-			state->tsspeed = new_tsspeed;
-		}
+			if (new_tsspeed != state->tsspeed) {
+				write_reg(state,
+					  RSTV0910_P2_TSSPEED + state->regoff,
+					  new_tsspeed);
+				state->tsspeed = new_tsspeed;
+			}
 #endif
-
-		if (state->receive_mode == RCVMODE_DVBS2) {
-			/* FSTV0910_P2_MANUALSX_ROLLOFF,
-			 * FSTV0910_P2_MANUALS2_ROLLOFF = 0
+			if (state->receive_mode == RCVMODE_DVBS2) {
+				/* FSTV0910_P2_MANUALSX_ROLLOFF,
+				 * FSTV0910_P2_MANUALS2_ROLLOFF = 0
+				 */
+				state->demod &= ~0x84;
+				write_reg(state,
+					  RSTV0910_P2_DEMOD + state->regoff,
+					  state->demod);
+				read_reg(state,
+					 RSTV0910_P2_PDELCTRL2 + state->regoff,
+					 &tmp);
+				/*reset DVBS2 packet delinator error counter */
+				tmp |= 0x40;
+				write_reg(state, RSTV0910_P2_PDELCTRL2 +
+					  state->regoff,
+					  tmp);
+				/*reset DVBS2 packet delinator error counter */
+				tmp &= ~0x40;
+				write_reg(state, RSTV0910_P2_PDELCTRL2 +
+					  state->regoff,
+					  tmp);
+				state->ber_scale = 2;
+				state->last_ber_numerator = 0;
+				state->last_ber_denominator = 1;
+				/* force to PRE BCH Rate */
+				write_reg(state,
+					  RSTV0910_P2_ERRCTRL1 + state->regoff,
+					  BER_SRC_S2 | state->ber_scale);
+			} else {
+				state->ber_scale = 2;
+				state->last_ber_numerator = 0;
+				state->last_ber_denominator = 1;
+				/* force to PRE RS Rate */
+				write_reg(state,
+					  RSTV0910_P2_ERRCTRL1 + state->regoff,
+					  BER_SRC_S | state->ber_scale);
+			}
+			/* Reset the Total packet counter */
+			write_reg(state,
+				  RSTV0910_P2_FBERCPT4 + state->regoff, 0x00);
+			/* Reset the packet Error counter2 (and Set it to
+			 * infinite error count mode )
 			 */
-			state->demod &= ~0x84;
-			write_reg(state, RSTV0910_P2_DEMOD + state->regoff,
-				  state->demod);
-			read_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff,
-				 &tmp);
-			/*reset DVBS2 packet delinator error counter */
-			tmp |= 0x40;
-			write_reg(state, RSTV0910_P2_PDELCTRL2 +
-				  state->regoff,
-				  tmp);
-			/*reset DVBS2 packet delinator error counter */
-			tmp &= ~0x40;
-			write_reg(state, RSTV0910_P2_PDELCTRL2 +
-				  state->regoff,
-				  tmp);
-
-			state->ber_scale = 2;
-			state->last_ber_numerator = 0;
-			state->last_ber_denominator = 1;
-			/* force to PRE BCH Rate */
-			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  BER_SRC_S2 | state->ber_scale);
-		} else {
-			state->ber_scale = 2;
-			state->last_ber_numerator = 0;
-			state->last_ber_denominator = 1;
-			/* force to PRE RS Rate */
-			write_reg(state, RSTV0910_P2_ERRCTRL1 + state->regoff,
-				  BER_SRC_S | state->ber_scale);
+			write_reg(state,
+				  RSTV0910_P2_ERRCTRL2 + state->regoff, 0xc1);
+			set_vth_default(state);
+			if (state->receive_mode == RCVMODE_DVBS)
+				enable_puncture_rate(state,
+						     state->puncture_rate);
 		}
-		/* Reset the Total packet counter */
-		write_reg(state, RSTV0910_P2_FBERCPT4 + state->regoff, 0x00);
-		/* Reset the packet Error counter2 (and Set it to
-		 * infinit error count mode )
-		 */
-		write_reg(state, RSTV0910_P2_ERRCTRL2 + state->regoff, 0xc1);
+		/* Use highest signaled ModCod for quality */
+		if (state->is_vcm) {
+			u8 tmp;
+			enum fe_stv0190_modcod modcod;
 
-		set_vth_default(state);
-		if (state->receive_mode == RCVMODE_DVBS)
-			enable_puncture_rate(state, state->puncture_rate);
+			read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff,
+				 &tmp);
+			modcod = (enum fe_stv0190_modcod)((tmp & 0x7c) >> 2);
+
+			if (modcod > state->modcod)
+				state->modcod = modcod;
+		}
 	}
-
-	/* Use highest signaled ModCod for quality */
-	if (state->is_vcm) {
-		u8 tmp;
-		enum fe_stv0190_modcod modcod;
-
-		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
-		modcod = (enum fe_stv0190_modcod)((tmp & 0x7c) >> 2);
-
-		if (modcod > state->modcod)
-			state->modcod = modcod;
+get_stat:
+	if (time_in_range(state->stat_time, jiffies, jiffies + HZ))
+		return 0;
+	state->stat_time = jiffies + HZ;
+	read_signal_strength(fe, &val);
+	if (*status & FE_HAS_CARRIER)
+		read_snr(fe, &val);
+	else
+		p->cnr.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+	if (*status & FE_HAS_VITERBI) {
+		read_ber(fe, &ber);
+	} else {
+		p->pre_bit_error.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+		p->pre_bit_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
 	}
+	get_frequency_offset(state, &foff);
 	return 0;
 }
 
