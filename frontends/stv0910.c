@@ -1195,17 +1195,22 @@ static int gate_ctrl(struct dvb_frontend *fe, int enable)
 	struct stv *state = fe->demodulator_priv;
 	u8 i2crpt = state->i2crpt & ~0x86;
 
-	if (enable)
+	if (enable) {
 		mutex_lock(&state->base->i2c_lock);
-
-	if (enable)
 		i2crpt |= 0x80;
-	else
+	} else {
 		i2crpt |= 0x02;
+	}
 
 	if (write_reg(state, state->nr ? RSTV0910_P2_I2CRPT :
-		      RSTV0910_P1_I2CRPT, i2crpt) < 0)
+		      RSTV0910_P1_I2CRPT, i2crpt) < 0) {
+		/* don't hold the I2C bus lock on failure */
+		mutex_unlock(&state->base->i2c_lock);
+		dev_err(&state->base->i2c->dev,
+			"%s() write_reg failure (enable=%d)\n",
+			__func__, enable);
 		return -EIO;
+	}
 
 	state->i2crpt = i2crpt;
 
