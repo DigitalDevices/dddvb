@@ -86,7 +86,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	pci_disable_device(pdev);
 }
 
-#if (KERNEL_VERSION(3, 8, 0) < LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(3, 8, 0) <= LINUX_VERSION_CODE)
 #define __devinit
 #define __devinitdata
 #endif
@@ -97,8 +97,8 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 
 #ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
-#if (KERNEL_VERSION(3, 15, 0) < LINUX_VERSION_CODE)
-#if (KERNEL_VERSION(4, 11, 0) < LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(3, 15, 0) <= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(4, 11, 0) <= LINUX_VERSION_CODE)
 		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
 #else
 		stat = pci_enable_msi_range(dev->pdev, 1, nr);

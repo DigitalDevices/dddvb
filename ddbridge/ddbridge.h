@@ -28,7 +28,7 @@
 
 #include <linux/version.h>
 
-#if (KERNEL_VERSION(3, 8, 0) < LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(3, 8, 0) <= LINUX_VERSION_CODE)
 #define __devexit
 #define __devinit
 #define __devinitconst

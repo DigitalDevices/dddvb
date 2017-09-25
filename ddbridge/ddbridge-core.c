@@ -252,7 +252,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 		return 0;
 	for (i = 0; i < dma->num; i++) {
 		if (alt_dma) {
-#if (KERNEL_VERSION(4, 12, 0) >= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(4, 13, 0) > LINUX_VERSION_CODE)
 			dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
 #else
 			dma->vbuf[i] = kmalloc(dma->size, __GFP_RETRY_MAYFAIL);
@@ -3362,7 +3362,7 @@ static const struct file_operations ddb_fops = {
 	.release        = ddb_release,
 };
 
-#if (KERNEL_VERSION(3, 4, 0) >= LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(3, 4, 0) > LINUX_VERSION_CODE)
 static char *ddb_devnode(struct device *device, mode_t *mode)
 #else
 static char *ddb_devnode(struct device *device, umode_t *mode)
