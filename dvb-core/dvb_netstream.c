@@ -241,7 +241,7 @@ int dvb_netstream_init(struct dvb_adapter *dvb_adapter,
 	spin_lock_init(&ns->lock);
 	ns->exit = 0;
 	dvb_register_device(dvb_adapter, &ns->dvbdev, &ns_dev, ns,
-			    DVB_DEVICE_NS);
+			    DVB_DEVICE_NS, 0);
 	INIT_LIST_HEAD(&ns->nssl);
 	return 0;
 }

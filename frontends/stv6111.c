@@ -203,11 +203,10 @@ static int init(struct dvb_frontend *fe)
 	return 0;
 }
 
-static int release(struct dvb_frontend *fe)
+static void release(struct dvb_frontend *fe)
 {
 	kfree(fe->tuner_priv);
 	fe->tuner_priv = NULL;
-	return 0;
 }
 
 static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)

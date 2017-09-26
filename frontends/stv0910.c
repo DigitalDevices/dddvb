@@ -849,10 +849,12 @@ static int init_search_param(struct stv *state)
 
 	read_reg(state, RSTV0910_P2_PDELCTRL1 + state->regoff, &tmp);
 	tmp |= 0x20; // Filter_en (no effect if SIS=non-MIS
+	tmp &= ~0x20; // Filter_en (no effect if SIS=non-MIS
 	write_reg(state, RSTV0910_P2_PDELCTRL1 + state->regoff, tmp);
 
 	read_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff, &tmp);
 	tmp &= ~0x02; // frame mode = 0
+	tmp |= 0x80; // frame mode = 0
 	write_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff, tmp);
 
 	write_reg(state, RSTV0910_P2_UPLCCST0 + state->regoff, 0xe0);
@@ -1260,10 +1262,9 @@ static int get_frequency_offset(struct stv *state, s32 *off)
 	return 0;
 }
 
-static int get_frontend(struct dvb_frontend *fe)
+static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
 {
 	struct stv *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 tmp;
 
 	if (state->receive_mode == RCVMODE_DVBS2) {
@@ -1345,7 +1346,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr);
 static int read_signal_strength(struct dvb_frontend *fe, u16 *strength);
 static int read_ber(struct dvb_frontend *fe, u32 *ber);
 
-static int read_status(struct dvb_frontend *fe, fe_status_t *status)
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct stv *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
@@ -1528,7 +1529,7 @@ get_stat:
 
 static int tune(struct dvb_frontend *fe, bool re_tune,
 		unsigned int mode_flags,
-		unsigned int *delay, fe_status_t *status)
+		unsigned int *delay, enum fe_status *status)
 {
 	struct stv *state = fe->demodulator_priv;
 	int r;
@@ -1554,7 +1555,7 @@ static int get_algo(struct dvb_frontend *fe)
 	return DVBFE_ALGO_HW;
 }
 
-static int set_tone(struct dvb_frontend *fe, fe_sec_tone_mode_t tone)
+static int set_tone(struct dvb_frontend *fe, enum fe_sec_tone_mode tone)
 {
 	struct stv *state = fe->demodulator_priv;
 	u16 offs = state->nr ? 0x40 : 0;
@@ -1608,7 +1609,7 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 	return 0;
 }
 
-static int send_burst(struct dvb_frontend *fe, fe_sec_mini_cmd_t burst)
+static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
 #if 0
 	struct stv *state = fe->demodulator_priv;

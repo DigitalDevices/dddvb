@@ -58,7 +58,7 @@ enum EDemodState { Off, QAMSet, OFDMSet, QAMStarted, OFDMStarted };
 
 struct stv_state {
 	struct dvb_frontend frontend;
-	fe_modulation_t modulation;
+	enum fe_modulation modulation;
 	u32 symbol_rate;
 	u32 bandwidth;
 	struct device *dev;
@@ -1861,7 +1861,7 @@ static int OFDM_GetLockStatus(struct stv_state *state, LOCK_STATUS* pLockStatus,
 
 #endif
 
-static int read_status(struct dvb_frontend *fe, fe_status_t *status)
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct stv_state *state = fe->demodulator_priv;
 	*status=0;

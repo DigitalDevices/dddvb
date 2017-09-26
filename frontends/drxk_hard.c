@@ -4892,14 +4892,14 @@ static int drxk_set_parameters (struct dvb_frontend *fe,
 	return 0;
 }
 
-static int drxk_c_get_frontend(struct dvb_frontend *fe)
+static int drxk_c_get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
 {
 	//struct drxk_state *state = fe->demodulator_priv;
 	//printk("%s\n", __FUNCTION__);
 	return 0;
 }
 
-static int drxk_read_status(struct dvb_frontend *fe, fe_status_t *status)
+static int drxk_read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct drxk_state *state = fe->demodulator_priv;
 	u32 stat;
@@ -4986,7 +4986,7 @@ static int drxk_t_sleep(struct dvb_frontend* fe)
 	return 0;
 }
 
-static int drxk_t_get_frontend(struct dvb_frontend *fe)
+static int drxk_t_get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
 {
 	//struct drxk_state *state = fe->demodulator_priv;
 	//printk("%s\n", __FUNCTION__);

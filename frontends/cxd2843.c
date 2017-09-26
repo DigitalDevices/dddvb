@@ -1679,7 +1679,7 @@ static int get_stats(struct dvb_frontend *fe)
 }
 
 
-static int read_status(struct dvb_frontend *fe, fe_status_t *status)
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	u8 rdata;
@@ -2191,7 +2191,7 @@ static int read_ucblocks(struct dvb_frontend *fe, u32 *ucblocks)
 
 static int tune(struct dvb_frontend *fe, bool re_tune,
 		unsigned int mode_flags,
-		unsigned int *delay, fe_status_t *status)
+		unsigned int *delay, enum fe_status *status)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 	int r;
@@ -2217,7 +2217,7 @@ static enum dvbfe_search search(struct dvb_frontend *fe)
 {
 	int r;
 	u32 loops = 20, i;
-	fe_status_t status;
+	enum fe_status status;
 
 	r = set_parameters(fe);
 
@@ -2241,10 +2241,9 @@ static int get_algo(struct dvb_frontend *fe)
 	return DVBFE_ALGO_HW;
 }
 
-static int get_fe_t2(struct cxd_state *state)
+static int get_fe_t2(struct cxd_state *state, struct dtv_frontend_properties *p)
 {
 	struct dvb_frontend *fe = &state->frontend;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 ofdm[5], modcod[2];
 	
 	freeze_regst(state);
@@ -2345,10 +2344,9 @@ static int get_fe_t2(struct cxd_state *state)
 	return 0;
 }
 
-static int get_fe_t(struct cxd_state *state)
+static int get_fe_t(struct cxd_state *state, struct dtv_frontend_properties *p)
 {
 	struct dvb_frontend *fe = &state->frontend;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 tps[7];
 
 	read_tps(state, tps);
@@ -2447,10 +2445,9 @@ static int get_fe_t(struct cxd_state *state)
 	return 0;
 }
 
-static int get_fe_c(struct cxd_state *state)
+static int get_fe_c(struct cxd_state *state,  struct dtv_frontend_properties *p)
 {
 	struct dvb_frontend *fe = &state->frontend;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 qam;
 
 	freeze_regst(state);
@@ -2460,7 +2457,7 @@ static int get_fe_c(struct cxd_state *state)
 	return 0;
 }
 
-static int get_frontend(struct dvb_frontend *fe)
+static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
 {
 	struct cxd_state *state = fe->demodulator_priv;
 
@@ -2469,13 +2466,13 @@ static int get_frontend(struct dvb_frontend *fe)
 
 	switch (state->state) {
 	case ActiveT:
-		get_fe_t(state);
+		get_fe_t(state, p);
 		break;
 	case ActiveT2:
-		get_fe_t2(state);
+		get_fe_t2(state, p);
 		break;
 	case ActiveC:
-		get_fe_c(state);
+		get_fe_c(state, p);
 		break;
 	case ActiveC2:
 		break;

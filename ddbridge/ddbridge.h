@@ -407,7 +407,7 @@ struct ddb_ns {
 struct ddb_lnb {
 	struct mutex           lock; /* lock lnb access */
 	u32                    tone;
-	fe_sec_voltage_t       oldvoltage[4];
+	enum fe_sec_voltage    oldvoltage[4];
 	u32                    voltage[4];
 	u32                    voltages;
 	u32                    fmode;

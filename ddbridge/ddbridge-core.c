@@ -1254,7 +1254,7 @@ static int tuner_attach_stv6110(struct ddb_input *input, int type)
 	struct stv090x_config *feconf = type ? &stv0900_aa : &stv0900;
 	struct stv6110x_config *tunerconf = (input->nr & 1) ?
 		&stv6110b : &stv6110a;
-	struct stv6110x_devctl *ctl;
+	const struct stv6110x_devctl *ctl;
 
 	ctl = dvb_attach(stv6110x_attach, dvb->fe, tunerconf, i2c);
 	if (!ctl) {
@@ -2081,13 +2081,13 @@ static int ddb_port_attach(struct ddb_port *port)
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
 					  &dvbdev_ci, (void *)port->output,
-					  DVB_DEVICE_CI);
+					  DVB_DEVICE_CI, 1);
 		break;
 	case DDB_PORT_MOD:
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
 					  &dvbdev_mod, (void *)port->output,
-					  DVB_DEVICE_MOD);
+					  DVB_DEVICE_MOD, 1);
 		break;
 	default:
 		break;
@@ -2937,7 +2937,7 @@ static int ddb_nsd_attach(struct ddb *dev)
 	ret = dvb_register_device(&dev->adap[0],
 				  &dev->nsd_dev,
 				  &dvbdev_nsd, (void *)dev,
-				  DVB_DEVICE_NSD);
+				  DVB_DEVICE_NSD, 0);
 	return ret;
 }
 

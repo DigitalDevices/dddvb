@@ -53,14 +53,20 @@ struct stv6110x_devctl {
 };
 
 
-#if defined(CONFIG_DVB_STV6110x) || (defined(CONFIG_DVB_STV6110x_MODULE) && defined(MODULE))
+#include <linux/version.h>
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 1, 0))
+#define IS_REACHABLE(option) (config_enabled(option) || \
+			      (config_enabled(option##_MODULE) && config_enabled(MODULE)))
+#endif
 
-extern struct stv6110x_devctl *stv6110x_attach(struct dvb_frontend *fe,
+#if IS_REACHABLE(CONFIG_DVB_STV6110x)
+
+extern const struct stv6110x_devctl *stv6110x_attach(struct dvb_frontend *fe,
 					       const struct stv6110x_config *config,
 					       struct i2c_adapter *i2c);
 
 #else
-static inline struct stv6110x_devctl *stv6110x_attach(struct dvb_frontend *fe,
+static inline const struct stv6110x_devctl *stv6110x_attach(struct dvb_frontend *fe,
 						      const struct stv6110x_config *config,
 						      struct i2c_adapter *i2c)
 {

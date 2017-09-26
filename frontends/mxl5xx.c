@@ -560,7 +560,7 @@ static int set_parameters(struct dvb_frontend *fe)
 
 static int get_stats(struct dvb_frontend *fe);
 
-static int read_status(struct dvb_frontend *fe, fe_status_t *status)
+static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	struct mxl *state = fe->demodulator_priv;
 
@@ -582,10 +582,10 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 
 static int tune(struct dvb_frontend *fe, bool re_tune,
 		unsigned int mode_flags,
-		unsigned int *delay, fe_status_t *status)
+		unsigned int *delay, enum fe_status *status)
 {
 	struct mxl *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	/* struct dtv_frontend_properties *p = &fe->dtv_property_cache; */
 	int r = 0;
 
 	*delay = HZ / 2;
@@ -659,7 +659,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 {
 	struct mxl *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	u32 reg[8], reg2[4], n = 0, d = 0;
+	u32 reg[8], reg2[4];
 	int stat;
 	
 	*ber = 0;
@@ -748,7 +748,7 @@ static int get_stats(struct dvb_frontend *fe)
 	return 0;
 }
 
-static fe_code_rate_t conv_fec(MXL_HYDRA_FEC_E fec)
+static enum fe_code_rate conv_fec(MXL_HYDRA_FEC_E fec)
 {
 	enum fe_code_rate fec2fec[11] = {
 		FEC_NONE, FEC_1_2, FEC_3_5, FEC_2_3,
@@ -761,10 +761,9 @@ static fe_code_rate_t conv_fec(MXL_HYDRA_FEC_E fec)
 	return fec2fec[fec];
 }
 
-static int get_frontend(struct dvb_frontend *fe)
+static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
 {
 	struct mxl *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 regData[MXL_DEMOD_CHAN_PARAMS_BUFF_SIZE];
 	u32 freq;
 	int stat;

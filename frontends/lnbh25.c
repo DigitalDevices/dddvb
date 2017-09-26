@@ -62,7 +62,7 @@ static int lnbh25_write_regs(struct lnbh25 *lnbh, int reg, int len)
 }
 
 static int lnbh25_set_voltage(struct dvb_frontend *fe,
-			      fe_sec_voltage_t voltage)
+			      enum fe_sec_voltage voltage)
 {
 	struct lnbh25 *lnbh = (struct lnbh25 *) fe->sec_priv;
 	u8 oldreg0 = lnbh->reg[0];
@@ -107,7 +107,7 @@ static int lnbh25_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 }
 
 static int lnbh25_set_tone(struct dvb_frontend *fe,
-			   fe_sec_tone_mode_t tone)
+			   enum fe_sec_tone_mode tone)
 {
 	/* struct lnbh25 *lnbh = (struct lnbh25 *) fe->sec_priv; */
 

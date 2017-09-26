@@ -6,7 +6,7 @@
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
  * This program is free software; you can redistribute it and/or
- * modify dit under the terms of the GNU General Public License
+ * modify it under the terms of the GNU General Public License
  * version 2 only, as published by the Free Software Foundation.
  *
  *

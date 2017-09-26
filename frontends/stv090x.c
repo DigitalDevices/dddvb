@@ -5072,10 +5072,9 @@ static int stv090x_set_gpio(struct dvb_frontend *fe, u8 gpio, u8 dir,
 	return stv090x_write_reg(state, STV090x_GPIOxCFG(gpio), reg);
 }
 
-static int stv090x_get_frontend(struct dvb_frontend *fe)
+static int stv090x_get_frontend(struct dvb_frontend *fe,  struct dtv_frontend_properties *p)
 {
 	struct stv090x_state *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u8 tmp;
 	u32 reg = 0;
 	
