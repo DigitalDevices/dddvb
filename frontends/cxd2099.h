@@ -36,8 +36,18 @@ struct cxd2099_cfg {
 	u32 max_i2c;
 };
 
+#if defined(CONFIG_DVB_CXD2099) || \
+	(defined(CONFIG_DVB_CXD2099_MODULE) && defined(MODULE))
 struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
 				      void *priv, struct i2c_adapter *i2c);
+#else
 
+static inline struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
+					void *priv, struct i2c_adapter *i2c)
+{
+	dev_warn(&i2c->dev, "%s: driver disabled by Kconfig\n", __func__);
+	return NULL;
+}
+#endif
 
 #endif
