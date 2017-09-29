@@ -191,13 +191,13 @@ static int read_register_unlocked(struct mxl *state, u32 reg, u32 *val)
 	stat = i2cwrite(state, data,
 			MXL_HYDRA_REG_SIZE_IN_BYTES + MXL_HYDRA_I2C_HDR_SIZE);
 	if (stat)
-		pr_err("mxl5xx: i2c read error 1\n");
+		dev_err(&state->base->i2c->dev,"mxl5xx read error 1\n");
 	if (!stat)
 		stat = i2cread(state, (u8 *) val,
 			       MXL_HYDRA_REG_SIZE_IN_BYTES);
 	le32_to_cpus(val);
 	if (stat)
-		pr_err("mxl5xx: i2c read error 2\n");
+		dev_err(&state->base->i2c->dev,"mxl5xx read error 2\n");
 	return stat;
 }
 
@@ -245,7 +245,7 @@ static int write_register(struct mxl *state, u32 reg, u32 val)
 	stat = i2cwrite(state, data, sizeof(data));
 	mutex_unlock(&state->base->i2c_lock);
 	if (stat)
-		pr_err("mxl5xx: i2c write error\n");
+		dev_err(&state->base->i2c->dev, "mxl5xx write error\n");
 	return stat;
 }
 
@@ -292,7 +292,7 @@ static int write_firmware_block(struct mxl *state,
 			MXL_HYDRA_REG_SIZE_IN_BYTES + size);
 	mutex_unlock(&state->base->i2c_lock);
 	if (stat)
-		pr_err("mxl5xx: fw block write failed\n");
+		dev_err(&state->base->i2c->dev, "mxl5xx fw block write failed\n");
 	return stat;
 }
 
@@ -309,14 +309,14 @@ static int read_register(struct mxl *state, u32 reg, u32 *val)
 	stat = i2cwrite(state, data,
 			MXL_HYDRA_REG_SIZE_IN_BYTES + MXL_HYDRA_I2C_HDR_SIZE);
 	if (stat)
-		pr_err("mxl5xx: i2c read error 1\n");
+		dev_err(&state->base->i2c->dev, "mxl5xx read error 1\n");
 	if (!stat)
 		stat = i2cread(state, (u8 *) val,
 			       MXL_HYDRA_REG_SIZE_IN_BYTES);
 	mutex_unlock(&state->base->i2c_lock);
 	le32_to_cpus(val);
 	if (stat)
-		pr_err("mxl5xx: i2c read error 2\n");
+		dev_err(&state->base->i2c->dev, "mxl5xx read error 2\n");
 	return stat;
 }
 
