@@ -73,7 +73,7 @@ static int i2c_write_reg(struct i2c_adapter *adapter, u8 adr,
 	struct i2c_msg msg = {.addr = adr, .flags = 0, .buf = m, .len = 2};
 
 	if (i2c_transfer(adapter, &msg, 1) != 1) {
-		pr_err("Failed to write to I2C register %02x@%02x!\n",
+		dev_err(&adapter->dev, "cxd2099: failed to write to I2C register %02x@%02x!\n",
 		       reg, adr);
 		return -1;
 	}
@@ -86,7 +86,7 @@ static int i2c_write(struct i2c_adapter *adapter, u8 adr,
 	struct i2c_msg msg = {.addr = adr, .flags = 0, .buf = data, .len = len};
 
 	if (i2c_transfer(adapter, &msg, 1) != 1) {
-		pr_err("Failed to write to I2C!\n");
+		dev_err(&adapter->dev, "cxd2099 write error\n");
 		return -1;
 	}
 	return 0;
@@ -101,7 +101,7 @@ static int i2c_read_reg(struct i2c_adapter *adapter, u8 adr,
 				   .buf = val, .len = 1} };
 
 	if (i2c_transfer(adapter, msgs, 2) != 2) {
-		pr_err("error in i2c_read_reg\n");
+		dev_err(&adapter->dev, "cxd2099 i2c_read_reg error\n");
 		return -1;
 	}
 	return 0;
@@ -116,7 +116,7 @@ static int i2c_read(struct i2c_adapter *adapter, u8 adr,
 				   .buf = data, .len = n} };
 	
 	if (i2c_transfer(adapter, msgs, 2) != 2) {
-		pr_err("error in i2c_read\n");
+		dev_err(&adapter->dev, "cxd2099: i2c_read error\n");
 		return -1;
 	}
 	return 0;
