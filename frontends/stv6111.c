@@ -213,6 +213,7 @@ static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 {
 	struct stv *state = fe->tuner_priv;
 	u32 index = (CutOffFrequency + 999999) / 1000000;
+	int stat = 0;
 
 	if (index < 6)
 		index = 6;
@@ -224,12 +225,14 @@ static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 	state->reg[0x08] = (state->reg[0x08] & ~0xFC) | ((index-6) << 2);
 	state->reg[0x09] = (state->reg[0x09] & ~0x0C) | 0x08;
 	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	write_regs(state, 0x08, 2);
-	wait_for_call_done(state, 0x08);
+		stat = fe->ops.i2c_gate_ctrl(fe, 1);
+	if (!stat) {
+		write_regs(state, 0x08, 2);
+		wait_for_call_done(state, 0x08);
+	}
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
-	return 0;
+	return stat;
 }
 
 static int set_lof(struct stv *state, u32 LocalFrequency, u32 CutOffFrequency)
@@ -311,6 +314,7 @@ static int set_params(struct dvb_frontend *fe)
 	struct stv *state = fe->tuner_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 freq, symb, cutoff;
+	int stat = 0;
 
 	if (p->delivery_system != SYS_DVBS && p->delivery_system != SYS_DVBS2)
 		return -EINVAL;
@@ -320,11 +324,12 @@ static int set_params(struct dvb_frontend *fe)
 	cutoff = 5000000 + MulDiv32(p->symbol_rate, 135, 200);
 
 	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	set_lof(state, freq, cutoff);
+		stat = fe->ops.i2c_gate_ctrl(fe, 1);
+	if (!stat)
+		set_lof(state, freq, cutoff);
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
-	return 0;
+	return stat;
 }
 
 static int get_frequency(struct dvb_frontend *fe, u32 *frequency)
@@ -630,13 +635,16 @@ static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 		// RF Mode
 		// Read AGC ADC
 		u8 Reg = 0;
-		
+		int stat = 0;
+
 		if (fe->ops.i2c_gate_ctrl)
-			fe->ops.i2c_gate_ctrl(fe, 1);
-		write_reg(state, 0x02, state->reg[0x02] | 0x20); 
-		read_reg(state, 2, &Reg);
-		if( Reg & 0x20 )
+			stat = fe->ops.i2c_gate_ctrl(fe, 1);
+		if (!stat) {
+			write_reg(state, 0x02, state->reg[0x02] | 0x20);
 			read_reg(state, 2, &Reg);
+			if (Reg & 0x20)
+				read_reg(state, 2, &Reg);
+		}
 		if (fe->ops.i2c_gate_ctrl)
 			fe->ops.i2c_gate_ctrl(fe, 0);
 		
@@ -714,7 +722,7 @@ struct dvb_frontend *stv6111_attach(struct dvb_frontend *fe,
 				    struct i2c_adapter *i2c, u8 adr)
 {
 	struct stv *state;
-	int stat;
+	int stat = 0;
 
 	state = kzalloc(sizeof(struct stv), GFP_KERNEL);
 	if (!state)
@@ -725,13 +733,14 @@ struct dvb_frontend *stv6111_attach(struct dvb_frontend *fe,
 	init_state(state);
 
 	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 1);
-	stat = attach_init(state);
+		stat = fe->ops.i2c_gate_ctrl(fe, 1);
+	if (!stat)
+		stat = attach_init(state);
 	if (fe->ops.i2c_gate_ctrl)
 		fe->ops.i2c_gate_ctrl(fe, 0);
 	if (stat < 0) {
 		kfree(state);
-		return 0;
+		return NULL;
 	}
 	fe->tuner_priv = state;
 	return fe;
