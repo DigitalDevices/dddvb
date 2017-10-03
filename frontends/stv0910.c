@@ -849,12 +849,10 @@ static int init_search_param(struct stv *state)
 
 	read_reg(state, RSTV0910_P2_PDELCTRL1 + state->regoff, &tmp);
 	tmp |= 0x20; // Filter_en (no effect if SIS=non-MIS
-	tmp &= ~0x20; // Filter_en (no effect if SIS=non-MIS
 	write_reg(state, RSTV0910_P2_PDELCTRL1 + state->regoff, tmp);
 
 	read_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff, &tmp);
 	tmp &= ~0x02; // frame mode = 0
-	tmp |= 0x80; // frame mode = 0
 	write_reg(state, RSTV0910_P2_PDELCTRL2 + state->regoff, tmp);
 
 	write_reg(state, RSTV0910_P2_UPLCCST0 + state->regoff, 0xe0);
