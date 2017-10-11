@@ -474,17 +474,16 @@ static int mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 	u32 Capacity;
 	u32 tmp = ddbreadl(dev, FSM_STATUS);
 
-	if ((tmp & FSM_STATUS_READY) == 0) {
-		status = mod_setup_max2871(dev, max2871_fsm);
-		if (status)
-			return status;
-		ddbwritel(dev, FSM_CMD_RESET, FSM_CONTROL);
-		msleep(20);
+	status = mod_setup_max2871(dev, max2871_fsm);
+	if (status)
+		return status;
+	ddbwritel(dev, FSM_CMD_RESET, FSM_CONTROL);
+	msleep(20);
 
-		tmp = ddbreadl(dev, FSM_STATUS);
-		if ((tmp & FSM_STATUS_READY) == 0)
-			return -1;
-	}
+	tmp = ddbreadl(dev, FSM_STATUS);
+	if ((tmp & FSM_STATUS_READY) == 0)
+		return -1;
+
 	Capacity = ddbreadl(dev, FSM_CAPACITY);
 	if (((tmp & FSM_STATUS_QAMREADY) != 0) &&
 	    ((Capacity & FSM_CAPACITY_INUSE) != 0))
@@ -1528,6 +1527,11 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	case MODULATOR_GAIN:
 		if (mod->port->dev->link[0].info->version == 2)
 			return mod_set_vga(mod->port->dev, tvp->u.data);
+		return -EINVAL;
+
+	case MODULATOR_RESET:
+		if (mod->port->dev->link[0].info->version == 2)
+			return mod_fsm_setup(mod->port->dev,0 );
 		return -EINVAL;
 	}
 	return 0;
