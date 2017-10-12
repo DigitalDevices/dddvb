@@ -464,6 +464,9 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 		if ((ControlReg & MAX2871_CONTROL_LOCK) == 0)
 			status = -EIO;
 		status = mod_write_max2871(dev, reg[4]);
+		ddbwritel(dev,
+			  MAX2871_CONTROL_CE | MAX2871_CONTROL_LOSTLOCK,
+			  MAX2871_CONTROL);
 	}
 	return status;
 }
@@ -1522,7 +1525,7 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		return mod_set_attenuator(mod->port->dev, tvp->u.data);
 
 	case MODULATOR_INPUT_BITRATE:
-		return mod_set_ibitrate(mod, tvp->u.data);
+		return mod_set_ibitrate(mod, tvp->u.data64);
 
 	case MODULATOR_GAIN:
 		if (mod->port->dev->link[0].info->version == 2)
@@ -1537,49 +1540,93 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	return 0;
 }
 
+static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
+{
+	struct ddb *dev = mod->port->dev;
+
+	if (mod->port->dev->link[0].info->version != 2)
+		return -1;
+	switch (tvp->cmd) {
+	case MODULATOR_GAIN:
+		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);;
+		return 0;
+
+	case MODULATOR_ATTENUATOR:
+		tvp->u.data = 0x1f & ddbreadl(dev, RF_ATTENUATOR);
+		return 0;
+
+	case MODULATOR_STATUS:
+	{
+		u32 status = 0, val;
+
+		val = ddbreadl(dev, MAX2871_CONTROL);
+		if (!(val & MAX2871_CONTROL_LOCK))
+			status |= 1;
+		if (!(val & MAX2871_CONTROL_LOCK))
+			status |= 1;
+		if (val & MAX2871_CONTROL_LOSTLOCK)
+			status |= 2;
+		ddbwritel(dev, val, MAX2871_CONTROL);
+
+		val = ddbreadl(dev, TEMPMON_CONTROL);
+		if (val & TEMPMON_CONTROL_OVERTEMP)
+			status |= 4;
+		tvp->u.data = status;
+		return 0;
+	}
+	default:
+		return -1;
+	}
+}
+
 int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 {
 	struct dvb_device *dvbdev = file->private_data;
 	struct ddb_output *output = dvbdev->priv;
 	struct ddb *dev = output->port->dev;
 	struct ddb_mod *mod = &dev->mod[output->nr];
-	int ret = 0;
+	struct dtv_property *tvp = NULL;
+	struct dtv_properties *tvps =
+		(struct dtv_properties __user *) parg;
+	int i, ret = 0;
 
 	if (dev->link[0].info->version == 3 && cmd != FE_SET_PROPERTY)
 		return -EINVAL;
 	switch (cmd) {
 	case FE_SET_PROPERTY:
-	{
-		struct dtv_properties *tvps =
-			(struct dtv_properties __user *) parg;
-		struct dtv_property *tvp = NULL;
-		int i;
-
 		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
 			return -EINVAL;
-
-		tvp = kmalloc_array(tvps->num,
-				    sizeof(struct dtv_property),
-				    GFP_KERNEL);
-		if (!tvp) {
-			ret = -ENOMEM;
-			goto out;
-		}
-		if (copy_from_user(tvp, tvps->props, tvps->num *
-				   sizeof(struct dtv_property))) {
-			ret = -EFAULT;
-			goto out;
-		}
+		tvp = memdup_user(tvps->props, tvps->num * sizeof(*tvp));
+		if (IS_ERR(tvp))
+			return PTR_ERR(tvp);
 		for (i = 0; i < tvps->num; i++) {
 			ret = mod_prop_proc(mod, tvp + i);
 			if (ret < 0)
-				goto out;
+				break;
 			(tvp + i)->result = ret;
 		}
-out:
 		kfree(tvp);
 		return ret;
-	}
+
+	case FE_GET_PROPERTY:
+		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
+			return -EINVAL;
+		tvp = memdup_user(tvps->props, tvps->num * sizeof(*tvp));
+		if (IS_ERR(tvp))
+			return PTR_ERR(tvp);
+		for (i = 0; i < tvps->num; i++) {
+			ret = mod_prop_get(mod, tvp + i);
+			if (ret < 0)
+				break;
+			(tvp + i)->result = ret;
+		}
+		if ((ret >= 0) &&
+		    copy_to_user((void __user *)tvps->props, tvp,
+				 tvps->num * sizeof(struct dtv_property)))
+			ret = -EFAULT;
+		kfree(tvp);
+		return ret;
+
 	case DVB_MOD_SET:
 	{
 		struct dvb_mod_params *mp = parg;
@@ -1652,7 +1699,7 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		mod_set_vga(dev, RF_VGA_GAIN_N16);
 	else
 		mod_set_vga(dev, RF_VGA_GAIN_N24);
-
+	
 	mod_set_attenuator(dev, 0);
 	return 0;
 }
