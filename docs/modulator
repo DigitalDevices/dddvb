@@ -27,3 +27,74 @@ For testing one can use a standard application that
 supports decryption. Additionally to seeing the
 decoded service on the PC it will then also be streamed
 into cable by the modulator.
+
+
+
+The modulator device can be controlled with the
+following properties:
+
+MODULATOR_FREQUENCY:
+
+Set the frequency on Version 2 (FSM) cards
+units - Hz
+range - 114000000-874000000
+allowed values - 114 + 8000000*X
+
+For older cards you have to use the
+DVB_MOD_SET ioctl.
+
+
+
+MODULATOR_SYMBOLRATE:
+
+Set the symbol rate
+units - Hz
+range - Version 1 cards: only 6900000
+        Version 2 cards(FSM): X-7100000
+
+
+MODULATOR_MODULATION:
+
+Set the modulation type
+range: QAM_16 .. QAM_256
+
+
+
+MODULATOR_ATTENUATION:
+
+range - 0-31
+unit  - 1 dB
+
+
+MODULATOR_GAIN:
+
+range - 0-255
+unit  - 0.125 dB
+
+
+The MODULATOR_ATTENUATOR is based on a switched resistor network,
+also it is backward compatible to our old modulator.
+the MODULATOR_GAIN is based on a variable gain amplifier, so it is less
+accurate then the attenuator.
+High gain values will drive the output amplifier into clipping. The
+limit depends on # of channels active.
+
+
+
+
+MODULATOR_INPUT_BITRATE:
+
+The modulator will ALWAY insert null packets if it
+does not get enough data.
+If you specify the input bitrate it will insert additional
+null packets according to the difference between input
+and output bit rate.
+The latter is determined by symbol rte and modulation.
+So, this property should be set last.
+
+unit - 2^-32 Hz
+
+
+
+
+
