@@ -854,6 +854,7 @@ struct dtv_property {
 	__u32 reserved[3];
 	union {
 		__u32 data;
+		__u64 data64;
 		struct dtv_fe_stats st;
 		struct {
 			__u8 data[32];
