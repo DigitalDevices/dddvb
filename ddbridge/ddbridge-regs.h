@@ -345,6 +345,13 @@
 #define MAX2871_CONTROL_MUXOUT  (0x00000004)
 /* Lock from VCO */
 #define MAX2871_CONTROL_LOCK    (0x00000008)
+/* Signal the loss of lock event (currently only an interrupt) */
+#define MAX2871_CONTROL_ENABLE_LOSTLOCK_EVENT   (0x00000010)
+/* Loss of Lock, needs to be cleared by writing a 1
+ * during initial setup this bit can be set.
+ */
+#define MAX2871_CONTROL_LOSTLOCK                (0x00008000)
+
 
 #define FSM_BASE                (0x200)
 #define FSM_CONTROL             (FSM_BASE + 0x00)
