@@ -57,7 +57,7 @@ enum dvbs2_modcod {
 	DVBS2_32APSK_9_10
 };
 
-enum fe_stv0190_modcod {
+enum fe_stv0910_modcod {
 	FE_DUMMY_PLF, FE_QPSK_14, FE_QPSK_13, FE_QPSK_25,
 	FE_QPSK_12, FE_QPSK_35, FE_QPSK_23, FE_QPSK_34,
 	FE_QPSK_45, FE_QPSK_56, FE_QPSK_89, FE_QPSK_910,
@@ -116,7 +116,7 @@ struct stv {
 	u32                  symbol_rate;
 
 	enum fe_code_rate        puncture_rate;
-	enum fe_stv0190_modcod   modcod;
+	enum fe_stv0910_modcod   modcod;
 	enum dvbs2_fec_type      fec_type;
 	u32                      pilots;
 	enum fe_stv0910_roll_off fe_roll_off;
@@ -401,7 +401,7 @@ static const u8 s2car_loop[] =	{
 };
 
 static u8 get_optim_cloop(struct stv *state,
-			  enum fe_stv0190_modcod modcod, u32 pilots)
+			  enum fe_stv0910_modcod modcod, u32 pilots)
 {
 	int i = 0;
 
@@ -477,7 +477,7 @@ static int get_signal_parameters(struct stv *state)
 
 	if (state->receive_mode == RCVMODE_DVBS2) {
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
-		state->modcod = (enum fe_stv0190_modcod)((tmp & 0x7c) >> 2);
+		state->modcod = (enum fe_stv0910_modcod)((tmp & 0x7c) >> 2);
 		state->pilots = (tmp & 0x01) != 0;
 		state->fec_type = (enum dvbs2_fec_type)((tmp & 0x02) >> 1);
 #if 0
@@ -1497,11 +1497,11 @@ static int read_status(struct dvb_frontend *fe, fe_status_t *status)
 		/* Use highest signaled ModCod for quality */
 		if (state->is_vcm) {
 			u8 tmp;
-			enum fe_stv0190_modcod modcod;
+			enum fe_stv0910_modcod modcod;
 
 			read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff,
 				 &tmp);
-			modcod = (enum fe_stv0190_modcod)((tmp & 0x7c) >> 2);
+			modcod = (enum fe_stv0910_modcod)((tmp & 0x7c) >> 2);
 
 			if (modcod > state->modcod)
 				state->modcod = modcod;
