@@ -437,6 +437,7 @@ static const struct ddb_info ddb_mod_fsm_24 = {
 	.port_num = 24,
 	.temp_num = 1,
 	.tempmon_irq = 8,
+	.lostlock_irq = 9,
 };
 
 static const struct ddb_info ddb_mod_fsm_16 = {
@@ -447,6 +448,7 @@ static const struct ddb_info ddb_mod_fsm_16 = {
 	.port_num = 16,
 	.temp_num = 1,
 	.tempmon_irq = 8,
+	.lostlock_irq = 9,
 };
 
 static const struct ddb_info ddb_mod_fsm_8 = {
@@ -457,6 +459,7 @@ static const struct ddb_info ddb_mod_fsm_8 = {
 	.port_num = 8,
 	.temp_num = 1,
 	.tempmon_irq = 8,
+	.lostlock_irq = 9,
 };
 
 static const struct ddb_info ddb_mod_fsm_4 = {
@@ -467,6 +470,7 @@ static const struct ddb_info ddb_mod_fsm_4 = {
 	.port_num = 4,
 	.temp_num = 1,
 	.tempmon_irq = 8,
+	.lostlock_irq = 9,
 };
 
 static const struct ddb_info ddb_sdr = {

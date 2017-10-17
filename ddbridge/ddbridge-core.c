@@ -4341,6 +4341,7 @@ static int ddb_init_boards(struct ddb *dev)
 int ddb_init(struct ddb *dev)
 {
 	mutex_init(&dev->link[0].flash_mutex);
+	mutex_init(&dev->ioctl_mutex);
 	if (no_init) {
 		ddb_device_create(dev);
 		return 0;

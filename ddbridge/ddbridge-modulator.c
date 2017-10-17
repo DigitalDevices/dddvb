@@ -434,6 +434,16 @@ static u32 max2871_sdr[6] = {
 	0x007A8098, 0x600080C9, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005
 };
 
+static void lostlock_handler(unsigned long data)
+{
+	struct ddb *dev = (struct ddb *)data;
+
+	dev_err(dev->dev, "Lost PLL lock!\n");
+	ddbwritel(dev, 0, RF_VGA);
+	udelay(10);
+	ddbwritel(dev, 31, RF_ATTENUATOR);
+}
+
 static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 {
 	int status = 0;
@@ -467,6 +477,12 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 		ddbwritel(dev,
 			  MAX2871_CONTROL_CE | MAX2871_CONTROL_LOSTLOCK,
 			  MAX2871_CONTROL);
+		if (dev->link[0].info->lostlock_irq) {
+			dev->handler_data[0][dev->link[0].info->lostlock_irq] =
+				(unsigned long)dev;
+			dev->handler[0][dev->link[0].info->lostlock_irq] =
+				lostlock_handler;
+		}
 	}
 	return status;
 }
@@ -1536,6 +1552,17 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		if (mod->port->dev->link[0].info->version == 2)
 			return mod_fsm_setup(mod->port->dev,0 );
 		return -EINVAL;
+
+	case MODULATOR_STATUS:
+		if (mod->port->dev->link[0].info->version != 2)
+			return -EINVAL;
+		if (tvp->u.data & 2)
+			ddbwritel(mod->port->dev,
+				  MAX2871_CONTROL_CE |
+				  MAX2871_CONTROL_LOSTLOCK |
+				  MAX2871_CONTROL_ENABLE_LOSTLOCK_EVENT,
+				  MAX2871_CONTROL);
+		return 0;
 	}
 	return 0;
 }
@@ -1562,8 +1589,6 @@ static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
 		val = ddbreadl(dev, MAX2871_CONTROL);
 		if (!(val & MAX2871_CONTROL_LOCK))
 			status |= 1;
-		if (!(val & MAX2871_CONTROL_LOCK))
-			status |= 1;
 		if (val & MAX2871_CONTROL_LOSTLOCK)
 			status |= 2;
 		ddbwritel(dev, val, MAX2871_CONTROL);
@@ -1571,6 +1596,9 @@ static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
 		val = ddbreadl(dev, TEMPMON_CONTROL);
 		if (val & TEMPMON_CONTROL_OVERTEMP)
 			status |= 4;
+		val = ddbreadl(dev, HARDWARE_VERSION);
+		if (val == 0xffffffff)
+			status |= 8;
 		tvp->u.data = status;
 		return 0;
 	}
@@ -1592,13 +1620,18 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 
 	if (dev->link[0].info->version == 3 && cmd != FE_SET_PROPERTY)
 		return -EINVAL;
+	mutex_lock(&dev->ioctl_mutex);
 	switch (cmd) {
 	case FE_SET_PROPERTY:
-		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
-			return -EINVAL;
+		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS)) {
+			ret = -EINVAL;
+			break;
+		}
 		tvp = memdup_user(tvps->props, tvps->num * sizeof(*tvp));
-		if (IS_ERR(tvp))
-			return PTR_ERR(tvp);
+		if (IS_ERR(tvp)) {
+			ret = PTR_ERR(tvp);
+			break;
+		}
 		for (i = 0; i < tvps->num; i++) {
 			ret = mod_prop_proc(mod, tvp + i);
 			if (ret < 0)
@@ -1606,14 +1639,18 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 			(tvp + i)->result = ret;
 		}
 		kfree(tvp);
-		return ret;
+		break;
 
 	case FE_GET_PROPERTY:
-		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS))
-			return -EINVAL;
+		if ((tvps->num == 0) || (tvps->num > DTV_IOCTL_MAX_MSGS)) {
+			ret = -EINVAL;
+			break;
+		}
 		tvp = memdup_user(tvps->props, tvps->num * sizeof(*tvp));
-		if (IS_ERR(tvp))
-			return PTR_ERR(tvp);
+		if (IS_ERR(tvp)) {
+			ret = PTR_ERR(tvp);
+			break;
+		}
 		for (i = 0; i < tvps->num; i++) {
 			ret = mod_prop_get(mod, tvp + i);
 			if (ret < 0)
@@ -1625,7 +1662,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 				 tvps->num * sizeof(struct dtv_property)))
 			ret = -EFAULT;
 		kfree(tvp);
-		return ret;
+		break;
 
 	case DVB_MOD_SET:
 	{
@@ -1633,8 +1670,10 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 
 		if (dev->link[0].info->version < 2) {
 			if (mp->base_frequency != dev->mod_base.frequency)
-				if (set_base_frequency(dev, mp->base_frequency))
-					return -EINVAL;
+				if (set_base_frequency(dev, mp->base_frequency)) {
+					ret = -EINVAL;
+					break;
+				}
 		} else {
 			int i, streams = dev->link[0].info->port_num;
 
@@ -1659,11 +1698,15 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		int res;
 
 		res = mod_set_modulation(mod, cp->modulation);
-		if (res)
-			return res;
+		if (res) {
+			ret = res;
+			break;
+		}
 		res = mod_set_ibitrate(mod, cp->input_bitrate);
-		if (res)
-			return res;
+		if (res) {
+			ret = res;
+			break;
+		}
 		mod->pcr_correction = cp->pcr_correction;
 		break;
 	}
@@ -1671,6 +1714,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		ret = -EINVAL;
 		break;
 	}
+	mutex_unlock(&dev->ioctl_mutex);
 	return ret;
 }
 
@@ -1699,7 +1743,8 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		mod_set_vga(dev, RF_VGA_GAIN_N16);
 	else
 		mod_set_vga(dev, RF_VGA_GAIN_N24);
-	
+
+	udelay(10);
 	mod_set_attenuator(dev, 0);
 	return 0;
 }

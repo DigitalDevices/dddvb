@@ -102,7 +102,7 @@ MODULATOR_STATUS and MODULATOR_RESET have been added to debug
 possible problems with too high temperatures (overtemperature)
 or PLL lock loss on FSM type cards.
 
-The MODUALTOR_STATUS property returns a __u32 with the following status bits:
+The MODULATOR_STATUS property returns a __u32 with the following status bits:
 
 - bit 0  : Lock status 1=lock OK, 0 = lock lost
 
@@ -113,8 +113,18 @@ The MODUALTOR_STATUS property returns a __u32 with the following status bits:
 - bit 2  : 0 = no overtemperature
            1 = overtemperature detected
 
+- bit 4  : 0 = PCIe link OK
+           1 = PCIe link lost
+
+In case of overtemperratur or PCIe link loss you will have to reboot the PC.
+
+
+Putting a MODULATOR_STATUS property with value 2 will enable the lost lock
+interrupt. This will set the gain to 0 and the attenuation to 31 in case
+of a lost PLL lock.
+
 
 The MODULATOR_RESET property can be used to reset the modulator without
-needing to reload the driver or rebooting.
+needing to reload the driver or rebooting in case of PLL lock loss.
 All channels should be stopped before using it and restarted after using it.
 Otherwise, results are unpredictable.

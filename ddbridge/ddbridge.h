@@ -171,7 +171,8 @@ struct ddb_info {
 #define TS_QUIRK_REVERSED  2
 #define TS_QUIRK_NO_OUTPUT 4
 #define TS_QUIRK_ALT_OSC   8
-	u32 tempmon_irq;
+	u32   tempmon_irq;
+	u32   lostlock_irq;
 	const struct ddb_regmap *regmap;
 };
 
@@ -474,7 +475,7 @@ struct ddb {
 
 	struct mod_base        mod_base;
 	struct ddb_mod         mod[24];
-
+	struct mutex           ioctl_mutex; /* lock extra ioctls */
 };
 
 /****************************************************************************/

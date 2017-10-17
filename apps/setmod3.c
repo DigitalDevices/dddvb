@@ -63,12 +63,18 @@ int main()
 	/* gain 0-255 */
 	get_property(fd, MODULATOR_GAIN, &data);
 	printf("Modulator gain = %u\n", data);
-	set_property(fd, MODULATOR_GAIN, 120);
+	set_property(fd, MODULATOR_GAIN, 100);
+
 	get_property(fd, MODULATOR_GAIN, &data);
 	printf("Modulator gain = %u\n", data);
 
+	get_property(fd, MODULATOR_ATTENUATOR, &data);
+	printf("Modulator attenuator = %u\n", data);
+
+	
 	get_property(fd, MODULATOR_STATUS, &data);
 	printf("Modulator status = %u\n", data);
+	set_property(fd, MODULATOR_STATUS, 2);
 	
 	
 	//set_property(fd, MODULATOR_RESET, 0);
