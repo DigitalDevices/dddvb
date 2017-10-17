@@ -96,5 +96,25 @@ unit - 2^-32 Hz
 
 
 
+Debugging features:
+
+MODULATOR_STATUS and MODULATOR_RESET have been added to debug
+possible problems with too high temperatures (overtemperature)
+or PLL lock loss on FSM type cards.
+
+The MODUALTOR_STATUS property returns a __u32 with the following status bits:
+
+- bit 0  : Lock status 1=lock OK, 0 = lock lost
+
+- bit 1  : Sticky lock lost indicator
+           0 = no PLL lock loss since last status read
+	   1 = lock has been lost since last status read 
+
+- bit 2  : 0 = no overtemperature
+           1 = overtemperature detected
 
 
+The MODULATOR_RESET property can be used to reset the modulator without
+needing to reload the driver or rebooting.
+All channels should be stopped before using it and restarted after using it.
+Otherwise, results are unpredictable.
