@@ -33,6 +33,34 @@ MODULE_PARM_DESC(msi,
 
 extern struct workqueue_struct *ddb_wq;
 
+#if (KERNEL_VERSION(4, 8, 0) > LINUX_VERSION_CODE)
+int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
+{
+	if (dev->msix_enabled) {
+		struct msi_desc *entry;
+		int i = 0;
+
+		for_each_pci_msi_entry(entry, dev) {
+			if (i == nr)
+				return entry->irq;
+			i++;
+		}
+		WARN_ON_ONCE(1);
+		return -EINVAL;
+	}
+	if (dev->msi_enabled) {
+		struct msi_desc *entry = first_pci_msi_entry(dev);
+
+		if (WARN_ON_ONCE(nr >= entry->nvec_used))
+			return -EINVAL;
+	} else {
+		if (WARN_ON_ONCE(nr > 0))
+			return -EINVAL;
+	}
+	return dev->irq + nr;
+}
+#endif
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -58,11 +86,13 @@ static void __devexit ddb_irq_exit(struct ddb *dev)
 {
 	ddb_irq_disable(dev);
 	if (dev->msi == 2)
-		free_irq(dev->pdev->irq + 1, dev);
-	free_irq(dev->pdev->irq, dev);
+		free_irq(pci_irq_vector(dev->pdev, 1), dev);
+	free_irq(pci_irq_vector(dev->pdev, 0), dev);
 #ifdef CONFIG_PCI_MSI
-	if (dev->msi)
+	if (dev->msi) {
+		pci_free_irq_vectors(dev->pdev);
 		pci_disable_msi(dev->pdev);
+	}
 #endif
 }
 
@@ -98,8 +128,9 @@ static int __devinit ddb_irq_msi(struct ddb *dev, int nr)
 #ifdef CONFIG_PCI_MSI
 	if (msi && pci_msi_enabled()) {
 #if (KERNEL_VERSION(3, 15, 0) <= LINUX_VERSION_CODE)
-#if (KERNEL_VERSION(4, 11, 0) <= LINUX_VERSION_CODE)
-		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr, PCI_IRQ_MSI);
+#if (KERNEL_VERSION(4, 8, 0) <= LINUX_VERSION_CODE)
+		stat = pci_alloc_irq_vectors(dev->pdev, 1, nr,
+					     PCI_IRQ_MSI | PCI_IRQ_MSIX);
 #else
 		stat = pci_enable_msi_range(dev->pdev, 1, nr);
 #endif
@@ -147,7 +178,7 @@ static int __devinit ddb_irq_init2(struct ddb *dev)
 	if (dev->msi)
 		irq_flag = 0;
 
-	stat = request_irq(dev->pdev->irq, ddb_irq_handler_v2,
+	stat = request_irq(pci_irq_vector(dev->pdev, 0), ddb_irq_handler_v2,
 			   irq_flag, "ddbridge", (void *)dev);
 	if (stat < 0)
 		return stat;
@@ -185,24 +216,26 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 	if (dev->msi)
 		irq_flag = 0;
 	if (dev->msi == 2) {
-		stat = request_irq(dev->pdev->irq, ddb_irq_handler0,
+		stat = request_irq(pci_irq_vector(dev->pdev, 0), ddb_irq_handler0,
 				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0)
 			return stat;
-		stat = request_irq(dev->pdev->irq + 1, ddb_irq_handler1,
+		stat = request_irq(pci_irq_vector(dev->pdev, 1), ddb_irq_handler1,
 				   irq_flag, "ddbridge", (void *)dev);
 		if (stat < 0) {
-			free_irq(dev->pdev->irq, dev);
+			free_irq(pci_irq_vector(dev->pdev, 0), dev);
 			return stat;
 		}
 	} else {
 #ifdef DDB_TEST_THREADED
-		stat = request_threaded_irq(dev->pdev->irq, ddb_irq_handler,
+		stat = request_threaded_irq(pci_irq_vector(dev->pdev, 0),
+					    dev->pdev->irq, ddb_irq_handler,
 					    irq_thread,
 					    irq_flag,
 					    "ddbridge", (void *)dev);
 #else
-		stat = request_irq(dev->pdev->irq, ddb_irq_handler,
+		stat = request_irq(pci_irq_vector(dev->pdev, 0),
+				   ddb_irq_handler,
 				   irq_flag, "ddbridge", (void *)dev);
 #endif
 		if (stat < 0)
