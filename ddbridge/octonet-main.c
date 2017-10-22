@@ -141,25 +141,23 @@ static struct platform_driver octonet_driver __refdata = {
 
 static __init int init_octonet(void)
 {
-	int res;
+	int stat;
 
 	pr_info("DDBridge: Digital Devices OctopusNet driver " DDBRIDGE_VERSION
-		", Copyright (C) 2010-16 Digital Devices GmbH\n");
-	res = ddb_class_create();
-	if (res)
-		return res;
-	res = platform_driver_probe(&octonet_driver, octonet_probe);
-	if (res) {
-		ddb_class_destroy();
-		return res;
-	}
-	return 0;
+		", Copyright (C) 2010-17 Digital Devices GmbH\n");
+	stat = ddb_init_ddbridge();
+	if (stat < 0)
+		return stat;
+	stat = platform_driver_probe(&octonet_driver, octonet_probe);
+	if (stat < 0)
+		ddb_exit_ddbridge(0, stat);
+	return stat;
 }
 
 static __exit void exit_octonet(void)
 {
 	platform_driver_unregister(&octonet_driver);
-	ddb_class_destroy();
+	ddb_exit_ddbridge(0, 0);
 }
 
 module_init(init_octonet);

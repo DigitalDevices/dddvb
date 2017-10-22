@@ -560,8 +560,8 @@ irqreturn_t ddb_irq_handler(int irq, void *dev_id);
 irqreturn_t ddb_irq_handler_v2(int irq, void *dev_id);
 void ddb_reset_ios(struct ddb *dev);
 int ddb_init(struct ddb *dev);
-int ddb_class_create(void);
-void ddb_class_destroy(void);
+int ddb_exit_ddbridge(int stage, int error);
+int ddb_init_ddbridge(void);
 
 int ddb_i2c_init(struct ddb *dev);
 void ddb_i2c_release(struct ddb *dev);

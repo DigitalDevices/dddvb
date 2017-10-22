@@ -4422,3 +4422,24 @@ void ddb_unmap(struct ddb *dev)
 	vfree(dev);
 }
 
+int ddb_exit_ddbridge(int stage, int error)
+{
+	switch (stage) {
+	default:
+	case 2:
+		destroy_workqueue(ddb_wq);
+	case 1:
+		ddb_class_destroy();
+	}
+	return error;
+}
+
+int ddb_init_ddbridge(void)
+{
+	if (ddb_class_create() < 0)
+		return -1;
+	ddb_wq = alloc_workqueue("ddbridge", 0, 0);
+	if (!ddb_wq)
+		return ddb_exit_ddbridge(1, -1);
+	return 0;
+}
