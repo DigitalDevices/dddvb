@@ -176,32 +176,9 @@ struct ddb_info {
 	const struct ddb_regmap *regmap;
 };
 
-/* DMA_SIZE MUST be smaller than 256k and
- * MUST be divisible by 188 and 128 !!!
- */
-
 #define DMA_MAX_BUFS 32      /* hardware table limit */
-
-#ifdef SMALL_DMA_BUFS
-#define INPUT_DMA_BUFS 32
-#define INPUT_DMA_SIZE (128 * 47 * 5)
-#define INPUT_DMA_IRQ_DIV 1
-
-#define OUTPUT_DMA_BUFS 32
-#define OUTPUT_DMA_SIZE (128 * 47 * 5)
-#define OUTPUT_DMA_IRQ_DIV 1
-#else
-#define INPUT_DMA_BUFS 8
-#define INPUT_DMA_SIZE (128 * 47 * 21)
-#define INPUT_DMA_IRQ_DIV 1
-
-#define OUTPUT_DMA_BUFS 8
-#define OUTPUT_DMA_SIZE (128 * 47 * 21)
-#define OUTPUT_DMA_IRQ_DIV 1
-#endif
 #define OUTPUT_DMA_BUFS_SDR 32
 #define OUTPUT_DMA_SIZE_SDR (256 * 1024)
-#define OUTPUT_DMA_IRQ_DIV_SDR 1
 
 struct ddb;
 struct ddb_port;
