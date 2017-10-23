@@ -44,6 +44,11 @@ static int ts_loop = -1;
 module_param(ts_loop, int, 0444);
 MODULE_PARM_DESC(ts_loop, "TS in/out test loop on port ts_loop");
 
+static int dummy_tuner;
+module_param(dummy_tuner, int, 0444);
+MODULE_PARM_DESC(dummy_tuner,
+		 "attach dummy tuner to port 0 of supported cards");
+
 static int vlan;
 module_param(vlan, int, 0444);
 MODULE_PARM_DESC(vlan, "VLAN and QoS IDs enabled");
@@ -535,6 +540,8 @@ static void ddb_input_start(struct ddb_input *input)
 		ddbwritel(dev, 0x01, TS_CONTROL(input));
 	else
 		ddbwritel(dev, 0x09, TS_CONTROL(input));
+	if (input->port->type == DDB_TUNER_DUMMY)
+		ddbwritel(dev, 0x000fff01, TS_CONTROL2(input));
 	if (input->dma) {
 		input->dma->running = 1;
 		spin_unlock_irq(&input->dma->lock);
@@ -1042,6 +1049,64 @@ static int locked_gate_ctrl(struct dvb_frontend *fe, int enable)
 	}
 	return status;
 }
+
+/****************************************************************************/
+
+static int dummy_read_status(struct dvb_frontend *fe, enum fe_status *status)
+{
+	*status = 0x1f;
+	return 0;
+}
+
+static void dummy_release(struct dvb_frontend *fe)
+{
+	kfree(fe);
+}
+
+static struct dvb_frontend_ops dummy_ops = {
+	.delsys = { SYS_DVBC_ANNEX_A },
+	.info = {
+		.name = "DUMMY DVB-C/C2 DVB-T/T2",
+		.frequency_stepsize = 166667,	/* DVB-T only */
+		.frequency_min = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.symbol_rate_min = 870000,
+		.symbol_rate_max = 11700000,
+		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
+		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		        FE_CAN_QAM_AUTO | 
+			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+			FE_CAN_FEC_4_5 |
+			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+			FE_CAN_TRANSMISSION_MODE_AUTO |
+			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+	},
+	.release = dummy_release,
+	.read_status = dummy_read_status,
+};
+
+static struct dvb_frontend *dummy_attach(void)
+{
+#if (KERNEL_VERSION(4, 13, 0) > LINUX_VERSION_CODE)
+	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_REPEAT);
+#else
+	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_RETRY_MAYFAIL);
+#endif
+	if (fe)
+		fe->ops = dummy_ops;
+	return fe;
+}
+
+static int demod_attach_dummy(struct ddb_input *input)
+{
+	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
+
+	dvb->fe = dvb_attach(dummy_attach);
+	return 0;
+}
+
+/****************************************************************************/
 
 #ifdef CONFIG_DVB_DRXK
 static int demod_attach_drxk(struct ddb_input *input)
@@ -1669,6 +1734,10 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
+	case DDB_TUNER_DUMMY:
+		if (demod_attach_dummy(input) < 0)
+			return -ENODEV;
+		break;
 	default:
 		return 0;
 	}
@@ -1910,6 +1979,15 @@ static void ddb_port_probe(struct ddb_port *port)
 	port->class = DDB_PORT_NONE;
 
 	/* Handle missing ports and ports without I2C */
+
+	if (dummy_tuner && !port->nr &&
+	    dev->link[0].ids.device == 0x0005) {
+		port->name = "DUMMY";
+		port->class = DDB_PORT_TUNER;
+		port->type = DDB_TUNER_DUMMY;
+		port->type_name = "DUMMY";
+		return;
+	}
 
 	if (port->nr == ts_loop) {
 		port->name = "TS LOOP";
