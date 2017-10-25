@@ -32,10 +32,10 @@ u32 ddblreadl(struct ddb_link *link, u32 adr)
 
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
-		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
-		ddbwritel0(link, 3, link->regs + 0x10);
+		ddblwritel0(link, adr & 0xfffc, link->regs + 0x14);
+		ddblwritel0(link, 3, link->regs + 0x10);
 		gtlw(link);
-		val = ddbreadl0(link, link->regs + 0x1c);
+		val = ddblreadl0(link, link->regs + 0x1c);
 		spin_unlock_irqrestore(&link->lock, flags);
 		return val;
 	}
@@ -49,9 +49,9 @@ void ddblwritel(struct ddb_link *link, u32 val, u32 adr)
 
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
-		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
-		ddbwritel0(link, val, link->regs + 0x18);
-		ddbwritel0(link, 1, link->regs + 0x10);
+		ddblwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
+		ddblwritel0(link, val, link->regs + 0x18);
+		ddblwritel0(link, 1, link->regs + 0x10);
 		spin_unlock_irqrestore(&link->lock, flags);
 		return;
 	}
@@ -67,10 +67,10 @@ u32 ddbreadl(struct ddb *dev, u32 adr)
 
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
-		ddbwritel0(link, adr & 0xfffc, link->regs + 0x14);
-		ddbwritel0(link, 3, link->regs + 0x10);
+		ddblwritel0(link, adr & 0xfffc, link->regs + 0x14);
+		ddblwritel0(link, 3, link->regs + 0x10);
 		gtlw(link);
-		val = ddbreadl0(link, link->regs + 0x1c);
+		val = ddblreadl0(link, link->regs + 0x1c);
 		spin_unlock_irqrestore(&link->lock, flags);
 		return val;
 	}
@@ -86,9 +86,9 @@ void ddbwritel(struct ddb *dev, u32 val, u32 adr)
 
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
-		ddbwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
-		ddbwritel0(link, val, link->regs + 0x18);
-		ddbwritel0(link, 1, link->regs + 0x10);
+		ddblwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
+		ddblwritel0(link, val, link->regs + 0x18);
+		ddblwritel0(link, 1, link->regs + 0x10);
 		spin_unlock_irqrestore(&link->lock, flags);
 		return;
 	}

@@ -152,12 +152,12 @@ static int ns_set_pid(struct dvbnss *nss, u16 pid)
 			else
 				ddbmemset(dev, off, 0x00, 0x400);
 		} else {
-			u8 val = ddbreadb(dev, off + byte);
+			u8 val = ddbreadb0(dev, off + byte);
 
 			if (pid & 0x8000)
-				ddbwriteb(dev, val | bit, off + byte);
+				ddbwriteb0(dev, val | bit, off + byte);
 			else
-				ddbwriteb(dev, val & ~bit, off + byte);
+				ddbwriteb0(dev, val & ~bit, off + byte);
 		}
 	}
 #else

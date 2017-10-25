@@ -34,22 +34,32 @@ void gtlcpyfrom(struct ddb *dev, u8 *buf, u32 adr, long count);
 void ddbcpyto(struct ddb *dev, u32 adr, void *src, long count);
 void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count);
 
-static inline void ddbwriteb(struct ddb *dev, u32 val, u32 adr)
+static inline void ddbwriteb0(struct ddb *dev, u32 val, u32 adr)
 {
 	writeb(val, (char *)(dev->regs + (adr)));
 }
 
-static inline u32 ddbreadb(struct ddb *dev, u32 adr)
+static inline u32 ddbreadb0(struct ddb *dev, u32 adr)
 {
 	return readb((char *)(dev->regs + (adr)));
 }
 
-static inline void ddbwritel0(struct ddb_link *link, u32 val, u32 adr)
+static inline void ddbwritel0(struct ddb *dev, u32 val, u32 adr)
+{
+	writel(val, (char *)(dev->regs + (adr)));
+}
+
+static inline u32 ddbreadl0(struct ddb *dev, u32 adr)
+{
+	return readl((char *)(dev->regs + (adr)));
+}
+
+static inline void ddblwritel0(struct ddb_link *link, u32 val, u32 adr)
 {
 	writel(val, (char *)(link->dev->regs + (adr)));
 }
 
-static inline u32 ddbreadl0(struct ddb_link *link, u32 adr)
+static inline u32 ddblreadl0(struct ddb_link *link, u32 adr)
 {
 	return readl((char *)(link->dev->regs + (adr)));
 }
@@ -60,7 +70,7 @@ static inline void gtlw(struct ddb_link *link)
 	u32 count = 0;
 	static u32 max;
 
-	while (1 & ddbreadl0(link, link->regs + 0x10)) {
+	while (1 & ddblreadl0(link, link->regs + 0x10)) {
 		if (++count == 1024) {
 			pr_info("LTO\n");
 			break;
@@ -70,13 +80,13 @@ static inline void gtlw(struct ddb_link *link)
 		max = count;
 		pr_info("TO=%u\n", max);
 	}
-	if (ddbreadl0(link, link->regs + 0x10) & 0x8000)
+	if (ddblreadl0(link, link->regs + 0x10) & 0x8000)
 		pr_err("link error\n");
 }
 #else
 static inline void gtlw(struct ddb_link *link)
 {
-	while (1 & ddbreadl0(link, link->regs + 0x10))
+	while (1 & ddblreadl0(link, link->regs + 0x10))
 		;
 }
 #endif
