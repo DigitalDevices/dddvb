@@ -189,6 +189,34 @@ static int write_shared_reg(struct stv *state, u16 reg, u8 mask, u8 val)
 	return status;
 }
 
+static int write_field(struct stv *state, u32 field, u8 val)
+{
+	int status;
+	u8 shift, mask, old, new;
+
+	status = read_reg(state, field >> 16, &old);
+	if (status)
+		return status;
+	mask = field & 0xff;
+	shift = (field >> 12) & 0xf;
+	new = ((val << shift) & mask) | (old & ~mask);
+	if (new == old)
+		return 0;
+	return write_reg(state, field >> 16, new);
+}
+
+#define set_field(_reg, _val)					\
+	write_field(state, state->nr ? FSTV0910_P2_##_reg :	\
+		    FSTV0910_P1_##_reg, _val)
+
+#define set_reg(_reg, _val)					\
+	write_reg(state, state->nr ? RSTV0910_P2_##_reg :	\
+		  RSTV0910_P1_##_reg, _val)
+
+#define get_reg(_reg, _val)					\
+	read_reg(state, state->nr ? RSTV0910_P2_##_reg :	\
+		 RTV0910_P1_##_reg, _val)
+
 static const struct slookup s1_sn_lookup[] = {
 	{   0,    9242  }, /* C/N=  0dB */
 	{  05,    9105  }, /* C/N=0.5dB */
