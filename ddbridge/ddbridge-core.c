@@ -91,6 +91,16 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 /****************************************************************************/
 /****************************************************************************/
 
+struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
+			    void (*handler)(void *), void *data)
+{
+	struct ddb_irq *irq = &dev->link[0].irq[nr];
+
+	irq->handler = handler;
+	irq->data = data;
+	return irq;
+}
+
 static void ddb_set_dma_table(struct ddb_io *io)
 {
 	struct ddb *dev = io->port->dev;
@@ -2307,13 +2317,12 @@ static void input_write_dvb(struct ddb_input *input,
 static void input_work(struct work_struct *work)
 {
 	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
-	struct ddb_input *input = (struct ddb_input *)dma->io;
 #else
 static void input_tasklet(unsigned long data)
 {
-	struct ddb_input *input = (struct ddb_input *)data;
-	struct ddb_dma *dma = input->dma;
+	struct ddb_dma *dma = (struct ddb_dma *)data;
 #endif
+	struct ddb_input *input = (struct ddb_input *)dma->io;
 	struct ddb *dev = input->port->dev;
 	unsigned long flags;
 
@@ -2337,32 +2346,28 @@ static void input_tasklet(unsigned long data)
 	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
-static void input_handler(unsigned long data)
+static void input_handler(void *data)
 {
 	struct ddb_input *input = (struct ddb_input *)data;
 	struct ddb_dma *dma = input->dma;
 
-	/* If there is no input connected, input_tasklet() will
-	 * just copy pointers and ACK. So, there is no need to go
-	 * through the tasklet scheduler.
-	 */
 #ifdef DDB_USE_WORK
-	if (input->redi)
-		queue_work(ddb_wq, &dma->work);
-	else
-		input_work(&dma->work);
+	queue_work(ddb_wq, &dma->work);
 #else
-	if (input->redi)
-		tasklet_schedule(&dma->tasklet);
-	else
-		input_tasklet(data);
+	input_tasklet(dma);
 #endif
 }
 
-static void output_handler(unsigned long data)
+#ifdef DDB_USE_WORK
+static void output_work(struct work_struct *work)
 {
-	struct ddb_output *output = (struct ddb_output *)data;
-	struct ddb_dma *dma = output->dma;
+	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
+#else
+static void output_tasklet(unsigned long data)
+{
+	struct ddb_dma *dma = (struct ddb_output *)data;
+#endif
+	struct ddb_output *output = (struct ddb_output *)dma->io;
 	struct ddb *dev = output->port->dev;
 
 	spin_lock(&dma->lock);
@@ -2376,6 +2381,18 @@ static void output_handler(unsigned long data)
 		output_ack_input(output, output->redi);
 	wake_up(&dma->wq);
 	spin_unlock(&dma->lock);
+}
+
+static void output_handler(void *data)
+{
+	struct ddb_output *output = (struct ddb_output *)data;
+	struct ddb_dma *dma = output->dma;
+
+#ifdef DDB_USE_WORK
+	queue_work(ddb_wq, &dma->work);
+#else
+	tasklet_schedule(&dma->tasklet);
+#endif
 }
 
 /****************************************************************************/
@@ -2394,7 +2411,7 @@ static const struct ddb_regmap *io_regmap(struct ddb_io *io, int link)
 	return info->regmap;
 }
 
-static void ddb_dma_init(struct ddb_io *io, int nr, int out)
+static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 {
 	struct ddb_dma *dma;
 	const struct ddb_regmap *rm = io_regmap(io, 0);
@@ -2405,6 +2422,11 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 	spin_lock_init(&dma->lock);
 	init_waitqueue_head(&dma->wq);
 	if (out) {
+#ifdef DDB_USE_WORK
+		INIT_WORK(&dma->work, output_work);
+#else
+		tasklet_init(&dma->tasklet, output_tasklet, (unsigned long)dma);
+#endif
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
@@ -2421,7 +2443,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out)
 #ifdef DDB_USE_WORK
 		INIT_WORK(&dma->work, input_work);
 #else
-		tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)io);
+		tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)dma);
 #endif
 		dma->regs = rm->idma->base + rm->idma->size * nr;
 		dma->bufregs = rm->idma_buf->base + rm->idma_buf->size * nr;
@@ -2458,9 +2480,8 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 
 		dev_info(dev->dev, "init link %u, input %u, handler %u\n",
 			 port->lnr, nr, dma_nr + base);
-		dev->handler[0][dma_nr + base] = input_handler;
-		dev->handler_data[0][dma_nr + base] = (unsigned long)input;
-		ddb_dma_init(input, dma_nr, 0);
+		ddb_irq_set(dev, 0, dma_nr + base, &input_handler, input);
+		ddb_dma_init(input, dma_nr, 0, dma_nr + base);
 	}
 }
 
@@ -2482,9 +2503,8 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 		const struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
 
-		dev->handler[0][nr + base] = output_handler;
-		dev->handler_data[0][nr + base] = (unsigned long)output;
-		ddb_dma_init(output, nr, 1);
+		ddb_irq_set(dev, 0, nr + base, &output_handler, output);
+		ddb_dma_init(output, nr, 1, nr + base);
 	}
 }
 
@@ -2597,10 +2617,9 @@ static void ddb_ports_init(struct ddb *dev)
 				break;
 			case DDB_MOD:
 				ddb_output_init(port, i);
-				dev->handler[0][i + rm->irq_base_rate] =
-					ddbridge_mod_rate_handler;
-				dev->handler_data[0][i + rm->irq_base_rate] =
-					(unsigned long)&dev->output[i];
+				ddb_irq_set(dev, 0, i + rm->irq_base_rate,
+					    &ddbridge_mod_rate_handler,
+					    &dev->output[i]);
 				break;
 			default:
 				break;
@@ -2640,8 +2659,8 @@ void ddb_ports_release(struct ddb *dev)
 /****************************************************************************/
 
 #define IRQ_HANDLE(_n) \
-	do { if ((s & (1UL << ((_n) & 0x1f))) && dev->handler[0][_n]) \
-		dev->handler[0][_n](dev->handler_data[0][_n]); } \
+	do { if ((s & (1UL << ((_n) & 0x1f))) && dev->link[0].irq[_n].handler) \
+		dev->link[0].irq[_n].handler(dev->link[0].irq[_n].data); }			\
 	while (0)
 
 #define IRQ_HANDLE_BYTE(_shift) { \
@@ -4158,11 +4177,11 @@ void ddb_device_destroy(struct ddb *dev)
 }
 
 #define LINK_IRQ_HANDLE(_l, _nr)				\
-	do { if ((s & (1UL << (_nr))) && dev->handler[_l][_nr]) \
-		dev->handler[_l][_nr](dev->handler_data[_l][_nr]); } \
+	do { if ((s & (1UL << (_nr))) && dev->link[_l].irq[_nr].handler) \
+	  dev->link[_l].irq[_nr].handler(dev->link[_l].irq[_nr].data); } \
 	while (0)
 
-static void gtl_link_handler(unsigned long priv)
+static void gtl_link_handler(void *priv)
 {
 	struct ddb *dev = (struct ddb *)priv;
 	u32 regs = dev->link[0].info->regmap->gtl->base;
@@ -4191,7 +4210,7 @@ static void link_tasklet(unsigned long data)
 	LINK_IRQ_HANDLE(l, 24);
 }
 
-static void gtl_irq_handler(unsigned long priv)
+static void gtl_irq_handler(void *priv)
 {
 	struct ddb_link *link = (struct ddb_link *)priv;
 #if 1
@@ -4251,16 +4270,13 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	    link->info->type != DDB_OCTOPUS_MAX) {
 		dev_info(dev->dev,
 			 "Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
-			id);
+			 id);
 		return -1;
 	}
 	link->ids.devid = id;
 
 	ddbwritel(dev, 1, regs + 0x20);
-
-	dev->handler_data[0][base + l] = (unsigned long)link;
-	dev->handler[0][base + l] = gtl_irq_handler;
-
+	ddb_irq_set(dev, 0, base + l, gtl_irq_handler, link);
 	dev->link[l].ids.hwid = ddbreadl(dev, DDB_LINK_TAG(l) | 0);
 	dev->link[l].ids.regmapid = ddbreadl(dev, DDB_LINK_TAG(l) | 4);
 	dev->link[l].ids.vendor = id & 0xffff;
@@ -4287,8 +4303,7 @@ static int ddb_gtl_init(struct ddb *dev)
 {
 	u32 l, base = dev->link[0].info->regmap->irq_base_gtl;
 
-	dev->handler_data[0][base] = (unsigned long)dev;
-	dev->handler[0][base] = gtl_link_handler;
+	ddb_irq_set(dev, 0, base, gtl_link_handler, dev);
 	for (l = 1; l < dev->link[0].info->regmap->gtl->num + 1; l++)
 		ddb_gtl_init_link(dev, l);
 	return 0;
@@ -4330,7 +4345,7 @@ static void tempmon_setfan(struct ddb_link *link)
 	ddblwritel(link, (pwm << 8), TEMPMON_FANCONTROL);
 }
 
-static void temp_handler(unsigned long data)
+static void temp_handler(void *data)
 {
 	struct ddb_link *link = (struct ddb_link *)data;
 
@@ -4353,8 +4368,7 @@ static int tempmon_init(struct ddb_link *link, int first_time)
 		memcpy(link->temp_tab, temperature_table,
 		       sizeof(temperature_table));
 	}
-	dev->handler[l][link->info->tempmon_irq] = temp_handler;
-	dev->handler_data[l][link->info->tempmon_irq] = (unsigned long)link;
+	ddb_irq_set(dev, l, link->info->tempmon_irq, temp_handler, link);
 	ddblwritel(link, (TEMPMON_CONTROL_OVERTEMP | TEMPMON_CONTROL_AUTOSCAN |
 			  TEMPMON_CONTROL_INTENABLE),
 		   TEMPMON_CONTROL);

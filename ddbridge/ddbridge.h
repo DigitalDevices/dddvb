@@ -392,6 +392,11 @@ struct ddb_lnb {
 	u32                    fmode;
 };
 
+struct ddb_irq {
+	void                   (*handler)(void *);
+	void                   *data;
+};
+
 struct ddb_link {
 	struct ddb            *dev;
 	const struct ddb_info *info;
@@ -406,6 +411,7 @@ struct ddb_link {
 	spinlock_t             temp_lock; /* lock temp chip access */
 	int                    over_temperature_error;
 	u8                     temp_tab[11];
+	struct ddb_irq         irq[256];
 };
 
 struct ddb {
@@ -430,9 +436,6 @@ struct ddb {
 	struct dvb_adapter     adap[DDB_MAX_INPUT];
 	struct ddb_dma         idma[DDB_MAX_INPUT];
 	struct ddb_dma         odma[DDB_MAX_OUTPUT];
-
-	void                   (*handler[4][256])(unsigned long);
-	unsigned long          handler_data[4][256];
 
 	struct device         *ddb_dev;
 	u32                    ddb_dev_users;
@@ -524,7 +527,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
 int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
-void ddbridge_mod_rate_handler(unsigned long data);
+void ddbridge_mod_rate_handler(void *);
 
 void ddb_device_destroy(struct ddb *dev);
 void ddb_nsd_detach(struct ddb *dev);
@@ -549,4 +552,6 @@ int ddb_ci_attach(struct ddb_port *port, u32 bitrate);
 int ddb_fe_attach_mxl5xx(struct ddb_input *input);
 int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm);
 
+struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
+			    void (*handler)(void *), void *data);
 #endif

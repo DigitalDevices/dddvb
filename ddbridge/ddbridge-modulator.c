@@ -434,7 +434,7 @@ static u32 max2871_sdr[6] = {
 	0x007A8098, 0x600080C9, 0x510061C2, 0x010000CB, 0x6199003C, 0x60440005
 };
 
-static void lostlock_handler(unsigned long data)
+static void lostlock_handler(void *data)
 {
 	struct ddb *dev = (struct ddb *)data;
 
@@ -477,12 +477,9 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 		ddbwritel(dev,
 			  MAX2871_CONTROL_CE | MAX2871_CONTROL_LOSTLOCK,
 			  MAX2871_CONTROL);
-		if (dev->link[0].info->lostlock_irq) {
-			dev->handler_data[0][dev->link[0].info->lostlock_irq] =
-				(unsigned long)dev;
-			dev->handler[0][dev->link[0].info->lostlock_irq] =
-				lostlock_handler;
-		}
+		if (dev->link[0].info->lostlock_irq)
+			ddb_irq_set(dev, 0, dev->link[0].info->lostlock_irq,
+				    lostlock_handler, dev);
 	}
 	return status;
 }
@@ -1263,7 +1260,7 @@ fail:
  * 27000000 * 1504 * 2^22 / (6900000 * 188 / 204) = 26785190066.1
  */
 
-void ddbridge_mod_rate_handler(unsigned long data)
+void ddbridge_mod_rate_handler(void *data)
 {
 	struct ddb_output *output = (struct ddb_output *) data;
 	struct ddb_dma *dma = output->dma;
