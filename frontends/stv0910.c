@@ -140,41 +140,18 @@ struct slookup {
 	u16  reg_value;
 };
 
-static inline int i2c_write(struct i2c_adapter *adap, u8 adr,
-			    u8 *data, int len)
-{
-	struct i2c_msg msg = {.addr = adr, .flags = 0,
-			      .buf = data, .len = len};
-
-	return (i2c_transfer(adap, &msg, 1) == 1) ? 0 : -1;
-}
-
-static int i2c_write_reg16(struct i2c_adapter *adap, u8 adr, u16 reg, u8 val)
-{
-	u8 msg[3] = {reg >> 8, reg & 0xff, val};
-
-	return i2c_write(adap, adr, msg, 3);
-}
-
 static int write_reg(struct stv *state, u16 reg, u8 val)
 {
-	return i2c_write_reg16(state->base->i2c, state->base->adr, reg, val);
+	u8 data[3] = {reg >> 8, reg & 0xff, val};
+	struct i2c_msg msg = {.addr = state->base->adr, .flags = 0,
+			      .buf = data, .len = 3};
+
+	return (i2c_transfer(state->base->i2c, &msg, 1) == 1) ? 0 : -1;
 }
 
-static inline int i2c_read_reg16(struct i2c_adapter *adapter, u8 adr,
-				 u16 reg, u8 *val)
+static int write_reg_off(struct stv *state, u16 reg, u8 val)
 {
-	u8 msg[2] = {reg >> 8, reg & 0xff};
-	struct i2c_msg msgs[2] = {{.addr = adr, .flags = 0,
-				   .buf  = msg, .len   = 2},
-				  {.addr = adr, .flags = I2C_M_RD,
-				   .buf  = val, .len   = 1 } };
-	return (i2c_transfer(adapter, msgs, 2) == 2) ? 0 : -1;
-}
-
-static int read_reg(struct stv *state, u16 reg, u8 *val)
-{
-	return i2c_read_reg16(state->base->i2c, state->base->adr, reg, val);
+	return write_reg(state, reg + state->regoff, val);
 }
 
 static inline int i2c_read_regs16(struct i2c_adapter *adapter, u8 adr,
@@ -192,6 +169,11 @@ static int read_regs(struct stv *state, u16 reg, u8 *val, int len)
 {
 	return i2c_read_regs16(state->base->i2c, state->base->adr,
 			       reg, val, len);
+}
+
+static int read_reg(struct stv *state, u16 reg, u8 *val)
+{
+	return read_regs(state, reg, val, 1);
 }
 
 static int write_shared_reg(struct stv *state, u16 reg, u8 mask, u8 val)
