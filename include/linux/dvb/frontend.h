@@ -351,6 +351,9 @@ enum fe_modulation {
 	APSK_32,
 	DQPSK,
 	QAM_4_NR,
+	APSK_64,
+	APSK_128,
+	APSK_256,
 };
 
 /**
