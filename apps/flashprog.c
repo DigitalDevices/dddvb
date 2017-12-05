@@ -229,6 +229,10 @@ int main(int argc, char **argv)
 			fname="DVBBridgeV2A_DD01_0008_CXD.fpga";
 			printf("Octopus 4/8\n");
 			break;
+		case 0x0009:
+			fname="DVBBridgeV2A_DD01_0009_SX8.fpga";
+			printf("Octopus MAXSX8\n");
+			break;
 		case 0x0011:
 			fname="CIBridgeV1B_CIBridgeV1B.fpga";
 			printf("Octopus CI\n");
