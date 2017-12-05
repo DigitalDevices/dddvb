@@ -571,6 +571,16 @@ static const struct ddb_info ddb_c2t2i_8 = {
 	.tempmon_irq = 24,
 };
 
+static const struct ddb_info ddb_s2x_48 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices MAX SX8",
+	.regmap   = &octopus_map,
+	.port_num = 4,
+	.i2c_mask = 0x00,
+	.tempmon_irq = 24,
+	.mci = 4,
+};
+
 /****************************************************************************/
 /****************************************************************************/
 
@@ -655,7 +665,10 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0300, 0xffff, ddb_octonet),
 	DDB_DEVID(0x0301, 0xffff, ddb_octonet_jse),
 	DDB_DEVID(0x0307, 0xffff, ddb_octonet_gtl),
+
 	/* PCIe devices */
+
+	/* DVB tuners and demodulators */
 	DDB_DEVID(0x0002, 0x0001, ddb_octopus),
 	DDB_DEVID(0x0003, 0x0001, ddb_octopus),
 	DDB_DEVID(0x0005, 0x0004, ddb_octopusv3),
@@ -678,12 +691,15 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0008, 0x0036, ddb_isdbt_8),
 	DDB_DEVID(0x0008, 0x0037, ddb_c2t2i_v0_8),
 	DDB_DEVID(0x0008, 0x0038, ddb_c2t2i_8),
+	DDB_DEVID(0x0009, 0x0025, ddb_s2x_48),
 	DDB_DEVID(0x0006, 0x0039, ddb_ctv7),
 	DDB_DEVID(0x0011, 0x0040, ddb_ci),
 	DDB_DEVID(0x0011, 0x0041, ddb_cis),
 	DDB_DEVID(0x0012, 0x0042, ddb_ci),
 	DDB_DEVID(0x0013, 0x0043, ddb_ci_s2_pro),
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
+
+        /* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),
 	DDB_DEVID(0x0201, 0x0002, ddb_mod),
 	DDB_DEVID(0x0201, 0x0004, ddb_mod_4),  /* dummy entry ! */
@@ -693,6 +709,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0210, 0x0002, ddb_mod_fsm_16),
 	DDB_DEVID(0x0210, 0x0003, ddb_mod_fsm_8),
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr),
+
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),
 	DDB_DEVID(0x0321, 0xffff, ddb_none),
