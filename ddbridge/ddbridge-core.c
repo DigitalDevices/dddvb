@@ -2346,6 +2346,30 @@ static void input_tasklet(unsigned long data)
 	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
+#if 0
+static void input_handler(unsigned long data)
+{
+	struct ddb_input *input = (struct ddb_input *)data;
+	struct ddb_dma *dma = input->dma;
+
+	/* If there is no input connected, input_tasklet() will
+	 * just copy pointers and ACK. So, there is no need to go
+	 * through the tasklet scheduler.
+	 */
+	#ifdef DDB_USE_WORK
+	if (input->redi)
+		queue_work(ddb_wq, &dma->work);
+	else
+		input_work(&dma->work);
+	#else
+	if (input->redi)
+		tasklet_schedule(&dma->tasklet);
+	else
+		input_tasklet(data);
+	#endif
+}
+
+#else
 static void input_handler(void *data)
 {
 	struct ddb_input *input = (struct ddb_input *)data;
@@ -2357,6 +2381,7 @@ static void input_handler(void *data)
 	input_tasklet(dma);
 #endif
 }
+#endif
 
 #ifdef DDB_USE_WORK
 static void output_work(struct work_struct *work)
@@ -2383,6 +2408,26 @@ static void output_tasklet(unsigned long data)
 	spin_unlock(&dma->lock);
 }
 
+#if 0
+static void output_handler(unsigned long data)
+{
+	struct ddb_output *output = (struct ddb_output *)data;
+	struct ddb_dma *dma = output->dma;
+	struct ddb *dev = output->port->dev;
+
+	spin_lock(&dma->lock);
+	if (!dma->running) {
+		spin_unlock(&dma->lock);
+		return;
+	}
+	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
+	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
+	if (output->redi)
+		output_ack_input(output, output->redi);
+	wake_up(&dma->wq);
+	spin_unlock(&dma->lock);
+}
+#else
 static void output_handler(void *data)
 {
 	struct ddb_output *output = (struct ddb_output *)data;
@@ -2394,6 +2439,7 @@ static void output_handler(void *data)
 	tasklet_schedule(&dma->tasklet);
 #endif
 }
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
