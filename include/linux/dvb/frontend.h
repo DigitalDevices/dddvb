@@ -742,6 +742,7 @@ enum atscmh_rs_code_mode {
 #define NO_STREAM_ID_FILTER	(~0U)
 #define NO_SCRAMBLING_CODE	(~0U)
 #define LNA_AUTO                (~0U)
+#define NO_INPUT                (~0U)
 
 /**
  * enum fecap_scale_params - scale types for the quality parameters.

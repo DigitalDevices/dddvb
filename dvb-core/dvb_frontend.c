@@ -973,6 +973,7 @@ static int dvb_frontend_clear_cache(struct dvb_frontend *fe)
 
 	c->stream_id = NO_STREAM_ID_FILTER;
 	c->pls = NO_SCRAMBLING_CODE;
+	c->input = NO_INPUT;
 
 	switch (c->delivery_system) {
 	case SYS_DVBS:
