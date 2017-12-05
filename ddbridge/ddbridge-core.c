@@ -26,6 +26,7 @@
 #include "ddbridge-i2c.h"
 #include "ddbridge-io.h"
 #include "dvb_net.h"
+#include "ddbridge-mci.h"
 
 struct workqueue_struct *ddb_wq;
 
@@ -1748,6 +1749,10 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (demod_attach_dummy(input) < 0)
 			return -ENODEV;
 		break;
+	case DDB_TUNER_MCI:
+		if (ddb_fe_attach_mci(input) < 0)
+			return -ENODEV;
+		break;
 	default:
 		return 0;
 	}
@@ -2035,6 +2040,16 @@ static void ddb_port_probe(struct ddb_port *port)
 		if (port->i2c)
 			ddbwritel(dev, I2C_SPEED_400,
 				  port->i2c->regs + I2C_TIMING);
+		return;
+	}
+
+	if (dev->link[l].info->type == DDB_OCTOPUS_MCI) {
+		if (port->nr >= dev->link[l].info->mci)
+			return;
+		port->name = "DUAL MCI";
+		port->type_name = "MCI";
+		port->class = DDB_PORT_TUNER;
+		port->type = DDB_TUNER_MCI;
 		return;
 	}
 
@@ -2658,6 +2673,7 @@ static void ddb_ports_init(struct ddb *dev)
 				break;
 			case DDB_OCTOPUS_MAX:
 			case DDB_OCTOPUS_MAX_CT:
+			case DDB_OCTOPUS_MCI:
 				ddb_input_init(port, 2 * i, 0, 2 * p);
 				ddb_input_init(port, 2 * i + 1, 1, 2 * p + 1);
 				break;
@@ -4249,7 +4265,8 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	link->info = get_ddb_info(id & 0xffff, id >> 16,
 				  subid & 0xffff, subid >> 16);
 	if (link->info->type != DDB_OCTOPUS_MAX_CT &&
-	    link->info->type != DDB_OCTOPUS_MAX) {
+	    link->info->type != DDB_OCTOPUS_MAX  &&
+	    link->info->type != DDB_OCTOPUS_MCI ) {
 		dev_info(dev->dev,
 			 "Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
 			 id);

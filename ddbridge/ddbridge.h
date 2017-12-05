@@ -144,15 +144,16 @@ struct ddb_ids {
 
 struct ddb_info {
 	u32   type;
-#define DDB_NONE         0
-#define DDB_OCTOPUS      1
-#define DDB_OCTOPUS_CI   2
-#define DDB_MOD          3
-#define DDB_OCTONET      4
-#define DDB_OCTOPUS_MAX  5
-#define DDB_OCTOPUS_MAX_CT  6
-#define DDB_OCTOPRO      7
-#define DDB_OCTOPRO_HDIN 8
+#define DDB_NONE             0
+#define DDB_OCTOPUS          1
+#define DDB_OCTOPUS_CI       2
+#define DDB_MOD              3
+#define DDB_OCTONET          4
+#define DDB_OCTOPUS_MAX      5
+#define DDB_OCTOPUS_MAX_CT   6
+#define DDB_OCTOPRO          7
+#define DDB_OCTOPRO_HDIN     8
+#define DDB_OCTOPUS_MCI      9
 	u32   version;
 	char *name;
 	u32   i2c_mask;
@@ -173,6 +174,7 @@ struct ddb_info {
 #define TS_QUIRK_ALT_OSC   8
 	u32   tempmon_irq;
 	u32   lostlock_irq;
+	u8    mci;
 	const struct ddb_regmap *regmap;
 };
 
@@ -300,6 +302,7 @@ struct ddb_port {
 #define DDB_CI_EXTERNAL_XO2_B    13
 #define DDB_TUNER_DVBS_STV0910_PR 14
 #define DDB_TUNER_DVBC2T2I_SONY_P 15
+#define DDB_TUNER_MCI            16
 
 #define DDB_TUNER_XO2            32
 #define DDB_TUNER_DVBS_STV0910   (DDB_TUNER_XO2 + 0)
@@ -550,8 +553,10 @@ void ddb_i2c_release(struct ddb *dev);
 int ddb_ci_attach(struct ddb_port *port, u32 bitrate);
 
 int ddb_fe_attach_mxl5xx(struct ddb_input *input);
+int ddb_fe_attach_mci(struct ddb_input *input);
 int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm);
 
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data);
+
 #endif

@@ -24,6 +24,7 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 #include "ddbridge-i2c.h"
+#include "ddbridge-mci.h"
 
 /* MAX LNB interface related module parameters */
 
@@ -421,6 +422,51 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg, demod, tuner);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MXL5XX found!\n");
+		return -ENODEV;
+	}
+	if (input->nr < 4) {
+		lnb_command(dev, port->lnr, input->nr, LNB_CMD_INIT);
+		lnb_set_voltage(dev, port->lnr, input->nr, SEC_VOLTAGE_OFF);
+	}
+	ddb_lnb_init_fmode(dev, link, fmode);
+
+	dvb->fe->ops.set_voltage = max_set_voltage;
+	dvb->fe->ops.enable_high_lnb_voltage = max_enable_high_lnb_voltage;
+	dvb->fe->ops.set_tone = max_set_tone;
+	dvb->diseqc_send_master_cmd = dvb->fe->ops.diseqc_send_master_cmd;
+	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
+	dvb->fe->ops.diseqc_send_burst = max_send_burst;
+	dvb->fe->sec_priv = input;
+	dvb->set_input = dvb->fe->ops.set_input;
+	dvb->fe->ops.set_input = max_set_input;
+	dvb->input = tuner;
+	return 0;
+}
+
+/* MAX MCI related functions */
+
+static struct mci_cfg maxsx8 = {
+
+};
+
+int ddb_fe_attach_mci(struct ddb_input *input)
+{
+	struct ddb *dev = input->port->dev;
+	//struct i2c_adapter *i2c = &input->port->i2c->adap;
+	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
+	struct ddb_port *port = input->port;
+	struct ddb_link *link = &dev->link[port->lnr];
+	int demod, tuner;
+	struct mci_cfg cfg;
+
+	cfg = maxsx8;
+	demod = input->nr;
+	tuner = demod & 3;
+	if (fmode == 3)
+		tuner = 0;
+	dvb->fe = dvb_attach(ddb_mci_attach, input, 0, demod);
+	if (!dvb->fe) {
+		dev_err(dev->dev, "No MAXSX8 found!\n");
 		return -ENODEV;
 	}
 	if (input->nr < 4) {
