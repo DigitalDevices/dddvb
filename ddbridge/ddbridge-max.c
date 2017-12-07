@@ -464,7 +464,11 @@ int ddb_fe_attach_mci(struct ddb_input *input)
 	tuner = demod & 3;
 	if (fmode == 3)
 		tuner = 0;
+#if 0
 	dvb->fe = dvb_attach(ddb_mci_attach, input, 0, demod);
+#else
+	dvb->fe = ddb_mci_attach(input, 0, demod);
+#endif
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MAXSX8 found!\n");
 		return -ENODEV;
