@@ -256,6 +256,8 @@ static int mod_set_symbolrate(struct ddb_mod *mod, u32 srate)
 {
 	struct ddb *dev = mod->port->dev;
 
+	if (srate < 1000000)
+		return -EINVAL;
 	if (dev->link[0].info->version < 2) {
 		if (srate != 6900000)
 			return -EINVAL;
