@@ -95,7 +95,7 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data)
 {
-	struct ddb_irq *irq = &dev->link[0].irq[nr];
+	struct ddb_irq *irq = &dev->link[link].irq[nr];
 
 	irq->handler = handler;
 	irq->data = data;
