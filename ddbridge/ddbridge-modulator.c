@@ -25,6 +25,7 @@
 #include "ddbridge-io.h"
 
 #include <linux/dvb/mod.h>
+#include <linux/gcd.h>
 
 /****************************************************************************/
 /****************************************************************************/
@@ -72,64 +73,6 @@ inline s64 RoundPCRUp(s64 a)
 inline s64 RoundPCRDown(s64 a)
 {
 	return a & ~(HW_LSB_MASK - 1);
-}
-
-/* Calculating KF, LF from Symbolrate
- *
- *  Symbolrate is usually calculated as (M/N) * 10.24 MS/s
- *
- *   Common Values for M,N
- *     J.83 Annex A,
- *     Euro Docsis  6.952 MS/s : M =   869, N =  1280
- *                  6.900 MS/s : M =   345, N =   512
- *                  6.875 MS/s : M =  1375, N =  2048
- *                  6.111 MS/s : M =  6111, N = 10240
- *     J.83 Annex B **
- *      QAM64       5.056941   : M =   401, N =   812
- *      QAM256      5.360537   : M =    78, N =   149
- *     J.83 Annex C **
- *                  5.309734   : M =  1889, N =  3643
- *
- *    For the present hardware
- *      KF' = 256 * M
- *      LF' = 225 * N
- *       or
- *      KF' = Symbolrate in Hz
- *      LF' = 9000000
- *
- *      KF  = KF' / gcd(KF',LF')
- *      LF  = LF' / gcd(KF',LF')
- * Note: LF must not be a power of 2.
- *       Maximum value for KF,LF = 13421727 ( 0x7FFFFFF )
- *    ** using these M,N values will result in a small err (<5ppm)
- *       calculating KF,LF directly gives the exact normative result
- *       but with rather large KF,LF values
- */
-
-static inline u32 gcd(u32 u, u32 v)
-{
-	int s = 0;
-
-	while (((u | v) & 1) == 0) {
-		s += 1;
-		u >>= 1;
-		v >>= 1;
-	}
-	while ((u & 1) == 0)
-		u >>= 1;
-	do {
-		while ((v & 1) == 0)
-			v >>= 1;
-		if (u > v) {
-			u32 t = v;
-
-			v = u;
-			u = t;
-		}
-		v = v - u;
-	} while (v != 0);
-
-	return (u << s);
 }
 
 /****************************************************************************/
@@ -309,6 +252,38 @@ static int mod_set_ibitrate(struct ddb_mod *mod, u64 ibitrate)
 	mod_calc_rateinc(mod);
 	return 0;
 }
+
+/* Calculating KF, LF from Symbolrate
+ *
+ *  Symbolrate is usually calculated as (M/N) * 10.24 MS/s
+ *
+ *   Common Values for M,N
+ *     J.83 Annex A,
+ *     Euro Docsis  6.952 MS/s : M =   869, N =  1280
+ *                  6.900 MS/s : M =   345, N =   512
+ *                  6.875 MS/s : M =  1375, N =  2048
+ *                  6.111 MS/s : M =  6111, N = 10240
+ *     J.83 Annex B **
+ *      QAM64       5.056941   : M =   401, N =   812
+ *      QAM256      5.360537   : M =    78, N =   149
+ *     J.83 Annex C **
+ *                  5.309734   : M =  1889, N =  3643
+ *
+ *    For the present hardware
+ *      KF' = 256 * M
+ *      LF' = 225 * N
+ *       or
+ *      KF' = Symbolrate in Hz
+ *      LF' = 9000000
+ *
+ *      KF  = KF' / gcd(KF',LF')
+ *      LF  = LF' / gcd(KF',LF')
+ * Note: LF must not be a power of 2.
+ *       Maximum value for KF,LF = 13421727 ( 0x7FFFFFF )
+ *    ** using these M,N values will result in a small err (<5ppm)
+ *       calculating KF,LF directly gives the exact normative result
+ *       but with rather large KF,LF values
+ */
 
 int ddbridge_mod_output_start(struct ddb_output *output)
 {
