@@ -163,7 +163,7 @@ static struct dvb_ca_en50221 en_templ = {
 
 static void ci_attach(struct ddb_port *port)
 {
-	struct ddb_ci *ci = 0;
+	struct ddb_ci *ci;
 
 	ci = kzalloc(sizeof(*ci), GFP_KERNEL);
 	if (!ci)
@@ -294,7 +294,7 @@ static struct dvb_ca_en50221 en_xo2_templ = {
 
 static void ci_xo2_attach(struct ddb_port *port)
 {
-	struct ddb_ci *ci = 0;
+	struct ddb_ci *ci;
 	struct i2c_adapter *i2c;
 
 	ci = kzalloc(sizeof(*ci), GFP_KERNEL);
