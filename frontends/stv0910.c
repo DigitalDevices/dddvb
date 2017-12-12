@@ -524,10 +524,8 @@ static int get_signal_parameters(struct stv *state)
 
 static int tracking_optimization(struct stv *state)
 {
-	u32 symbol_rate = 0;
 	u8 tmp;
 
-	get_cur_symbol_rate(state, &symbol_rate);
 	read_reg(state, RSTV0910_P2_DMDCFGMD + state->regoff, &tmp);
 	tmp &= ~0xC0;
 
@@ -1320,6 +1318,12 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 			break;
 		}
 		p->rolloff = ROLLOFF_35;
+	}
+	if (state->receive_mode != RCVMODE_NONE) {
+		u32 symbolrate = 0;
+
+		get_cur_symbol_rate(state, &symbolrate);
+		p->symbol_rate = symbolrate;
 	}
 	return 0;
 }
