@@ -1210,10 +1210,15 @@ static int gate_ctrl(struct dvb_frontend *fe, int enable)
 
 	stat = write_reg(state, state->nr ? RSTV0910_P2_I2CRPT :
 			 RSTV0910_P1_I2CRPT, i2crpt);
+	if (stat < 0)
+		if (!WARN_ON(!mutex_is_locked(&state->base->i2c_lock)))
+			mutex_unlock(&state->base->i2c_lock);
+
 	state->i2crpt = i2crpt;
 
 	if (!enable)
-		mutex_unlock(&state->base->i2c_lock);
+		if (!WARN_ON(!mutex_is_locked(&state->base->i2c_lock)))
+			mutex_unlock(&state->base->i2c_lock);
 	return stat;
 }
 
