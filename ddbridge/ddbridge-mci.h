@@ -59,6 +59,8 @@
 #define SX8_CMD_SELECT_IQOUT    (0x10)
 #define SX8_CMD_SELECT_TSOUT    (0x11)
 
+#define SX8_CMD_GET_IQSYMBOL    (0x30)
+
 #define SX8_CMD_DIAG_READ8      (0xE0)
 #define SX8_CMD_DIAG_READ32     (0xE1)
 #define SX8_CMD_DIAG_WRITE8     (0xE2)
@@ -129,6 +131,10 @@ struct mci_result {
 			u32 ber_numerator;
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
+		struct {
+			u8 i_symbol;
+			u8 q_symbol;
+		} dvbs2_signal_iq;
 	};
 	u32 version[4];
 };
