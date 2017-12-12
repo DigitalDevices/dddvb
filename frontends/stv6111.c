@@ -229,9 +229,9 @@ static int set_bandwidth(struct dvb_frontend *fe, u32 CutOffFrequency)
 	if (!stat) {
 		write_regs(state, 0x08, 2);
 		wait_for_call_done(state, 0x08);
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
 	}
-	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
 	return stat;
 }
 
@@ -325,10 +325,11 @@ static int set_params(struct dvb_frontend *fe)
 
 	if (fe->ops.i2c_gate_ctrl)
 		stat = fe->ops.i2c_gate_ctrl(fe, 1);
-	if (!stat)
+	if (!stat) {
 		set_lof(state, freq, cutoff);
-	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+	}
 	return stat;
 }
 
@@ -644,9 +645,9 @@ static int get_rf_strength(struct dvb_frontend *fe, u16 *st)
 			read_reg(state, 2, &Reg);
 			if (Reg & 0x20)
 				read_reg(state, 2, &Reg);
+			if (fe->ops.i2c_gate_ctrl)
+				fe->ops.i2c_gate_ctrl(fe, 0);
 		}
-		if (fe->ops.i2c_gate_ctrl)
-			fe->ops.i2c_gate_ctrl(fe, 0);
 		
 		if((state->reg[0x02] & 0x80) == 0)
 			// NF
@@ -734,10 +735,11 @@ struct dvb_frontend *stv6111_attach(struct dvb_frontend *fe,
 
 	if (fe->ops.i2c_gate_ctrl)
 		stat = fe->ops.i2c_gate_ctrl(fe, 1);
-	if (!stat)
+	if (!stat) {
 		stat = attach_init(state);
-	if (fe->ops.i2c_gate_ctrl)
-		fe->ops.i2c_gate_ctrl(fe, 0);
+		if (fe->ops.i2c_gate_ctrl)
+			fe->ops.i2c_gate_ctrl(fe, 0);
+	}
 	if (stat < 0) {
 		kfree(state);
 		return NULL;
