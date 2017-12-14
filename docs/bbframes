@@ -1,0 +1,75 @@
+To allow the transport of DVB-S2 baseband frames (BBFrame) across existing hard- and software
+interfaces, we have added the ability to embed the BBFrame data into a MPEG2 transport stream.
+This is available on supported cards as firmware update.
+
+This feature is currently considered experimental.
+
+Supported hardware:
+
+Cine V7A                  (>=1.7 FW)
+OctopusCI S2 Pro Advanced (>=1.7 FW)
+Duoflex S2 v4 Advanced    (TBA)
+
+The following cards are based on the broadcast version of the
+DVB-S2 demodulator. The BBFrame output is working but
+not documented. We therefore can not guarantee the
+feature will work under all conditions.
+
+cineS2 V7              (>=1.7 FW)
+OctopusCI S2 Pro       (>=1.7 FW)
+Duoflex S2 v4          (TBA)
+
+
+
+Packet format:
+
+The BBFrames are packetized into MPEG2 private sections (0x80), one section per transport stream
+packet. The PID is fixed at 0x010E.
+
+
+Header packet of frame:
+
+0x47 0x41 0x0E 0x1X 0x00 0x80 0x00 L 0xB8 BBHeader (169 * Data)
+
+L: Section Length, always 180 (0xB4)
+BBHeader: 10 Bytes BBFrame header (see DVB-S2, EN-302307)
+Data: 169 Bytes of BBFrame payload
+
+
+Payload packets:
+
+0x47 0x41 0x0E 0x1X 0x00 0x80 0x00 L N (179 * Data)
+
+L: Section Length, always 180 (0xB4)
+N: Packet counter, starting with 0x01 after header packet
+Data: 179 Bytes of BBFrame payload
+
+
+Last packet:
+0x47 0x41 0x0E 0x1X 0x00 0x80 0x00 L N ((L-1) * Data)  ((180 – L) * 0xFF)
+
+L: Section Length, remaining Data – 1, (0x01 .. 0xB4)
+N: Packet counter
+Data: L-1 Bytes of BBFrame payload
+
+
+
+Automatic detection of input format:
+
+The bridge firmware allows automatic detection of the incoming data.
+To receive regular transport streams in this formats it is still required to setup
+the DVB-S2 demodulator to output BBFrames instead of regular TS Packets.
+When enabled the embedding mode is automatically turned on or off depending on incoming data
+from the DVB-S2/S2X frontend. The decision depends currently only on the first byte of a packet.
+If it is 0x47 it switches to transport stream mode else it switches to embedding mode.
+
+Note that 0x47 can currently not occur in the first byte of a BBFrame header if all reserved
+values of DVB-S2 and -S2X are observed.
+
+
+
+
+API:
+
+Currently DTV_STREAM_ID is misused.
+Set it to 0x80000000 to enable frame mode in the demod.
