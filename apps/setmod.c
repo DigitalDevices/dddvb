@@ -13,17 +13,99 @@
 
 #include <linux/dvb/mod.h>
 
+void usage(char* argv[])
+{
+  printf("Usage: %s [-d device] [-f base_frequency[Hz]]"
+    " [-m modulation[qam_16, qam32, qam_64, qam_128, qam256]] [-p pcr_correction[1/0]]"
+    " [-b bitrate[bps]] [-g gain[dB]]\n", argv[0]);
+}
+
+static int set_mod_property (int fd, uint32_t cmd, uint32_t data)
+{
+  struct dtv_property p;
+  struct dtv_properties c;
+  int ret;
+
+  if( fd < 0 ) return -1;
+  p.cmd = cmd;
+  c.num = 1;
+  c.props = &p;
+  p.u.data = data;
+  ret = ioctl(fd, FE_SET_PROPERTY, &c);
+
+  if (ret < 0)
+  {
+    fprintf(stderr, "FE_SET_PROPERTY  %d returned %d\n", cmd, errno);
+  }
+}
+
+int modulator_set_output_power (int fd, int power)
+{
+  unsigned int atten = 0;
+  unsigned int gain = 0;
+  if ( power > POWER_REF )
+    gain = (power - POWER_REF) * 8;
+  else
+    atten = POWER_REF - power;
+
+  if (gain > RF_VGA_GAIN_MAX)
+    gain = RF_VGA_GAIN_MAX;
+  if (atten > 31)
+    atten = 31;
+
+  set_mod_property(fd, MODULATOR_ATTENUATOR,atten);
+  usleep(1000); // driver bug
+
+  set_mod_property(fd, MODULATOR_GAIN,gain);
+  return 0;
+}
+
+
 int main(int argc, char* argv[])
 {
   int fd;
   struct dvb_mod_params mp;
   struct dvb_mod_channel_params mc;
+  char *device = NULL;
+  uint32_t base_freq = 0;
+  uint8_t gain = POWER_REF;
+  char *modulation_str = NULL;
+  int pcr_correction = -1;
+  uint64_t bitrate = 0;
+  int opt;
 
   if (argc != 7)
   {
-    printf("Usage: device base_frequency[Hz] attenuation[dB]"
-      " modulation[qam_16, qam32, qam_64, qam_128, qam256] pcr_correction[1/0]"
-      " bitrate[bps]\n");
+  }
+
+  while ((opt = getopt(argc, argv, "d:f:m:p:b:g:")) != -1)
+  {
+    switch (opt)
+    {
+      case 'd':
+        device = optarg;
+        break;
+      case 'f':
+        base_freq = strtoul(optarg, NULL, 10);
+        break;
+      case 'm':
+        modulation_str = optarg;
+        break;
+      case 'p':
+        pcr_correction = strtoul(optarg, NULL, 10);
+        break;
+      case 'b':
+        bitrate = strtoul(optarg, NULL, 10);
+        break;
+      case 'g':
+        gain = strtoul(optarg, NULL, 10);
+        break;
+    }
+  }
+
+  if (device == NULL)
+  {
+    usage(argv);
     exit(EXIT_FAILURE);
   }
 
@@ -73,13 +155,14 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  printf("Setting base_freq=%u attenuation=%u modulation=%s, pcr_correction=%d"
-    "input_bitrate=%u on %s\n",
-    base_freq, attenuation, modulation_str, pcr_correction, bitrate, device);
+  printf("Setting base_freq=%u modulation=%s, pcr_correction=%d"
+    "input_bitrate=%u gain=%udB on %s\n",
+    base_freq, modulation_str, pcr_correction, bitrate, gain, device);
 
   mp.base_frequency = base_freq;
-  mp.attenuator = attenuation;
   ioctl(fd, DVB_MOD_SET, &mp);
+
+  modulator_set_output_power(fd, gain);
 
   mc.modulation = modulation;
   mc.input_bitrate = bitrate << 32;
