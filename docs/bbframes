@@ -1,5 +1,6 @@
 To allow the transport of DVB-S2 baseband frames (BBFrame) across existing hard- and software
-interfaces, we have added the ability to embed the BBFrame data into a MPEG2 transport stream.
+interfaces, we have added the ability to embed the BBFrame data into
+an MPEG2 transport stream.
 This is available on supported cards as firmware update.
 
 This feature is currently considered experimental.
@@ -18,6 +19,12 @@ feature will work under all conditions.
 cineS2 V7              (>=1.7 FW)
 OctopusCI S2 Pro       (>=1.7 FW)
 Duoflex S2 v4          (TBA)
+
+
+Current FPGA images (including FW 1.7 for the above mentioned cards)
+can be found here:
+
+http://download.digital-devices.de/download/firmware/html/firmwareupdate.html
 
 
 
