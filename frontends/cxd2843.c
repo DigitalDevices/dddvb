@@ -2312,9 +2312,6 @@ static int get_fe_t2(struct cxd_state *state, struct dtv_frontend_properties *p)
 	case 5:
 		p->transmission_mode = TRANSMISSION_MODE_32K;
 		break;
-	case 6:
-		p->transmission_mode = TRANSMISSION_MODE_64K;
-		break;
 	}
 
         switch ((ofdm[1] >> 4) & 0x07) {
