@@ -4542,8 +4542,7 @@ int ddb_init_ddbridge(void)
 		dma_buf_size = 1;
 	if (dma_buf_size > 43)
 		dma_buf_size = 43;
-	printk("dma_buf_num = %u, dma_buf_size = %u\n", dma_buf_num, dma_buf_size);
-	
+
 	if (ddb_class_create() < 0)
 		return -1;
 	ddb_wq = alloc_workqueue("ddbridge", 0, 0);
