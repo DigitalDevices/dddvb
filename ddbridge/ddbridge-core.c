@@ -1172,9 +1172,7 @@ static int demod_attach_stv0367dd(struct ddb_input *input)
 	cfg.adr = 0x1f - (input->nr & 1);
 	if (input->port->dev->link[input->port->lnr].info->con_clock)
 		cfg.cont_clock = 1;
-	dvb->fe = dvb_attach(stv0367_attach, i2c,
-			     &cfg,
-			     &dvb->fe2);
+	dvb->fe = dvb_attach(stv0367_attach, i2c, &cfg);
 	if (!dvb->fe) {
 		dev_err(input->port->dev->dev,
 			"No stv0367 found!\n");

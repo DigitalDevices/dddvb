@@ -2128,8 +2128,7 @@ static void init_state(struct stv_state *state, struct stv0367_cfg *cfg)
 }
 
 
-struct dvb_frontend *stv0367_attach(struct i2c_adapter *i2c, struct stv0367_cfg *cfg,
-				    struct dvb_frontend **fe_t)
+struct dvb_frontend *stv0367_attach(struct i2c_adapter *i2c, struct stv0367_cfg *cfg)
 {
 	struct stv_state *state = NULL;
 
