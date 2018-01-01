@@ -1477,9 +1477,10 @@ static void dvb_input_detach(struct ddb_input *input)
 	struct dvb_demux *dvbdemux = &dvb->demux;
 
 	switch (dvb->attached) {
-	case 0x31:
+	case 0x41:
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
+	case 0x40:
 		if (dvb->fe)
 			dvb_unregister_frontend(dvb->fe);
 		/* fallthrough */
@@ -1673,30 +1674,35 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBS_ST:
 		if (demod_attach_stv0900(input, 0) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_stv6110(input, 0) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBS_ST_AA:
 		if (demod_attach_stv0900(input, 1) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_stv6110(input, 1) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBS_STV0910:
 		if (demod_attach_stv0910(input, 0) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_stv6111(input, 0) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBS_STV0910_PR:
 		if (demod_attach_stv0910(input, 1) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_stv6111(input, 1) < 0)
 			return -ENODEV;
 		break;
 	case DDB_TUNER_DVBS_STV0910_P:
 		if (demod_attach_stv0910(input, 0) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_stv6111(input, 1) < 0)
 			return -ENODEV;
 		break;
@@ -1704,6 +1710,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT_TR:
 		if (demod_attach_drxk(input) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_tda18271(input) < 0)
 			return -ENODEV;
 		break;
@@ -1711,6 +1718,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_DVBCT_ST:
 		if (demod_attach_stv0367dd(input) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
@@ -1730,6 +1738,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			par = 1;
 		if (demod_attach_cxd2843(input, par, osc24) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
@@ -1740,6 +1749,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_ISDBT_SONY:
 		if (demod_attach_cxd2843(input, 0, osc24) < 0)
 			return -ENODEV;
+		dvb->attached = 0x30;
 		if (tuner_attach_tda18212dd(input) < 0)
 			return -ENODEV;
 		break;
@@ -1760,6 +1770,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (dvb_register_frontend(adap, dvb->fe) < 0)
 			return -ENODEV;
 	}
+	dvb->attached = 0x40;
 	if (dvb->fe2) {
 		if (dvb_register_frontend(adap, dvb->fe2) < 0)
 			return -ENODEV;
@@ -1768,7 +1779,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		       &dvb->fe->ops.tuner_ops,
 		       sizeof(struct dvb_tuner_ops));
 	}
-	dvb->attached = 0x31;
+	dvb->attached = 0x41;
 	return 0;
 }
 
