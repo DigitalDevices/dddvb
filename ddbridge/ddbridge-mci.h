@@ -43,32 +43,49 @@
 #define SX8_TSCONFIG_MODE_NORMAL            (0x00000001)
 #define SX8_TSCONFIG_MODE_IQ                (0x00000003)
 
+#define SX8_TSCONFIG_TSHEADER               (0x00000004)
+#define SX8_TSCONFIG_BURST                  (0x00000008)
+
+#define SX8_TSCONFIG_BURSTSIZE_MASK         (0x00000030)
+#define SX8_TSCONFIG_BURSTSIZE_2K           (0x00000000)
+#define SX8_TSCONFIG_BURSTSIZE_4K           (0x00000010)
+#define SX8_TSCONFIG_BURSTSIZE_8K           (0x00000020)
+#define SX8_TSCONFIG_BURSTSIZE_16K          (0x00000030)
 
 #define SX8_DEMOD_STOPPED       (0)
+#define SX8_DEMOD_IQ_MODE       (1)
 #define SX8_DEMOD_WAIT_SIGNAL   (2)
+#define SX8_DEMOD_WAIT_MATYPE   (3)
 #define SX8_DEMOD_TIMEOUT       (14)
 #define SX8_DEMOD_LOCKED        (15)
 
-#define SX8_CMD_TUNER_ENABLE    (0x01)
-#define SX8_CMD_TUNER_DISABLE   (0x02)
-#define SX8_CMD_SEARCH          (0x03)
-#define SX8_CMD_GETSTATUS       (0x04)
-#define SX8_CMD_STOP            (0x05)
-#define SX8_CMD_GETSIGNALINFO   (0x07)
+#define MCI_CMD_STOP            (0x01)
+#define MCI_CMD_GETSTATUS       (0x02)
+#define MCI_CMD_GETSIGNALINFO   (0x03)
+#define MCI_CMD_RFPOWER         (0x04)
 
-#define SX8_CMD_SELECT_IQOUT    (0x10)
-#define SX8_CMD_SELECT_TSOUT    (0x11)
+#define MCI_CMD_SEARCH_DVBS     (0x10)
 
-#define SX8_CMD_GET_IQSYMBOL    (0x30)
+#define MCI_CMD_GET_IQSYMBOL    (0x30)
+
+#define SX8_CMD_INPUT_ENABLE    (0x40)
+#define SX8_CMD_INPUT_DISABLE   (0x41)
+#define SX8_CMD_START_IQ        (0x42)
+#define SX8_CMD_STOP_IQ         (0x43)
+#define SX8_CMD_SELECT_IQOUT    (0x44)
+#define SX8_CMD_SELECT_TSOUT    (0x45)
+
+#define SX8_ERROR_UNSUPPORTED   (0x80)
+
+#define SX8_SUCCESS(status)     (status < SX8_ERROR_UNSUPPORTED)
 
 #define SX8_CMD_DIAG_READ8      (0xE0)
 #define SX8_CMD_DIAG_READ32     (0xE1)
 #define SX8_CMD_DIAG_WRITE8     (0xE2)
 #define SX8_CMD_DIAG_WRITE32    (0xE3)
 
-#define SX8_CMD_DIAG_READV      (0xE8)
-#define SX8_CMD_DIAG_WRITEV     (0xE9)
-
+#define M4_CMD_DIAG_READRF      (0xE8)
+#define M4_CMD_DIAG_WRITERF     (0xE9)
 
 #define M4_CMD_DIAG_READX       (0xE0)
 #define M4_CMD_DIAG_READT       (0xE1)
@@ -78,9 +95,6 @@
 #define M4_CMD_DIAG_READRF      (0xE8)
 #define M4_CMD_DIAG_WRITERF     (0xE9)
 
-
-#define SX8_ERROR_UNSUPPORTED   (0x80)
-#define SX8_SUCCESS(status)     (status < SX8_ERROR_UNSUPPORTED)
 
 struct mci_command {
     union {
@@ -97,10 +111,13 @@ struct mci_command {
         struct {
 		u8  flags;
 		u8  s2_modulation_mask;
-		u8  rsvd;
+		u8  rsvd1;
 		u8  retry;
 		u32 frequency;
 		u32 symbol_rate;
+		u8  input_stream_id;
+		u8  rsvd2[3];
+		u32 scrambling_sequence_index;
         } dvbs2_search;
     };
 };
