@@ -9,3 +9,5 @@ obj-$(CONFIG_DVB_OCTONET) += octonet.o
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends -Idrivers/media/dvb-frontends
 EXTRA_CFLAGS += -Idrivers/media/common/tuners
 NOSTDINC_FLAGS += -I$(SUBDIRS)/frontends -I$(SUBDIRS)/include -I$(SUBDIRS)/dvb-core
+EXTRA_CFLAGS += -Wno-error=implicit-function-declaration
+

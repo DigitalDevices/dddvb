@@ -25,6 +25,7 @@
 #include "ddbridge-io.h"
 
 #ifdef CONFIG_PCI_MSI
+#include <linux/msi.h>
 static int msi = 1;
 module_param(msi, int, 0444);
 MODULE_PARM_DESC(msi,
