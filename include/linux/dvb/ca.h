@@ -134,7 +134,7 @@ struct ca_descr {
 typedef struct ca_pid {
 	unsigned int pid;
 	int index;/* -1 == disable*/
-} ca_pid_t;
+};
 
 #define CA_RESET          _IO('o', 128)
 #define CA_GET_CAP        _IOR('o', 129, struct ca_caps)
@@ -153,6 +153,7 @@ typedef struct ca_descr_info  ca_descr_info_t;
 typedef struct ca_caps  ca_caps_t;
 typedef struct ca_msg ca_msg_t;
 typedef struct ca_descr ca_descr_t;
+typedef struct ca_pid ca_pid_t;
 
 #endif
 
