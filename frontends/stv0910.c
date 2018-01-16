@@ -1298,11 +1298,15 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 			FEC_3_4, FEC_4_5, FEC_5_6, FEC_8_9,
 			FEC_9_10
 		};
+		enum fe_rolloff ro2ro[3] = {
+			ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_15,
+		};
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
 		mc = ((tmp & 0x7c) >> 2);
 		p->pilot = (tmp & 0x01) ? PILOT_ON : PILOT_OFF;
 		p->modulation = modcod2mod[mc];
 		p->fec_inner = modcod2fec[mc];
+		p->rolloff = ro2ro[state->fe_roll_off];
 	} else if (state->receive_mode == RCVMODE_DVBS) {
 		read_reg(state, RSTV0910_P2_VITCURPUN + state->regoff, &tmp);
 		switch (tmp & 0x1f) {
