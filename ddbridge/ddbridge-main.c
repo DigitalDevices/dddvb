@@ -25,6 +25,7 @@
 #include "ddbridge-io.h"
 
 #ifdef CONFIG_PCI_MSI
+#include <linux/msi.h>
 static int msi = 1;
 module_param(msi, int, 0444);
 MODULE_PARM_DESC(msi,
@@ -88,7 +89,7 @@ static void __devexit ddb_irq_exit(struct ddb *dev)
 	free_irq(pci_irq_vector(dev->pdev, 0), dev);
 #ifdef CONFIG_PCI_MSI
 	if (dev->msi) {
-		pci_free_irq_vectors(dev->pdev);
+		pci_disable_msix(dev->pdev); // Fix me ???
 		pci_disable_msi(dev->pdev);
 	}
 #endif
