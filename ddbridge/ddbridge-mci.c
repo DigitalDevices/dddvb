@@ -251,10 +251,11 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	stat = _mci_cmd(state, &cmd, 1, res, 1);
 	if (stat)
 		return stat;
+	*status = 0x00;
+	if (res->status == SX8_DEMOD_WAIT_MATYPE)
+		*status = 0x0f;
 	if (res->status == SX8_DEMOD_LOCKED)
 		*status = 0x1f;
-	else
-		*status = 0;
 	return stat;
 }
 
