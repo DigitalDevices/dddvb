@@ -383,20 +383,23 @@ unlock:
 		mci_cmd(state, &cmd, NULL);
 		mci_config(state, ts_config);
 	}
+	if (p->stream_id != NO_STREAM_ID_FILTER && p->stream_id != 0x80000000)
+		flags |= 0x80;
 	printk("frontend %u: tuner=%u demod=%u\n", state->nr, state->tuner, state->demod);
 	cmd.command = MCI_CMD_SEARCH_DVBS;
 	cmd.dvbs2_search.flags = flags;
 	cmd.dvbs2_search.s2_modulation_mask = modmask & ((1 << (bits_per_symbol - 1)) - 1);
-	cmd.dvbs2_search.retry = 255; /* forever */
+	cmd.dvbs2_search.retry = 2;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
 	cmd.dvbs2_search.scrambling_sequence_index =
-		(p->pls != NO_SCRAMBLING_CODE) ? p->pls : 0;
-	cmd.dvbs2_search.input_stream_id =
-		(p->stream_id != NO_STREAM_ID_FILTER) ? p->stream_id : 0;
+		p->scrambling_sequence_index;
+	cmd.dvbs2_search.input_stream_id = p->stream_id;
 	cmd.tuner = state->tuner;
 	cmd.demod = state->demod;
 	cmd.output = state->nr;
+	if (p->stream_id == 0x80000000)
+		cmd.output |= 0x80;
 	stat = mci_cmd(state, &cmd, NULL);
 	if (stat)
 		stop(fe);

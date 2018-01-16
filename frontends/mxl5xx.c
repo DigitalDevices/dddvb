@@ -448,10 +448,7 @@ static int cfg_scrambler(struct mxl *state, u32 gold)
 		0, 0, 0, 0, 1, 0, 0, 0,
 	};
 
-	if (gold != NO_SCRAMBLING_CODE)
-		root = gold2root(gold);
-	else
-		root = 1;
+	root = gold2root(gold);
 	buf[25] = (root >> 24) & 0xff;
 	buf[24] = (root >> 16) & 0xff;
 	buf[23] = (root >> 8) & 0xff;
@@ -530,7 +527,7 @@ static int set_parameters(struct dvb_frontend *fe)
 		demodChanCfg.rollOff = MXL_HYDRA_ROLLOFF_AUTO;
 		demodChanCfg.modulationScheme = MXL_HYDRA_MOD_AUTO;
 		demodChanCfg.pilots = MXL_HYDRA_PILOTS_AUTO;
-		cfg_scrambler(state, p->pls);
+		cfg_scrambler(state, p->scrambling_sequence_index);
 		break;
 	default:
 		return -EINVAL;

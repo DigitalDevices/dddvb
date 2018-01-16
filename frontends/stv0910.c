@@ -893,9 +893,8 @@ static void set_stream_modes(struct stv *state, struct dtv_frontend_properties *
 	if ((p->stream_id != NO_STREAM_ID_FILTER) &&
 	    (p->stream_id & 0xfffff00))
 		scrambling_code = 0xfffff & (p->stream_id >> 8);
-	/* p->pls is always gold code ! */
-	if (p->pls != NO_SCRAMBLING_CODE)
-		scrambling_code = p->pls | 0x40000;
+	/* p->scrambling_sequence_index is always gold code ! */
+	scrambling_code = p->scrambling_sequence_index | 0x40000;
 	set_pls(state, scrambling_code);
 }
 
@@ -1850,7 +1849,7 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->search_range = 16000000;
 	state->demod = 0x10; /* Inversion : Auto with reset to 0 */
 	state->receive_mode = RCVMODE_NONE;
-	state->cur_scrambling_code = NO_SCRAMBLING_CODE;
+	state->cur_scrambling_code = 0xffffffff;
 	state->single = cfg->single ? 1 : 0;
 
 	base = match_base(i2c, cfg->adr);
