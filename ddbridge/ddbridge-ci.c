@@ -325,26 +325,21 @@ int ddb_ci_attach(struct ddb_port *port, u32 bitrate)
 	case DDB_CI_EXTERNAL_SONY:
 		cxd_cfg.bitrate = bitrate;
 		port->en = cxd2099_attach(&cxd_cfg, port, &port->i2c->adap);
-		if (!port->en)
-			return -ENODEV;
-		dvb_ca_en50221_init(port->dvb[0].adap,
-				    port->en, 0, 1);
 		break;
 
 	case DDB_CI_EXTERNAL_XO2:
 	case DDB_CI_EXTERNAL_XO2_B:
 		ci_xo2_attach(port);
-		if (!port->en)
-			return -ENODEV;
-		dvb_ca_en50221_init(port->dvb[0].adap, port->en, 0, 1);
 		break;
 		
 	case DDB_CI_INTERNAL:
 		ci_attach(port);
-		if (!port->en)
-			return -ENODEV;
-		dvb_ca_en50221_init(port->dvb[0].adap, port->en, 0, 1);
 		break;
+	default:
+		return -ENODEV;
 	}
+	if (!port->en)
+		return -ENODEV;
+	dvb_ca_en50221_init(port->dvb[0].adap, port->en, 0, 1);
 	return 0;
 }
