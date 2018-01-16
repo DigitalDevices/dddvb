@@ -32,6 +32,8 @@ MODULE_PARM_DESC(msi,
 #endif
 
 #if (KERNEL_VERSION(4, 8, 0) > LINUX_VERSION_CODE)
+#include <linux/msi.h>
+
 int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 {
 	if (dev->msix_enabled) {
@@ -80,18 +82,25 @@ static void __devexit ddb_irq_disable(struct ddb *dev)
 	}
 }
 
+static void __devexit ddb_msi_exit(struct ddb *dev)
+{
+#ifdef CONFIG_PCI_MSI
+	if (dev->msi) {
+#if (KERNEL_VERSION(4, 8, 0) <= LINUX_VERSION_CODE)
+		pci_free_irq_vectors(dev->pdev);
+#else
+		pci_disable_msi(dev->pdev);
+#endif
+	}
+#endif
+}
+
 static void __devexit ddb_irq_exit(struct ddb *dev)
 {
 	ddb_irq_disable(dev);
 	if (dev->msi == 2)
 		free_irq(pci_irq_vector(dev->pdev, 1), dev);
 	free_irq(pci_irq_vector(dev->pdev, 0), dev);
-#ifdef CONFIG_PCI_MSI
-	if (dev->msi) {
-		pci_free_irq_vectors(dev->pdev);
-		pci_disable_msi(dev->pdev);
-	}
-#endif
 }
 
 static void __devexit ddb_remove(struct pci_dev *pdev)
@@ -106,6 +115,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	if (dev->link[0].info->ns_num)
 		ddbwritel(dev, 0, ETHER_CONTROL);
 	ddb_irq_exit(dev);
+	ddb_msi_exit(dev);
 	ddb_ports_release(dev);
 	ddb_buffers_free(dev);
 
@@ -351,8 +361,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	ddb_irq_exit(dev);
 fail0:
 	dev_err(dev->dev, "fail0\n");
-	if (dev->msi)
-		pci_disable_msi(dev->pdev);
+	ddb_msi_exit(dev);
 fail:
 	dev_err(dev->dev, "fail\n");
 
