@@ -577,7 +577,7 @@ static struct dvb_frontend_ops mci_ops = {
 		.frequency_stepsize	= 0,
 		.frequency_tolerance	= 0,
 		.symbol_rate_min	= 100000,
-		.symbol_rate_max	= 70000000,
+		.symbol_rate_max	= 100000000,
 		.caps			= FE_CAN_INVERSION_AUTO |
 					  FE_CAN_FEC_AUTO       |
 					  FE_CAN_QPSK           |
