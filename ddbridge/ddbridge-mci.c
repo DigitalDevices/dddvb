@@ -231,6 +231,7 @@ static int get_info(struct dvb_frontend *fe)
 	struct mci *state = fe->demodulator_priv;
 	struct mci_command cmd;
 
+	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_GETSIGNALINFO;
 	cmd.demod = state->demod;
 	stat = mci_cmd(state, &cmd, &state->signal_info);
@@ -436,6 +437,7 @@ unlock:
 	if (stat)
 		return stat;
 	
+	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = SX8_CMD_START_IQ;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
