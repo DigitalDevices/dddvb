@@ -329,10 +329,34 @@ static int dvb_dmxdev_set_buffer_size(struct dmxdev_filter *dmxdevfilter,
 	return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+static void dvb_dmxdev_filter_timeout(struct timer_list *t)
+{
+        struct dmxdev_filter *dmxdevfilter = from_timer(dmxdevfilter, t, timer);
+	
+        dmxdevfilter->buffer.error = -ETIMEDOUT;
+        spin_lock_irq(&dmxdevfilter->dev->lock);
+        dmxdevfilter->state = DMXDEV_STATE_TIMEDOUT;
+        spin_unlock_irq(&dmxdevfilter->dev->lock);
+        wake_up(&dmxdevfilter->buffer.queue);
+}
+
+static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
+{
+	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
+	
+	del_timer(&dmxdevfilter->timer);
+	if (para->timeout) {
+                dmxdevfilter->timer.expires =
+			jiffies + 1 + (HZ / 2 + HZ * para->timeout) / 1000;
+		add_timer(&dmxdevfilter->timer);
+	}
+}
+#else
 static void dvb_dmxdev_filter_timeout(unsigned long data)
 {
 	struct dmxdev_filter *dmxdevfilter = (struct dmxdev_filter *)data;
-
+	
 	dmxdevfilter->buffer.error = -ETIMEDOUT;
 	spin_lock_irq(&dmxdevfilter->dev->lock);
 	dmxdevfilter->state = DMXDEV_STATE_TIMEDOUT;
@@ -343,7 +367,7 @@ static void dvb_dmxdev_filter_timeout(unsigned long data)
 static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 {
 	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
-
+	
 	del_timer(&dmxdevfilter->timer);
 	if (para->timeout) {
 		dmxdevfilter->timer.function = dvb_dmxdev_filter_timeout;
@@ -353,7 +377,7 @@ static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 		add_timer(&dmxdevfilter->timer);
 	}
 }
-
+#endif
 static int dvb_dmxdev_section_callback(const u8 *buffer1, size_t buffer1_len,
 				       const u8 *buffer2, size_t buffer2_len,
 				       struct dmx_section_filter *filter)
@@ -755,7 +779,11 @@ static int dvb_demux_open(struct inode *inode, struct file *file)
 	dvb_ringbuffer_init(&dmxdevfilter->buffer, NULL, 8192);
 	dmxdevfilter->type = DMXDEV_TYPE_NONE;
 	dvb_dmxdev_filter_state_set(dmxdevfilter, DMXDEV_STATE_ALLOCATED);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
+	timer_setup(&dmxdevfilter->timer, dvb_dmxdev_filter_timeout, 0);
+#else
 	init_timer(&dmxdevfilter->timer);
+#endif
 
 	dvbdev->users++;
 
