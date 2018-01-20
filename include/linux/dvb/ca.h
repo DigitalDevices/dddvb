@@ -131,7 +131,7 @@ struct ca_descr {
 	unsigned char cw[8];
 };
 
-typedef struct ca_pid {
+struct ca_pid {
 	unsigned int pid;
 	int index;/* -1 == disable*/
 };
