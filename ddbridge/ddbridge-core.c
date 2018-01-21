@@ -2402,7 +2402,7 @@ static void input_handler(void *data)
 #ifdef DDB_USE_WORK
 	queue_work(ddb_wq, &dma->work);
 #else
-	input_tasklet(dma);
+	input_tasklet((unsigned long)dma);
 #endif
 }
 #endif
@@ -2414,26 +2414,26 @@ static void output_work(struct work_struct *work)
 #else
 static void output_tasklet(unsigned long data)
 {
-	struct ddb_dma *dma = (struct ddb_output *)data;
+	struct ddb_dma *dma = (struct ddb_dma *)data;
 #endif
 	struct ddb_output *output = (struct ddb_output *)dma->io;
 	struct ddb *dev = output->port->dev;
+	unsigned long flags;
 
-	spin_lock(&dma->lock);
-	if (!dma->running) {
-		spin_unlock(&dma->lock);
-		return;
-	}
+	spin_lock_irqsave(&dma->lock, flags);
+	if (!dma->running)
+		goto unlock_exit;
 	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
 	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 	if (output->redi)
 		output_ack_input(output, output->redi);
 	wake_up(&dma->wq);
-	spin_unlock(&dma->lock);
+unlock_exit:
+	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
 #if 0
-static void output_handler(unsigned long data)
+static void output_handler(void *data)
 {
 	struct ddb_output *output = (struct ddb_output *)data;
 	struct ddb_dma *dma = output->dma;
