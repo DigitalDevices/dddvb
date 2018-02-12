@@ -648,7 +648,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	*snr = (s16) (regData & 0xFFFF); /* 100x dB */
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].uvalue = 10 * (s64) *snr; 
+	p->cnr.stat[0].svalue = 10 * (s64) *snr;
 	return stat;
 }
 
@@ -725,7 +725,7 @@ static int read_signal_strength(struct dvb_frontend *fe, u16 *strength)
 	*strength = (u16) (regData & 0xFFFF); /* 10x dBm */
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].uvalue = 10 * (s64) (s16) (regData & 0xFFFF); 
+	p->strength.stat[0].svalue = 10 * (s64) (s16) (regData & 0xFFFF);
 	return stat;
 }
 

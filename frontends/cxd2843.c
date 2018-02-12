@@ -1669,12 +1669,12 @@ static int get_stats(struct dvb_frontend *fe)
 	str -= 108750;
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].uvalue = str;
+	p->strength.stat[0].svalue = str;
 	
 	read_snr(fe, &val);
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].uvalue = 100 * (s64) (s16) val;
+	p->cnr.stat[0].svalue = 100 * (s64) (s16) val;
 	return 0;
 }
 
@@ -2179,7 +2179,7 @@ static int read_snr(struct dvb_frontend *fe, u16 *snr)
 	*snr = SNR;
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].uvalue = 10 * (s64) SNR; 
+	p->cnr.stat[0].svalue = 10 * (s64) SNR;
 	return 0;
 }
 
