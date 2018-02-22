@@ -33,6 +33,8 @@ static int set_mod_property (int fd, uint32_t cmd, uint32_t data)
   p.u.data = data;
   ret = ioctl(fd, FE_SET_PROPERTY, &c);
 
+  if(cmd == MODULATOR_GAIN && ret == -EINVAL) //Expected for modc Gen 1 cards
+    return 0;
   if (ret < 0)
   {
     fprintf(stderr, "FE_SET_PROPERTY  %d returned %d\n", cmd, errno);
