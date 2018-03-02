@@ -32,10 +32,27 @@ MODULE_PARM_DESC(msi,
 #endif
 
 #if (KERNEL_VERSION(4, 8, 0) > LINUX_VERSION_CODE)
+#if (KERNEL_VERSION(3, 19, 0) > LINUX_VERSION_CODE)
+#define msi_desc_to_dev(desc) (&(desc)->dev.dev)
+#define dev_to_msi_list(dev) (&to_pci_dev((dev))->msi_list)
+#define first_msi_entry(dev) \
+	list_first_entry(dev_to_msi_list((dev)), struct msi_desc, list)
+#define for_each_msi_entry(desc, dev) \
+	list_for_each_entry((desc), dev_to_msi_list((dev)), list)
+
+#ifdef CONFIG_PCI_MSI
+#define first_pci_msi_entry(pdev) first_msi_entry(&(pdev)->dev)
+#define for_each_pci_msi_entry(desc, pdev) \
+	for_each_msi_entry((desc), &(pdev)->dev)
+#endif
+
+#endif
+
 #include <linux/msi.h>
 
 int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 {
+#ifdef CONFIG_PCI_MSI
 	if (dev->msix_enabled) {
 		struct msi_desc *entry;
 		int i = 0;
@@ -48,6 +65,8 @@ int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 		WARN_ON_ONCE(1);
 		return -EINVAL;
 	}
+/* This does not work < 3.19 because nvec_used is used differently. */
+#if (KERNEL_VERSION(3, 19, 0) <= LINUX_VERSION_CODE)
 	if (dev->msi_enabled) {
 		struct msi_desc *entry = first_pci_msi_entry(dev);
 
@@ -57,6 +76,8 @@ int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 		if (WARN_ON_ONCE(nr > 0))
 			return -EINVAL;
 	}
+#endif
+#endif
 	return dev->irq + nr;
 }
 #endif
