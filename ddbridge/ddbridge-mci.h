@@ -1,9 +1,9 @@
 /*
  * ddbridge-mci.h: Digital Devices micro code interface
  *
- * Copyright (C) 2017 Digital Devices GmbH
- *                    Marcus Metzler <mocm@metzlerbros.de>
- *                    Ralph Metzler <rjkm@metzlerbros.de>
+ * Copyright (C) 2017-2018 Digital Devices GmbH
+ *                         Marcus Metzler <mocm@metzlerbros.de>
+ *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -52,48 +52,53 @@
 #define SX8_TSCONFIG_BURSTSIZE_8K           (0x00000020)
 #define SX8_TSCONFIG_BURSTSIZE_16K          (0x00000030)
 
-#define SX8_DEMOD_STOPPED       (0)
-#define SX8_DEMOD_IQ_MODE       (1)
-#define SX8_DEMOD_WAIT_SIGNAL   (2)
-#define SX8_DEMOD_WAIT_MATYPE   (3)
-#define SX8_DEMOD_TIMEOUT       (14)
-#define SX8_DEMOD_LOCKED        (15)
+#define SX8_DEMOD_STOPPED        (0)
+#define SX8_DEMOD_IQ_MODE        (1)
+#define SX8_DEMOD_WAIT_SIGNAL    (2)
+#define SX8_DEMOD_WAIT_MATYPE    (3)
+#define SX8_DEMOD_TIMEOUT        (14)
+#define SX8_DEMOD_LOCKED         (15)
 
-#define MCI_CMD_STOP            (0x01)
-#define MCI_CMD_GETSTATUS       (0x02)
-#define MCI_CMD_GETSIGNALINFO   (0x03)
-#define MCI_CMD_RFPOWER         (0x04)
+#define M4_DEMOD_STOPPED         (0)
+#define M4_DEMOD_WAIT_SIGNAL     (1)
+#define M4_DEMOD_TIMEOUT         (14)
+#define M4_DEMOD_LOCKED          (15)
 
-#define MCI_CMD_SEARCH_DVBS     (0x10)
+#define MCI_CMD_STOP             (0x01)
+#define MCI_CMD_GETSTATUS        (0x02)
+#define MCI_CMD_GETSIGNALINFO    (0x03)
+#define MCI_CMD_RFPOWER          (0x04)
 
-#define MCI_CMD_GET_IQSYMBOL    (0x30)
+#define MCI_CMD_SEARCH_DVBS      (0x10)
 
-#define SX8_CMD_INPUT_ENABLE    (0x40)
-#define SX8_CMD_INPUT_DISABLE   (0x41)
-#define SX8_CMD_START_IQ        (0x42)
-#define SX8_CMD_STOP_IQ         (0x43)
-#define SX8_CMD_SELECT_IQOUT    (0x44)
-#define SX8_CMD_SELECT_TSOUT    (0x45)
+#define MCI_CMD_GET_IQSYMBOL     (0x30)
 
-#define SX8_ERROR_UNSUPPORTED   (0x80)
+#define SX8_CMD_INPUT_ENABLE     (0x40)
+#define SX8_CMD_INPUT_DISABLE    (0x41)
+#define SX8_CMD_START_IQ         (0x42)
+#define SX8_CMD_STOP_IQ          (0x43)
+#define SX8_CMD_ENABLE_IQOUTPUT  (0x44)
+#define SX8_CMD_DISABLE_IQOUTPUT (0x45)
 
-#define SX8_SUCCESS(status)     (status < SX8_ERROR_UNSUPPORTED)
+#define MCI_ERROR_UNSUPPORTED    (0x80)
 
-#define SX8_CMD_DIAG_READ8      (0xE0)
-#define SX8_CMD_DIAG_READ32     (0xE1)
-#define SX8_CMD_DIAG_WRITE8     (0xE2)
-#define SX8_CMD_DIAG_WRITE32    (0xE3)
+#define MCI_SUCCESS(status)      (status < MCI_ERROR_UNSUPPORTED)
 
-#define M4_CMD_DIAG_READRF      (0xE8)
-#define M4_CMD_DIAG_WRITERF     (0xE9)
+#define SX8_CMD_DIAG_READ8       (0xE0)
+#define SX8_CMD_DIAG_READ32      (0xE1)
+#define SX8_CMD_DIAG_WRITE8      (0xE2)
+#define SX8_CMD_DIAG_WRITE32     (0xE3)
 
-#define M4_CMD_DIAG_READX       (0xE0)
-#define M4_CMD_DIAG_READT       (0xE1)
-#define M4_CMD_DIAG_WRITEX      (0xE2)
-#define M4_CMD_DIAG_WRITET      (0xE3)
+#define M4_CMD_DIAG_READRF       (0xE8)
+#define M4_CMD_DIAG_WRITERF      (0xE9)
 
-#define M4_CMD_DIAG_READRF      (0xE8)
-#define M4_CMD_DIAG_WRITERF     (0xE9)
+#define M4_CMD_DIAG_READX        (0xE0)
+#define M4_CMD_DIAG_READT        (0xE1)
+#define M4_CMD_DIAG_WRITEX       (0xE2)
+#define M4_CMD_DIAG_WRITET       (0xE3)
+
+#define M4_CMD_DIAG_READRF       (0xE8)
+#define M4_CMD_DIAG_WRITERF      (0xE9)
 
 
 struct mci_command {
@@ -149,8 +154,8 @@ struct mci_result {
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
 		struct {
-			u8 i_symbol;
-			u8 q_symbol;
+			s16 I;
+			s16 Q;
 		} dvbs2_signal_iq;
 	};
 	u32 version[4];

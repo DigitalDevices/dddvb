@@ -1,9 +1,9 @@
 /*
  * ddbridge-mci.c: Digital Devices microcode interface
  *
- * Copyright (C) 2017 Digital Devices GmbH
- *                    Ralph Metzler <rjkm@metzlerbros.de>
- *                    Marcus Metzler <mocm@metzlerbros.de>
+ * Copyright (C) 2017-2018 Digital Devices GmbH
+ *                         Ralph Metzler <rjkm@metzlerbros.de>
+ *                         Marcus Metzler <mocm@metzlerbros.de>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -238,6 +238,30 @@ static int get_info(struct dvb_frontend *fe)
 	return stat;
 }
 
+static int get_snr(struct dvb_frontend *fe)
+{
+	struct mci *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].svalue = (s64) state->signal_info.dvbs2_signal_info.signal_to_noise * 100;
+	return 0;
+}
+
+static int get_strength(struct dvb_frontend *fe)
+{
+	struct mci *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	s32 str;
+
+	str = 100000 - (state->signal_info.dvbs2_signal_info.channel_power * 10 + 108750);
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].svalue = str;
+	return 0;
+}
+
 static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	int stat;
@@ -252,10 +276,14 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (stat)
 		return stat;
 	*status = 0x00;
+	get_info(fe);
+	get_strength(fe);
 	if (res->status == SX8_DEMOD_WAIT_MATYPE)
 		*status = 0x0f;
-	if (res->status == SX8_DEMOD_LOCKED)
+	if (res->status == SX8_DEMOD_LOCKED) {
 		*status = 0x1f;
+		get_snr(fe);
+	}
 	return stat;
 }
 
@@ -378,7 +406,7 @@ unlock:
 	memset(&cmd, 0, sizeof(cmd));
 	
 	if (state->base->iq_mode) {
-		cmd.command = SX8_CMD_SELECT_IQOUT;
+		cmd.command = SX8_CMD_ENABLE_IQOUTPUT;
 		cmd.demod = state->demod;
 		cmd.output = 0;
 		mci_cmd(state, &cmd, NULL);
@@ -412,8 +440,6 @@ static int start_iq(struct dvb_frontend *fe, u32 ts_config)
 {
 	struct mci *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	static const u32 MAX_DEMOD_LDPC_BITRATE = (1550000000 / 6);
-	u32 used_ldpc_bitrate = 0, free_ldpc_bitrate;
 	u32 used_demods = 0;
 	struct mci_command cmd;
 	u32 input = state->tuner;
@@ -538,34 +564,6 @@ static int set_input(struct dvb_frontend *fe, int input)
 
 static int sleep(struct dvb_frontend *fe)
 {
-	struct mci *state = fe->demodulator_priv;
-
-}
-
-static int get_snr(struct dvb_frontend *fe)
-{
-	struct mci *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	s32 snr;
-	
-	get_info(fe);
-	p->cnr.len = 1;
-	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = (s64) state->signal_info.dvbs2_signal_info.signal_to_noise * 100;
-	return 0;
-}
-
-static int get_strength(struct dvb_frontend *fe)
-{
-	struct mci *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	s32 str;
-	
-	get_info(fe);
-	str = 100000 - (state->signal_info.dvbs2_signal_info.channel_power * 10 + 108750);
-	p->strength.len = 1;
-	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = str;
 	return 0;
 }
 
@@ -587,9 +585,10 @@ static struct dvb_frontend_ops mci_ops = {
 	},
 	.get_frontend_algo              = get_algo,
 	.tune                           = tune,
-	.release = release,
-	.read_status = read_status,
+	.release                        = release,
+	.read_status                    = read_status,
 	.set_input                      = set_input,
+	.sleep                          = sleep,
 };
 
 static struct mci_base *match_base(void *key)
