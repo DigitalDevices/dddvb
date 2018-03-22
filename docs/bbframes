@@ -1,15 +1,16 @@
 To allow the transport of DVB-S2 baseband frames (BBFrame) across existing hard- and software
 interfaces, we have added the ability to embed the BBFrame data into
 an MPEG2 transport stream.
-This is available on supported cards as firmware update.
 
-This feature is currently considered experimental.
+This feature is available on supported cards as firmware update and
+is currently considered experimental.
 
 Supported hardware:
 
 Cine V7A                  (>=1.7 FW)
 OctopusCI S2 Pro Advanced (>=1.7 FW)
 Duoflex S2 v4 Advanced    (TBA)
+MaxSX8                    (NOT the MAXS8!)
 
 The following cards are based on the broadcast version of the
 DVB-S2 demodulator. The BBFrame output is working but
@@ -80,3 +81,24 @@ API:
 
 Currently DTV_STREAM_ID is misused.
 Set it to 0x80000000 to enable frame mode in the demod.
+
+
+
+Because there were some questions why we use this data format,
+here are some examples for why using this format this makes handling BBFrames easier:
+
+- The start of a frame is easily found  because a new set of sections is
+  started. 
+  
+- Existing software layers like the Linux kernel DVB demuxer can be used unchanged.
+
+- Existing hardware like the OctopusNet SAT>IP server which can only handle TS packets can
+  stream BBFrames via SAT>IP with this method.
+
+- There is at least one demodulator (e.g. on the MaxSX8) which supports this format in hardware.
+
+
+
+
+
+
