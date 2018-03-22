@@ -1892,4 +1892,4 @@ EXPORT_SYMBOL_GPL(stv0910_attach);
 
 MODULE_DESCRIPTION("STV0910 DVB-S/S2 demodulator driver");
 MODULE_AUTHOR("Ralph und Marcus Metzler, Manfred Voelkel");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");

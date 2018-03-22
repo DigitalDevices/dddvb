@@ -5088,6 +5088,6 @@ error:
 
 MODULE_DESCRIPTION("DRX-K driver");
 MODULE_AUTHOR("Ralph Metzler");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 
 EXPORT_SYMBOL(drxk_attach);

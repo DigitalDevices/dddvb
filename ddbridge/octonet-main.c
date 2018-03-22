@@ -165,5 +165,5 @@ module_exit(exit_octonet);
 
 MODULE_DESCRIPTION("GPL");
 MODULE_AUTHOR("Marcus and Ralph Metzler, Metzler Brothers Systementwicklung GbR");
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("GPL v2");
 MODULE_VERSION(DDBRIDGE_VERSION);
