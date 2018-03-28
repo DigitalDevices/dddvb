@@ -649,8 +649,8 @@ static int get_ber_s(struct stv *state, u32 *ber_numerator,
 		return -1;
 
 	if ((regs[0] & 0x80) == 0) {
-		state->last_ber_denominator = 1 << ((state->ber_scale * 2) +
-						  10 + 3);
+		state->last_ber_denominator = 1ULL << ((state->ber_scale * 2) +
+						    10 + 3);
 		state->last_ber_numerator = ((u32)(regs[0] & 0x7f) << 16) |
 			((u32)regs[1] << 8) | regs[2];
 		if (state->last_ber_numerator < 256 && state->ber_scale < 6) {
