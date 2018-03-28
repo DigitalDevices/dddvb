@@ -686,7 +686,7 @@ static int read_ber(struct dvb_frontend *fe, u32 *ber)
 		p->pre_bit_error.stat[0].uvalue = reg[5];
 		p->pre_bit_count.len = 1;
 		p->pre_bit_count.stat[0].scale = FE_SCALE_COUNTER;
-		p->pre_bit_count.stat[0].uvalue = reg[6] * 188 * 8;
+		p->pre_bit_count.stat[0].uvalue = 8 * 188 * (u64)reg[6];
 		break;
 	case SYS_DVBS2:
 		break;
