@@ -1521,7 +1521,8 @@ static int dvb_register_adapters(struct ddb *dev)
 	struct dvb_adapter *adap;
 
 	if (adapter_alloc == 3 || dev->link[0].info->type == DDB_MOD ||
-	    dev->link[0].info->type == DDB_OCTONET) {
+	    dev->link[0].info->type == DDB_OCTONET ||
+	    dev->link[0].info->type == DDB_OCTOPRO ) {
 		port = &dev->port[0];
 		adap = port->dvb[0].adap;
 		ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
