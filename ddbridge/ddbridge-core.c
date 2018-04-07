@@ -2531,8 +2531,10 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 		dma->div = 1;
 	}
 	ddbwritel(io->port->dev, 0, DMA_BUFFER_ACK(dma));
+#if 0
 	dev_info(io->port->dev->dev, "init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
 		 io->port->lnr, io->nr, nr, dma->regs, dma->bufregs);
+#endif
 }
 
 static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
@@ -2557,8 +2559,10 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 		if (port->lnr)
 			dma_nr += 32 + (port->lnr - 1) * 8;
 
+#if 0
 		dev_info(dev->dev, "init link %u, input %u, handler %u\n",
 			 port->lnr, nr, dma_nr + base);
+#endif
 		ddb_irq_set(dev, 0, dma_nr + base, &input_handler, input);
 		ddb_dma_init(input, dma_nr, 0, dma_nr + base);
 	}
@@ -2576,8 +2580,10 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	rm = io_regmap(output, 1);
 	output->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->output->base + rm->output->size * nr);
+#if 0
 	dev_info(dev->dev, "init link %u, output %u, regs %08x\n",
 		 port->lnr, nr, output->regs);
+#endif
 	if (dev->has_dma) {
 		const struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
