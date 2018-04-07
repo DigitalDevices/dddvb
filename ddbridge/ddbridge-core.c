@@ -1371,11 +1371,19 @@ static struct stv0910_cfg stv0910_p = {
 	.clk      = 30000000,
 };
 
+static int has_lnbh25(struct i2c_adapter *i2c, u8 adr)
+{
+	u8 val;
+
+	return i2c_read_reg(i2c, adr, 0, &val) ? 0 : 1;
+}
+
 static int demod_attach_stv0910(struct ddb_input *input, int type)
 {
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct stv0910_cfg cfg = stv0910_p;
+	u8 lnbh_adr = 0x08;
 
 	if (stv0910_single)
 		cfg.single = 1;
@@ -1392,14 +1400,14 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 			"No STV0910 found!\n");
 		return -ENODEV;
 	}
+	if (has_lnbh25(i2c, 0x0d))
+		lnbh_adr = 0x0c;
+
 	if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
-			((input->nr & 1) ? 0x0d : 0x0c))) {
-		if (!dvb_attach(lnbh25_attach, dvb->fe, i2c,
-				((input->nr & 1) ? 0x09 : 0x08))) {
-			dev_err(input->port->dev->dev,
-				"No LNBH25 found!\n");
-			return -ENODEV;
-		}
+			(input->nr & 1) + lnbh_adr)) {
+		dev_err(input->port->dev->dev,
+			"No LNBH25 found!\n");
+		return -ENODEV;
 	}
 	return 0;
 }
