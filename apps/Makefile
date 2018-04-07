@@ -15,14 +15,6 @@ setmod2: setmod2.c
 setmod3: setmod3.c
 	$(CC) -o setmod3 setmod3.c -I../include/
 
-flashprog: flashprog.c
-	$(CC) -o flashprog flashprog.c
+%.o: %.c
+	$(CC) $(CFLAGS) -o $@ $<
 
-ddtest: ddtest.c
-	$(CC) -o ddtest ddtest.c
-
-ddflash: ddflash.c
-	$(CC) -o ddflash ddflash.c
-
-pls: pls.c
-	$(CC) -o pls pls.c
