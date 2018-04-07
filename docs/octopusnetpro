@@ -1,9 +1,9 @@
 - NAND flash
 
-0x00000000 - 0x0025ffff U-boot
-0x00260000 - 0x0027ffff ENV
-0x00300000 - 0x00ffffff Linux image
-
-0x01000000 - 0x01ffffff Linux recovery
-0x02000000 - 0x1fffffff Linux UBI
+0x00000000 - 0x0007ffff spl       512K
+0x00080000 - 0x0047ffff uboot       4M
+0x00480000 - 0x004fffff env       512K
+0x00500000 - 0x00ffffff spare      11M
+0x01000000 - 0x01ffffff recovery   16M
+0x02000000 - 0x1fffffff ubi          -
 
