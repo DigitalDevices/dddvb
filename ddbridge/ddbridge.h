@@ -165,7 +165,6 @@ struct ddb_info {
 	u32   board_control;
 	u32   board_control_2;
 	u8    ns_num;
-	u8    mdio_num;
 	u8    con_clock; /* use a continuous clock */
 	u8    ts_quirks;
 #define TS_QUIRK_SERIAL    1
@@ -174,6 +173,7 @@ struct ddb_info {
 #define TS_QUIRK_ALT_OSC   8
 	u32   tempmon_irq;
 	u32   lostlock_irq;
+	u32   mdio_base;
 	u8    mci;
 	const struct ddb_regmap *regmap;
 };

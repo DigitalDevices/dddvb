@@ -489,7 +489,7 @@ static const struct ddb_info ddb_octopro_hdin = {
 	.regmap   = &octopro_hdin_map,
 	.port_num = 10,
 	.i2c_mask = 0x3ff,
-	.mdio_num = 1,
+	.mdio_base = 0x10020,
 };
 
 static const struct ddb_info ddb_octopro = {
@@ -498,7 +498,7 @@ static const struct ddb_info ddb_octopro = {
 	.regmap   = &octopro_map,
 	.port_num = 10,
 	.i2c_mask = 0x3ff,
-	.mdio_num = 1,
+	.mdio_base = 0x10020,
 };
 
 static const struct ddb_info ddb_s2_48 = {
@@ -627,7 +627,7 @@ static const struct ddb_info ddb_octonet = {
 	.port_num = 4,
 	.i2c_mask = 0x0f,
 	.ns_num   = 12,
-	.mdio_num = 1,
+	.mdio_base = 0x20,
 };
 
 static const struct ddb_info ddb_octonet_jse = {
@@ -637,7 +637,7 @@ static const struct ddb_info ddb_octonet_jse = {
 	.port_num = 4,
 	.i2c_mask = 0x0f,
 	.ns_num   = 15,
-	.mdio_num = 1,
+	.mdio_base = 0x20,
 };
 
 static const struct ddb_info ddb_octonet_gtl = {
@@ -647,7 +647,7 @@ static const struct ddb_info ddb_octonet_gtl = {
 	.port_num = 4,
 	.i2c_mask = 0x05,
 	.ns_num   = 12,
-	.mdio_num = 1,
+	.mdio_base = 0x20,
 	.con_clock = 1,
 };
 

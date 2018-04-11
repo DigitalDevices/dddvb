@@ -3189,25 +3189,25 @@ int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len)
 	return flashio(dev, link, cmd, 4, buf, len);
 }
 
-static int mdio_write(struct ddb *dev, u8 adr, u8 reg, u16 val)
+static int mdio_write(struct ddb *dev, u8 adr, u8 reg, u16 val, u32 mdio_base)
 {
-	ddbwritel(dev, adr, MDIO_ADR);
-	ddbwritel(dev, reg, MDIO_REG);
-	ddbwritel(dev, val, MDIO_VAL);
-	ddbwritel(dev, 0x03, MDIO_CTRL);
-	while (ddbreadl(dev, MDIO_CTRL) & 0x02)
+	ddbwritel(dev, adr, MDIO_ADR_OFF + mdio_base);
+	ddbwritel(dev, reg, MDIO_REG_OFF + mdio_base);
+	ddbwritel(dev, val, MDIO_VAL_OFF + mdio_base);
+	ddbwritel(dev, 0x03, MDIO_CTRL_OFF + mdio_base);
+	while (ddbreadl(dev, MDIO_CTRL_OFF + mdio_base) & 0x02)
 		ndelay(500);
 	return 0;
 }
 
-static u16 mdio_read(struct ddb *dev, u8 adr, u8 reg)
+static u16 mdio_read(struct ddb *dev, u8 adr, u8 reg, u32 mdio_base)
 {
-	ddbwritel(dev, adr, MDIO_ADR);
-	ddbwritel(dev, reg, MDIO_REG);
-	ddbwritel(dev, 0x07, MDIO_CTRL);
-	while (ddbreadl(dev, MDIO_CTRL) & 0x02)
+	ddbwritel(dev, adr, MDIO_ADR_OFF + mdio_base);
+	ddbwritel(dev, reg, MDIO_REG_OFF + mdio_base);
+	ddbwritel(dev, 0x07, MDIO_CTRL_OFF + mdio_base);
+	while (ddbreadl(dev, MDIO_CTRL_OFF + mdio_base) & 0x02)
 		ndelay(500);
-	return ddbreadl(dev, MDIO_VAL);
+	return ddbreadl(dev, MDIO_VAL_OFF + mdio_base);
 }
 
 #define DDB_MAGIC 'd'
@@ -3383,12 +3383,13 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case IOCTL_DDB_READ_MDIO:
 	{
 		struct ddb_mdio mdio;
+		u32 mdio_base = dev->link[0].info->mdio_base;
 
-		if (!dev->link[0].info->mdio_num)
+		if (!mdio_base)
 			return -EIO;
 		if (copy_from_user(&mdio, parg, sizeof(mdio)))
 			return -EFAULT;
-		mdio.val = mdio_read(dev, mdio.adr, mdio.reg);
+		mdio.val = mdio_read(dev, mdio.adr, mdio.reg, mdio_base);
 		if (copy_to_user(parg, &mdio, sizeof(mdio)))
 			return -EFAULT;
 		break;
@@ -3396,12 +3397,13 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case IOCTL_DDB_WRITE_MDIO:
 	{
 		struct ddb_mdio mdio;
+		u32 mdio_base = dev->link[0].info->mdio_base;
 
-		if (!dev->link[0].info->mdio_num)
+		if (!mdio_base)
 			return -EIO;
 		if (copy_from_user(&mdio, parg, sizeof(mdio)))
 			return -EFAULT;
-		mdio_write(dev, mdio.adr, mdio.reg, mdio.val);
+		mdio_write(dev, mdio.adr, mdio.reg, mdio.val, mdio_base);
 		break;
 	}
 	case IOCTL_DDB_READ_MEM:

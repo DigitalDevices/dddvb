@@ -44,10 +44,17 @@
 /* ------------------------------------------------------------------------- */
 /* MDIO */
 
+#if 0
 #define MDIO_CTRL        0x20
 #define MDIO_ADR         0x24
 #define MDIO_REG         0x28
 #define MDIO_VAL         0x2C
+#endif
+
+#define MDIO_CTRL_OFF    0x00
+#define MDIO_ADR_OFF     0x04
+#define MDIO_REG_OFF     0x08
+#define MDIO_VAL_OFF     0x0C
 
 /* ------------------------------------------------------------------------- */
 
