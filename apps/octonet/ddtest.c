@@ -722,9 +722,10 @@ int mdio(int dev, int argc, char* argv[], uint32_t Flags)
 	adr = strtoul(argv[0], NULL, 16);
 	reg = strtoul(argv[1], NULL, 16);
 	
+#if 0  
 	writereg(dev, 0x24, adr);
 	writereg(dev, 0x28, reg);
-	if(argc > 2) {
+	if (argc > 2) {
 		val = strtoul(argv[2], NULL, 16);
 		writereg(dev, 0x2c, val);
 		writereg(dev, 0x20, 0x03);
@@ -739,6 +740,23 @@ int mdio(int dev, int argc, char* argv[], uint32_t Flags)
 		readreg(dev, 0x2c, &val);
 		printf("%04x\n", val);
 	}
+#else
+	{
+		struct ddb_mdio mdio = {
+			.adr = adr,
+			.reg = reg,
+		};
+
+		if(argc > 2) {
+			mdio.val = strtoul(argv[2], NULL, 16);
+			return ioctl(dev, IOCTL_DDB_WRITE_MDIO, &mdio);
+		} else {
+			if (ioctl(dev, IOCTL_DDB_READ_MDIO, &mdio) < 0)
+				return -1;
+			printf("%04x\n", mdio.val);
+		}
+	}
+#endif
 	return 0;
 }
 
