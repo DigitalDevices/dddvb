@@ -15,51 +15,9 @@
 
 void usage(char* argv[])
 {
-  printf("Usage: %s [-d device] [-f base_frequency[Hz]]"
+  printf("Usage: %s [-d device] [-f base_frequency[Hz]] [-a attenuation[dB]]"
     " [-m modulation[qam_16, qam32, qam_64, qam_128, qam256]] [-p pcr_correction[1/0]]"
-    " [-b bitrate[bps]] [-g gain[dB]]\n", argv[0]);
-}
-
-static int set_mod_property (int fd, uint32_t cmd, uint32_t data)
-{
-  struct dtv_property p;
-  struct dtv_properties c;
-  int ret;
-
-  if( fd < 0 ) return -1;
-  p.cmd = cmd;
-  c.num = 1;
-  c.props = &p;
-  p.u.data = data;
-  ret = ioctl(fd, FE_SET_PROPERTY, &c);
-
-  if(cmd == MODULATOR_GAIN && ret == -EINVAL) //Expected for modc Gen 1 cards
-    return 0;
-  if (ret < 0)
-  {
-    fprintf(stderr, "FE_SET_PROPERTY  %d returned %d\n", cmd, errno);
-  }
-}
-
-int modulator_set_output_power (int fd, int power)
-{
-  unsigned int atten = 0;
-  unsigned int gain = 0;
-  if ( power > POWER_REF )
-    gain = (power - POWER_REF) * 8;
-  else
-    atten = POWER_REF - power;
-
-  if (gain > RF_VGA_GAIN_MAX)
-    gain = RF_VGA_GAIN_MAX;
-  if (atten > 31)
-    atten = 31;
-
-  set_mod_property(fd, MODULATOR_ATTENUATOR,atten);
-  usleep(1000); // driver bug
-
-  set_mod_property(fd, MODULATOR_GAIN,gain);
-  return 0;
+    " [-b bitrate[bps]]\n", argv[0]);
 }
 
 
@@ -70,17 +28,13 @@ int main(int argc, char* argv[])
   struct dvb_mod_channel_params mc;
   char *device = NULL;
   uint32_t base_freq = 0;
-  uint8_t gain = POWER_REF;
+  uint32_t attenuation = 0;
   char *modulation_str = NULL;
   int pcr_correction = -1;
   uint64_t bitrate = 0;
   int opt;
 
-  if (argc != 7)
-  {
-  }
-
-  while ((opt = getopt(argc, argv, "d:f:m:p:b:g:")) != -1)
+  while ((opt = getopt(argc, argv, "d:f:m:p:b:a:")) != -1)
   {
     switch (opt)
     {
@@ -99,8 +53,8 @@ int main(int argc, char* argv[])
       case 'b':
         bitrate = strtoul(optarg, NULL, 10);
         break;
-      case 'g':
-        gain = strtoul(optarg, NULL, 10);
+      case 'a':
+        attenuation = strtoul(optarg, NULL, 10);
         break;
     }
   }
@@ -111,17 +65,12 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  char *device = argv[1];
-  uint32_t base_freq = strtoul(argv[2], NULL, 10);
-  if (base_freq < 114000000 || base_freq > 794000000)
+  if (base_freq < 114000000 || base_freq > 786000000)
   {
     printf("Invalid frequency \'%i\'\n", base_freq);
     exit(EXIT_FAILURE);
   }
-  uint32_t attenuation = strtoul(argv[3], NULL, 10);
-
   enum fe_modulation modulation;
-  char *modulation_str = argv[4];
   if (strcmp(modulation_str, "qam_16") == 0)
   {
     modulation = QAM_16;
@@ -147,8 +96,6 @@ int main(int argc, char* argv[])
     printf("Invalid modulation \'%s\'\n", modulation_str);
     exit(EXIT_FAILURE);
   }
-  int pcr_correction = strtoul(argv[5], NULL, 10);
-  uint64_t bitrate = strtoul(argv[6], NULL, 10);
 
   fd = open(device, O_RDONLY);
   if (fd == -1)
@@ -157,14 +104,13 @@ int main(int argc, char* argv[])
     exit(EXIT_FAILURE);
   }
 
-  printf("Setting base_freq=%u modulation=%s, pcr_correction=%d"
-    "input_bitrate=%u gain=%udB on %s\n",
-    base_freq, modulation_str, pcr_correction, bitrate, gain, device);
+  printf("Setting base_freq=%u attenuation=%u modulation=%s, pcr_correction=%d"
+    "input_bitrate=%u on %s\n",
+    base_freq, attenuation, modulation_str, pcr_correction, bitrate, device);
 
   mp.base_frequency = base_freq;
+  mp.attenuator = attenuation;
   ioctl(fd, DVB_MOD_SET, &mp);
-
-  modulator_set_output_power(fd, gain);
 
   mc.modulation = modulation;
   mc.input_bitrate = bitrate << 32;

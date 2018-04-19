@@ -6,6 +6,7 @@
 
 struct dvb_mod_params {
 	__u32 base_frequency;
+	__u32 attenuator;
 };
 
 struct dvb_mod_channel_params {

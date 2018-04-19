@@ -1665,6 +1665,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 						  i * 8000000);
 			}
 		}
+		mod_set_attenuator(dev, mp->attenuator);
 		break;
 	}
 	case DVB_MOD_CHANNEL_SET:
