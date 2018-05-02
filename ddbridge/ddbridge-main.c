@@ -337,6 +337,13 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	dev_info(dev->dev, "HW %08x REGMAP %08x\n",
 		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
+	if ((dev->link[0].ids.hwid & 0xffffff) <
+	    dev->link[0].info->hw_min) {
+		u32 min = dev->link[0].info->hw_min;
+
+		dev_err(dev->dev, "Update firmware to at least version %u.%u to ensure full functionality!\n",
+			 (min & 0xff0000) >> 16, min & 0xffff);
+	}
 
 	if (dev->link[0].info->ns_num) {
 		ddbwritel(dev, 0, ETHER_CONTROL);

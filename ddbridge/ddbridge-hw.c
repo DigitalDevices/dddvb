@@ -336,6 +336,7 @@ static const struct ddb_info ddb_v7a = {
 	.board_control   = 2,
 	.board_control_2 = 4,
 	.ts_quirks = TS_QUIRK_REVERSED,
+	.hw_min    = 0x010007,
 };
 
 static const struct ddb_info ddb_v7 = {
@@ -347,6 +348,7 @@ static const struct ddb_info ddb_v7 = {
 	.board_control   = 2,
 	.board_control_2 = 4,
 	.ts_quirks = TS_QUIRK_REVERSED,
+	.hw_min    = 0x010007,
 };
 
 static const struct ddb_info ddb_ctv7 = {
@@ -391,6 +393,7 @@ static const struct ddb_info ddb_ci_s2_pro = {
 	.i2c_mask = 0x01,
 	.board_control   = 2,
 	.board_control_2 = 4,
+	.hw_min    = 0x010007,
 };
 
 static const struct ddb_info ddb_ci_s2_pro_a = {
@@ -401,6 +404,7 @@ static const struct ddb_info ddb_ci_s2_pro_a = {
 	.i2c_mask = 0x01,
 	.board_control   = 2,
 	.board_control_2 = 4,
+	.hw_min    = 0x010007,
 };
 
 static const struct ddb_info ddb_dvbct = {

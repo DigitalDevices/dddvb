@@ -167,6 +167,7 @@ struct ddb_info {
 	u8    ns_num;
 	u8    con_clock; /* use a continuous clock */
 	u8    ts_quirks;
+	u8    mci;
 #define TS_QUIRK_SERIAL    1
 #define TS_QUIRK_REVERSED  2
 #define TS_QUIRK_NO_OUTPUT 4
@@ -174,7 +175,7 @@ struct ddb_info {
 	u32   tempmon_irq;
 	u32   lostlock_irq;
 	u32   mdio_base;
-	u8    mci;
+	u32   hw_min;
 	const struct ddb_regmap *regmap;
 };
 
