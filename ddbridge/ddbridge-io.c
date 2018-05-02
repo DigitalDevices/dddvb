@@ -62,7 +62,7 @@ u32 ddbreadl(struct ddb *dev, u32 adr)
 {
 	if (unlikely(adr & 0xf0000000)) {
 		unsigned long flags;
-		u32 val, l = (adr >> DDB_LINK_SHIFT);
+		u32 val, l = (adr >> DDB_LINK_SHIFT) & 3;
 		struct ddb_link *link = &dev->link[l];
 
 		spin_lock_irqsave(&link->lock, flags);
