@@ -2330,11 +2330,6 @@ static void input_write_dvb(struct ddb_input *input,
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
-#if 0
-		dev_info(dev->dev, "%02x %02x %02x %02x\n",
-			 dma2->vbuf[dma->cbuf][0], dma2->vbuf[dma->cbuf][1],
-			 dma2->vbuf[dma->cbuf][2], dma2->vbuf[dma->cbuf][3]);
-#endif
 		dvb_dmx_swfilter_packets(&dvb->demux,
 					 dma2->vbuf[dma->cbuf],
 					 dma2->size / 188);
