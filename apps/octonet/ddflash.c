@@ -659,6 +659,13 @@ static int update_flash(struct ddflash *ddf)
 			stat |= 1;
 		return stat;
 		break;
+	case 0x322:
+		//fname="/boot/DVBNetV1A_DD01_0300.bit";
+		fname="/boot/fpga.img";
+		if ((res = update_image(ddf, fname, 0x10000, 0x100000, 1, 0)) == 1)
+			stat |= 1;
+		return stat;
+		break;
 	default:
 		return 0;
 	}
