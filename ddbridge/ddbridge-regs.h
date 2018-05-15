@@ -21,12 +21,16 @@
 
 /* Register Definitions */
 
-#define CUR_REGISTERMAP_VERSION_V1  0x00010001
-#define CUR_REGISTERMAP_VERSION_V2  0x00020000
-#define CUR_REGISTERMAP_VERSION_022X  0x00020001
+#define CUR_REGISTERMAP_VERSION        0x10004
+#define CUR_REGISTERMAP_VERSION_0007   0x10002
+#define CUR_REGISTERMAP_VERSION_0008   0x10002
+#define CUR_REGISTERMAP_VERSION_CI     0x10000
+#define CUR_REGISTERMAP_VERSION_CI_PRO 0x10000
 
-#define HARDWARE_VERSION            0x00000000
-#define REGISTERMAP_VERSION         0x00000004
+#define HARDWARE_VERSION       0x0000
+#define REGISTERMAP_VERSION    0x0004
+#define DEVICE_ID              0x0008
+#define BOARD_ID               0x000C
 
 /* ------------------------------------------------------------------------- */
 /* SPI Controller */
@@ -43,13 +47,6 @@
 
 /* ------------------------------------------------------------------------- */
 /* MDIO */
-
-#if 0
-#define MDIO_CTRL        0x20
-#define MDIO_ADR         0x24
-#define MDIO_REG         0x28
-#define MDIO_VAL         0x2C
-#endif
 
 #define MDIO_CTRL_OFF    0x00
 #define MDIO_ADR_OFF     0x04
@@ -155,7 +152,9 @@
 #define TEMPMON_CONTROL_SCAN        (0x00000001)
 #define TEMPMON_CONTROL_AUTOSCAN    (0x00000002)
 #define TEMPMON_CONTROL_INTENABLE   (0x00000004)
+#define TEMPMON_CONTROL_CLEAR       (0x00000008)
 #define TEMPMON_CONTROL_OVERTEMP    (0x00008000)
+#define TEMPMON_STATUS_SHUTDOWN     (0x00008000)
 
 /* Temperature in C x 256 */
 #define TEMPMON_CORE       (TEMPMON_BASE + 0x04)
@@ -166,6 +165,9 @@
 #define TEMPMON_FANCONTROL  (TEMPMON_BASE + 0x10)
 #define TEMPMON_FANPWM      (0x00000F00)  /* PWM speed in 10% steps */
 #define TEMPMON_FANTACHO    (0x000000FF) /*  Rotations in 100/min steps */
+
+#define TEMPMON_INTERRUPT_V1        (24)
+#define TEMPMON_INTERRUPT_V1_MASK   (1<<24)
 
 /* V1 Temperature Monitor
  * Temperature Monitor TEMPMON_CONTROL & 0x8000 == 0 : ( 2x LM75A @ 0x90,0x92 )
@@ -190,6 +192,7 @@
 #define TEMPMON2_QAMCORE    (TEMPMON_SENSOR2)
 /* SHORT Temperature in C x 256 (ADM1032 ext) */
 #define TEMPMON2_DACCORE    (TEMPMON_SENSOR2)
+
 
 /* ------------------------------------------------------------------------- */
 /* I2C Master Controller */
@@ -230,6 +233,10 @@
 #define TS_CONTROL(_io)         ((_io)->regs + 0x00)
 #define TS_CONTROL2(_io)        ((_io)->regs + 0x04)
 
+#define TS_INPUT_CONTROL_ENABLE     (0x00000001)
+#define TS_INPUT_CONTROL_RESET      (0x00000002)
+#define TS_INPUT_CONTROL_SKIPERROR  (0x00000008)
+
 /* ------------------------------------------------------------------------- */
 /* DMA  Buffer */
 
@@ -255,11 +262,18 @@
 #define LNB_BUSY  BIT_ULL(4)
 #define LNB_TONE  BIT_ULL(15)
 
+#define LNB_INTERRUPT_BASE      4
+
 #define LNB_STATUS(i)                (LNB_BASE + (i) * 0x20 + 0x04)
 #define LNB_VOLTAGE(i)               (LNB_BASE + (i) * 0x20 + 0x08)
 #define LNB_CONFIG(i)                (LNB_BASE + (i) * 0x20 + 0x0c)
 #define LNB_BUF_LEVEL(i)             (LNB_BASE + (i) * 0x20 + 0x10)
 #define LNB_BUF_WRITE(i)             (LNB_BASE + (i) * 0x20 + 0x14)
+
+#define LNB_SETTING(i)               (LNB_BASE + (i) * 0x20 + 0x0c)
+#define LNB_FIFO_LEVEL(i)            (LNB_BASE + (i) * 0x20 + 0x10)
+#define LNB_RESET_FIFO(i)            (LNB_BASE + (i) * 0x20 + 0x10)
+#define LNB_WRITE_FIFO(i)            (LNB_BASE + (i) * 0x20 + 0x14)
 
 /* ------------------------------------------------------------------------- */
 /* CI Interface (only CI-Bridge) */

@@ -92,6 +92,7 @@
 #include "mxl5xx.h"
 
 #include "ddbridge-regs.h"
+#include "ddbridge-mci.h"
 
 #define DDB_MAX_I2C    32
 #define DDB_MAX_PORT   32
@@ -157,21 +158,24 @@ struct ddb_info {
 	u32   version;
 	char *name;
 	u32   i2c_mask;
+	u32   board_control;
+	u32   board_control_2;
+
 	u8    port_num;
 	u8    led_num;
 	u8    fan_num;
 	u8    temp_num;
 	u8    temp_bus;
-	u32   board_control;
-	u32   board_control_2;
 	u8    ns_num;
 	u8    con_clock; /* use a continuous clock */
 	u8    ts_quirks;
-	u8    mci;
 #define TS_QUIRK_SERIAL    1
 #define TS_QUIRK_REVERSED  2
 #define TS_QUIRK_NO_OUTPUT 4
 #define TS_QUIRK_ALT_OSC   8
+	u8    mci_ports;
+	u8    mci_type;
+
 	u32   tempmon_irq;
 	u32   lostlock_irq;
 	u32   mdio_base;
@@ -557,10 +561,21 @@ void ddb_i2c_release(struct ddb *dev);
 int ddb_ci_attach(struct ddb_port *port, u32 bitrate);
 
 int ddb_fe_attach_mxl5xx(struct ddb_input *input);
-int ddb_fe_attach_mci(struct ddb_input *input);
+int ddb_fe_attach_mci(struct ddb_input *input, u32 type);
 int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm);
 
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data);
+
+struct mci_cfg {
+	int type;
+	struct dvb_frontend_ops *fe_ops;
+	u32 base_size;
+	u32 state_size;
+	int (*init)(struct mci *mci);
+	int (*base_init)(struct mci_base *mci_base);
+};
+
+struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr);
 
 #endif

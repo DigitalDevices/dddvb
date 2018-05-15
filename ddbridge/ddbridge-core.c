@@ -26,7 +26,6 @@
 #include "ddbridge-i2c.h"
 #include "ddbridge-io.h"
 #include "dvb_net.h"
-#include "ddbridge-mci.h"
 
 struct workqueue_struct *ddb_wq;
 
@@ -1766,8 +1765,9 @@ static int dvb_input_attach(struct ddb_input *input)
 		if (demod_attach_dummy(input) < 0)
 			return -ENODEV;
 		break;
-	case DDB_TUNER_MCI:
-		if (ddb_fe_attach_mci(input) < 0)
+	case DDB_TUNER_MCI_SX8:
+	case DDB_TUNER_MCI_M4:
+		if (ddb_fe_attach_mci(input, port->type) < 0)
 			return -ENODEV;
 		break;
 	default:
@@ -2062,13 +2062,13 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (dev->link[l].info->type == DDB_OCTOPUS_MCI) {
-		if (port->nr >= dev->link[l].info->mci)
+	if (link->info->type == DDB_OCTOPUS_MCI) {
+		if (port->nr >= link->info->mci_ports)
 			return;
 		port->name = "DUAL MCI";
 		port->type_name = "MCI";
 		port->class = DDB_PORT_TUNER;
-		port->type = DDB_TUNER_MCI;
+		port->type = DDB_TUNER_MCI + link->info->mci_type;
 		return;
 	}
 

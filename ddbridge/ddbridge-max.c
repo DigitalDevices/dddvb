@@ -24,7 +24,6 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 #include "ddbridge-i2c.h"
-#include "ddbridge-mci.h"
 
 /* MAX LNB interface related module parameters */
 
@@ -445,11 +444,10 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 
 /* MAX MCI related functions */
 
-static struct mci_cfg maxsx8 = {
+extern struct mci_cfg ddb_max_sx8_cfg;
+extern struct mci_cfg ddb_max_m4_cfg;
 
-};
-
-int ddb_fe_attach_mci(struct ddb_input *input)
+int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
 	struct ddb *dev = input->port->dev;
 	//struct i2c_adapter *i2c = &input->port->i2c->adap;
@@ -459,14 +457,23 @@ int ddb_fe_attach_mci(struct ddb_input *input)
 	int demod, tuner;
 	struct mci_cfg cfg;
 
-	cfg = maxsx8;
 	demod = input->nr;
 	tuner = demod & 3;
-	if (fmode == 3)
-		tuner = 0;
-	dvb->fe = ddb_mci_attach(input, 0, demod);
+	switch (type) {
+	case DDB_TUNER_MCI_SX8:
+		cfg = ddb_max_sx8_cfg;
+		if (fmode == 3)
+			tuner = 0;
+		break;
+	case DDB_TUNER_MCI_M4:
+		cfg = ddb_max_m4_cfg;
+		break;
+	default:
+		return -EINVAL;
+	}
+	dvb->fe = ddb_mci_attach(input, &cfg, demod);
 	if (!dvb->fe) {
-		dev_err(dev->dev, "No MAXSX8 found!\n");
+		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;
 	}
 	if (input->nr < 4) {
