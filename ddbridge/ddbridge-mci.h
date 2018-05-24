@@ -59,6 +59,22 @@
 #define SX8_TSCONFIG_MODE_NORMAL            (0x00000001)
 #define SX8_TSCONFIG_MODE_IQ                (0x00000003)
 
+/*
+ * IQMode only vailable on MaxSX8 on a single tuner
+ *
+ * IQ_MODE_SAMPLES
+ *       sampling rate is 1550/24 MHz (64.583 MHz)
+ *       channel agc is frozen, to allow stitching the FFT results together
+ *
+ * IQ_MODE_VTM
+ *       sampling rate is the supplied symbolrate
+ *       channel agc is active
+ *
+ *  in both cases down sampling is done with a RRC Filter (currently fixed to alpha = 0.05)
+ *  which causes some (ca 5%) aliasing at the edges from outside the spectrum
+*/
+
+
 #define SX8_TSCONFIG_TSHEADER               (0x00000004)
 #define SX8_TSCONFIG_BURST                  (0x00000008)
 
@@ -134,23 +150,6 @@
 
 /********************************************************/
 
-#define SX8_CMD_DIAG_READ8       (0xE0)
-#define SX8_CMD_DIAG_READ32      (0xE1)
-#define SX8_CMD_DIAG_WRITE8      (0xE2)
-#define SX8_CMD_DIAG_WRITE32     (0xE3)
-
-#define M4_CMD_DIAG_READRF       (0xE8)
-#define M4_CMD_DIAG_WRITERF      (0xE9)
-
-#define M4_CMD_DIAG_READX        (0xE0)
-#define M4_CMD_DIAG_READT        (0xE1)
-#define M4_CMD_DIAG_WRITEX       (0xE2)
-#define M4_CMD_DIAG_WRITET       (0xE3)
-
-#define M4_CMD_DIAG_READRF       (0xE8)
-#define M4_CMD_DIAG_WRITERF      (0xE9)
-
-
 struct mci_command {
 	union {
 		u32 command_word;
@@ -190,10 +189,10 @@ struct mci_command {
 			uint8_t   rsvd1;
 			uint8_t   retry;
 			uint32_t  frequency;
-		} dvbt_Search;
+		} dvbt_search;
 		
 		struct {
-			uint8_t   flags;              // Bit 0: T2 Lite Profile, 7: PLP,
+			uint8_t   flags;       /* Bit 0: T2 Lite Profile, 7: PLP, */
 			uint8_t   bandwidth;
 			uint8_t   rsvd1;
 			uint8_t   retry;
@@ -201,7 +200,7 @@ struct mci_command {
 			uint32_t  reserved;
 			uint8_t   plp;
 			uint8_t   rsvd2[3];
-		} dvbt2_Search;
+		} dvbt2_search;
 		
 		struct {
 			uint8_t   Tap;
@@ -210,17 +209,17 @@ struct mci_command {
 		} get_iq_symbol;
 
 		struct {
-			uint8_t   flags;              //  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain
-			uint8_t   roll_off;            // 
+			uint8_t   flags;              /*  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain */
+			uint8_t   roll_off;
 			uint8_t   rsvd1;
 			uint8_t   rsvd2;              
 			uint32_t  frequency;
-			uint32_t  symbol_rate;         // Only in VTM mode.
+			uint32_t  symbol_rate;         /* Only in VTM mode. */
 			uint16_t  gain;
 		} sx8_start_iq;
 		
 		struct {
-			uint8_t     flags;    // Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB, 2 = Minimum, 3 = Maximum
+			uint8_t     flags; /* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB, 2 = Minimum, 3 = Maximum */
 		} sx8_input_enable;
 	};
 };
@@ -237,57 +236,57 @@ struct mci_result {
 	union {
 		u32 result[27];
 		struct {
-			u8  standard; // 1 = DVB-S, 2 = DVB-S2X
+			u8  standard; /* 1 = DVB-S, 2 = DVB-S2X */
 			u8  pls_code; /* puncture rate for DVB-S */
-			u8  roll_off;           // 2-0: rolloff
+			u8  roll_off;           /* 2-0: rolloff */
 			u8  rsvd;
-			u32 frequency;         // actual frequency in Hz
-			u32 symbol_rate;        // actual symbolrate in Hz
-			s16 channel_power;      // channel power in dBm x 100
-			s16 band_power;         // band power in dBm x 100
-			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			u32 frequency;         /* actual frequency in Hz */
+			u32 symbol_rate;       /* actual symbolrate in Hz */
+			s16 channel_power;     /* channel power in dBm x 100 */
+			s16 band_power;        /*/ band power in dBm x 100 */
+			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
-			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-			u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
 		struct {
 			u8  modulation;
 			u8  rsvd1[3];
-			u32 frequency;         // actual frequency in Hz
-			u32 symbol_rate;        // actual symbolrate in Hz
-			s16 channel_power;      // channel power in dBm x 100
-			s16 band_power;         // band power in dBm x 100
-			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			u32 frequency;         /* actual frequency in Hz */
+			u32 symbol_rate;       /* actual symbolrate in Hz */
+			s16 channel_power;     /* channel power in dBm x 100 */
+			s16 band_power;        /* band power in dBm x 100 */
+			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
-			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-			u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;
 		} dvbc_signal_info;
 		struct {
-			u8  tps_25_32;         // Constellation (2), Hierarchy (3), Coderate HP (3)
-			u8  tps_33_39;         // Coderate LP (3), Guardinterval (2), FFT (2), 0 (1)
-			u16 tps_cell_id;        // Cell Identifier
-			u32 frequency;         // actual frequency in Hz
-			u32 rsvd1;             //
-			s16 channel_power;      // channel power in dBm x 100
-			s16 band_power;         // band power in dBm x 100
-			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			u8  tps_25_32;         /* Constellation (2), Hierarchy (3), Coderate HP (3) */
+			u8  tps_33_39;         /* Coderate LP (3), Guardinterval (2), FFT (2), 0 (1) */
+			u16 tps_cell_id;       /* Cell Identifier */
+			u32 frequency;         /* actual frequency in Hz */
+			u32 rsvd1;
+			s16 channel_power;     /* channel power in dBm x 100 */
+			s16 band_power;        /* band power in dBm x 100 */
+			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
-			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-			u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;
 		} dvbt_signal_info;
 		struct {
-			u32 Rsvd0     ;        //
-			u32 frequency;         // actual frequency in Hz
-			u32 rsvd1;             //
-			s16 channel_power;      // channel power in dBm x 100
-			s16 band_power;         // band power in dBm x 100
-			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			u32 rsvd0;
+			u32 frequency;         /* actual frequency in Hz */
+			u32 rsvd1;
+			s16 channel_power;      /* channel power in dBm x 100 */
+			s16 band_power;         /* band power in dBm x 100 */
+			s16 signal_to_noise;     /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
-			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-			u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+			u32 packet_errors;      /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;      /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;
 		} dvbt2_signal_info;
 		struct {
@@ -304,9 +303,9 @@ struct mci_result {
 	u32 version[4];
 };
 
-// Helper Macros
+/* Helper Macros */
 
-// DVB-T2 L1-Pre Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.2 )
+/* DVB-T2 L1-Pre Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.2 ) */
 
 #define L1PRE_TYPE(p)                     ((p)[0] & 0xFF)
 #define L1PRE_BWT_EXT(p)                  ((p)[1] & 0x01)
@@ -336,7 +335,7 @@ struct mci_result {
 #define L1PRE_T2_BASE_LITE(p)             (((p)[32] & 0x10) >> 4)
 
 
-// DVB-T2 L1-Post Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.3 )
+/* DVB-T2 L1-Post Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.3 ) */
 
 #define L1POST_SUB_SLICES_PER_FRAME(p)     (((u16)(p)[ 0] & 0x7F) | (p)[ 1])
 #define L1POST_NUM_PLP(p)                  ((p)[2] & 0xFF)
@@ -348,8 +347,8 @@ struct mci_result {
 #define L1POST_FEF_LENGTH(p)               (((u32)(p)[11] << 16) | ((u32)(p)[12] << 8) | (p)[13])
 #define L1POST_FEF_INTERVAL(p)             ((p)[14] & 0xFF)
 
-// Repeated for each PLP,
-// Hardware is restricted to retrieve only values for current data PLP and common PLP
+/* Repeated for each PLP, */
+/* Hardware is restricted to retrieve only values for current data PLP and common PLP */
 
 #define L1POST_PLP_ID(p)                   ((p)[0] & 0xFF)
 #define L1POST_PLP_TYPE(p)                 ((p)[1] & 0x07)
