@@ -3584,7 +3584,7 @@ static ssize_t temp_show(struct device *device,
 	int i;
 	u8 tmp[2];
 
-	if (link->info->type == DDB_MOD) {
+	if (link->info->type == DDB_MOD ) {
 		if (link->info->version >= 2) {
 			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
 			temp = (temp * 1000) >> 8;
@@ -3613,6 +3613,12 @@ static ssize_t temp_show(struct device *device,
 			return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
 		}
 		return sprintf(buf, "%d %d\n", temp, temp2);
+	}
+	if (link->info->type == DDB_OCTOPUS_MCI ) {
+		temp = 0xffff & ddbreadl(dev, TEMPMON_SENSOR0);
+		temp = (temp * 1000) >> 8;
+
+		return sprintf(buf, "%d\n", temp);
 	}
 	if (!link->info->temp_num)
 		return sprintf(buf, "no sensor\n");

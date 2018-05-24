@@ -584,6 +584,7 @@ static const struct ddb_info ddb_s2x_48 = {
 	.tempmon_irq = 24,
 	.mci_ports = 4,
 	.mci_type = 0,
+	.temp_num = 1,
 };
 
 static const struct ddb_info ddb_m4 = {
@@ -595,6 +596,7 @@ static const struct ddb_info ddb_m4 = {
 	.tempmon_irq = 24,
 	.mci_ports = 2,
 	.mci_type = 1,
+	.temp_num = 1,
 };
 
 /****************************************************************************/
