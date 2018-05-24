@@ -172,7 +172,7 @@ static int probe(struct mci *state)
 	return 0;
 }
 
-struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr)
+struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr, int tuner)
 {
 	struct ddb_port *port = input->port;
 	struct ddb *dev = port->dev;
@@ -212,8 +212,8 @@ struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg
 	memcpy(&state->fe.ops, cfg->fe_ops, sizeof(struct dvb_frontend_ops));
 	state->fe.demodulator_priv = state;
 	state->nr = nr;
-	state->tuner = nr;
 	state->demod = nr;
+	state->tuner = tuner;
 	if (cfg->init)
 		cfg->init(state);
 	return &state->fe;

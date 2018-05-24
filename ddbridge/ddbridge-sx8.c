@@ -489,6 +489,7 @@ static int sleep(struct dvb_frontend *fe)
 
 static struct dvb_frontend_ops sx8_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2 },
+	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.info = {
 		.name = "DVB-S/S2X",
 		.frequency_min		= 950000,
@@ -516,6 +517,8 @@ static int init(struct mci *mci)
 	struct sx8 *state = (struct sx8 *) mci;
 
 	state->mci.demod = SX8_DEMOD_NONE;
+	mci->fe.ops.xbar[1] = mci->nr;
+	mci->fe.dtv_property_cache.input = mci->tuner;
 	return 0;
 }
 
