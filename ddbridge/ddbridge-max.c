@@ -471,7 +471,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	default:
 		return -EINVAL;
 	}
-	dvb->fe = ddb_mci_attach(input, &cfg, demod);
+	dvb->fe = ddb_mci_attach(input, &cfg, demod, tuner);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;

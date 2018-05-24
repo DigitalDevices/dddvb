@@ -576,6 +576,6 @@ struct mci_cfg {
 	int (*base_init)(struct mci_base *mci_base);
 };
 
-struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr);
+struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr, int tuner);
 
 #endif
