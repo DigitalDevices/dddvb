@@ -3578,11 +3578,16 @@ static ssize_t temp_show(struct device *device,
 			 struct device_attribute *attr, char *buf)
 {
 	struct ddb *dev = dev_get_drvdata(device);
-	struct ddb_link *link = &dev->link[0];
+	struct ddb_link *link;
 	struct i2c_adapter *adap;
 	s32 temp, temp2, temp3;
 	int i;
 	u8 tmp[2];
+	int l = 0;
+
+	if (attr->attr.name[4] == 'l')
+		l = attr->attr.name[5] - 0x30;
+	link = &dev->link[l];
 
 	if (link->info->type == DDB_MOD ) {
 		if (link->info->version >= 2) {
@@ -3614,8 +3619,8 @@ static ssize_t temp_show(struct device *device,
 		}
 		return sprintf(buf, "%d %d\n", temp, temp2);
 	}
-	if (link->info->type == DDB_OCTOPUS_MCI ) {
-		temp = 0xffff & ddbreadl(dev, TEMPMON_SENSOR0);
+	if (link->info->type == DDB_OCTOPUS_MCI) {
+		temp = 0xffff & ddblreadl(link, TEMPMON_SENSOR0);
 		temp = (temp * 1000) >> 8;
 
 		return sprintf(buf, "%d\n", temp);
@@ -4030,7 +4035,10 @@ static struct device_attribute ddb_attrs[] = {
 };
 
 static struct device_attribute ddb_attrs_temp[] = {
-	__ATTR_RO(temp),
+	__ATTR_MRO(temp, temp_show),
+	__ATTR_MRO(templ1, temp_show),
+	__ATTR_MRO(templ2, temp_show),
+	__ATTR_MRO(templ3, temp_show),
 };
 
 static struct device_attribute ddb_attrs_mod[] = {
@@ -4112,8 +4120,11 @@ static void ddb_device_attrs_del(struct ddb *dev)
 		    dev->link[i].info->tempmon_irq)
 			device_remove_file(dev->ddb_dev,
 					   &ddb_attrs_fanspeed[i]);
+	for (i = 0; i < 4; i++)
+		if (dev->link[i].info &&
+		    dev->link[i].info->temp_num)
+			device_remove_file(dev->ddb_dev, &ddb_attrs_temp[i]);
 	for (i = 0; i < dev->link[0].info->temp_num; i++)
-		device_remove_file(dev->ddb_dev, &ddb_attrs_temp[i]);
 	for (i = 0; i < dev->link[0].info->port_num; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_mod[i]);
 	for (i = 0; i < dev->link[0].info->fan_num; i++)
@@ -4135,9 +4146,11 @@ static int ddb_device_attrs_add(struct ddb *dev)
 	for (i = 0; ddb_attrs[i].attr.name; i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs[i]))
 			goto fail;
-	for (i = 0; i < dev->link[0].info->temp_num; i++)
-		if (device_create_file(dev->ddb_dev, &ddb_attrs_temp[i]))
-			goto fail;
+	for (i = 0; i < 4; i++)
+		if (dev->link[i].info &&
+		    dev->link[i].info->temp_num)
+			if (device_create_file(dev->ddb_dev, &ddb_attrs_temp[i]))
+				goto fail;
 	for (i = 0; (i < dev->link[0].info->port_num) && (i < 10); i++)
 		if (device_create_file(dev->ddb_dev, &ddb_attrs_mod[i]))
 			goto fail;
