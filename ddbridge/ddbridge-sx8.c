@@ -192,6 +192,8 @@ static int stop(struct dvb_frontend *fe)
 	struct mci_command cmd;
 	u32 input = state->mci.tuner;
 
+	if (!state->started)
+		return -1;
 	memset(&cmd, 0, sizeof(cmd));
 	if (state->mci.demod != SX8_DEMOD_NONE) {
 		cmd.command = MCI_CMD_STOP;
@@ -399,8 +401,7 @@ static int set_parameters(struct dvb_frontend *fe)
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	u32 ts_config = SX8_TSCONFIG_MODE_NORMAL, iq_mode = 0, isi;
 
-	if (state->started)
-		stop(fe);
+	stop(fe);
 	isi = p->stream_id;
 	if (isi != NO_STREAM_ID_FILTER) {
 		iq_mode = (isi & 0x30000000) >> 28;
@@ -475,8 +476,12 @@ static int set_input(struct dvb_frontend *fe, int input)
 	struct sx8 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
+	printk("fe %u, set input = %u\n", state->mci.nr, input);
 	if (input >= SX8_TUNER_NUM)
 		return -EINVAL;
+	if (state->mci.tuner == input)
+		return 0;
+	stop(fe);
 	state->mci.tuner = p->input = input;
 	printk("fe %u, input = %u\n", state->mci.nr, input);
 	return 0;
@@ -484,6 +489,9 @@ static int set_input(struct dvb_frontend *fe, int input)
 
 static int sleep(struct dvb_frontend *fe)
 {
+	struct sx8 *state = fe->demodulator_priv;
+
+	stop(fe);
 	return 0;
 }
 
