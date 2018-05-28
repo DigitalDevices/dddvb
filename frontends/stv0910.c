@@ -1631,7 +1631,6 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
 	struct stv *state = fe->demodulator_priv;
-	u16 offs = state->nr ? 0x40 : 0;
 	u8 value;
 
 	if (burst == SEC_MINI_A) {
