@@ -335,7 +335,9 @@ static int set_params(struct dvb_frontend *fe)
 
 static int get_frequency(struct dvb_frontend *fe, u32 *frequency)
 {
-	*frequency = 0;
+	struct stv *state = fe->tuner_priv;
+
+	*frequency = state->Frequency;
 	return 0;
 }
 
