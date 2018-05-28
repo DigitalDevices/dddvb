@@ -449,13 +449,12 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 	*con2 = (nco << 16) | gap;
 }
 
-static void ddb_output_start(struct ddb_output *output)
+static void ddb_output_start_unlocked(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 	u32 con = 0x11c, con2 = 0;
 
 	if (output->dma) {
-		spin_lock_irq(&output->dma->lock);
 		output->dma->cbuf = 0;
 		output->dma->coff = 0;
 		output->dma->stat = 0;
@@ -485,16 +484,24 @@ static void ddb_output_start(struct ddb_output *output)
 		ddbwritel(dev, con | 1, TS_CONTROL(output));
 	if (output->dma) {
 		output->dma->running = 1;
-		spin_unlock_irq(&output->dma->lock);
 	}
 }
 
-static void ddb_output_stop(struct ddb_output *output)
+static void ddb_output_start(struct ddb_output *output)
+{
+	if (output->dma) {
+		spin_lock_irq(&output->dma->lock);
+		ddb_output_start_unlocked(output);
+		spin_unlock_irq(&output->dma->lock);
+	} else {
+		ddb_output_start_unlocked(output);
+	}
+}
+
+static void ddb_output_stop_unlocked(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 
-	if (output->dma)
-		spin_lock_irq(&output->dma->lock);
 	if (output->port->class == DDB_PORT_MOD)
 		ddbridge_mod_output_stop(output);
 	else
@@ -502,34 +509,49 @@ static void ddb_output_stop(struct ddb_output *output)
 	if (output->dma) {
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 		output->dma->running = 0;
-		spin_unlock_irq(&output->dma->lock);
 	}
 }
 
-static void ddb_input_stop(struct ddb_input *input)
+static void ddb_output_stop(struct ddb_output *output)
+{
+	if (output->dma) {
+		spin_lock_irq(&output->dma->lock);
+		ddb_output_stop_unlocked(output);
+		spin_unlock_irq(&output->dma->lock);
+	} else {
+		ddb_output_stop_unlocked(output);
+	}
+}
+
+static void ddb_input_stop_unlocked(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
 	u32 tag = DDB_LINK_TAG(input->port->lnr);
 
-	if (input->dma)
-		spin_lock_irq(&input->dma->lock);
 	ddbwritel(dev, 0, tag | TS_CONTROL(input));
 	if (input->dma) {
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 		input->dma->running = 0;
 		spin_unlock_irq(&input->dma->lock);
 	}
-	/*printk("input_stop %u.%u.%u\n",
-	 *  dev->nr, input->port->lnr, input->nr);
-	 */
 }
 
-static void ddb_input_start(struct ddb_input *input)
+static void ddb_input_stop(struct ddb_input *input)
+{
+	if (input->dma) {
+		spin_lock_irq(&input->dma->lock);
+		ddb_input_stop_unlocked(input);
+		spin_unlock_irq(&input->dma->lock);
+	} else {
+		ddb_input_stop_unlocked(input);
+	}
+}
+
+static void ddb_input_start_unlocked(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
 
 	if (input->dma) {
-		spin_lock_irq(&input->dma->lock);
 		input->dma->cbuf = 0;
 		input->dma->coff = 0;
 		input->dma->stat = 0;
@@ -554,7 +576,17 @@ static void ddb_input_start(struct ddb_input *input)
 		ddbwritel(dev, 0x000fff01, TS_CONTROL2(input));
 	if (input->dma) {
 		input->dma->running = 1;
+	}
+}
+
+static void ddb_input_start(struct ddb_input *input)
+{
+	if (input->dma) {
+		spin_lock_irq(&input->dma->lock);
+		ddb_input_start_unlocked(input);
 		spin_unlock_irq(&input->dma->lock);
+	} else {
+		ddb_input_start_unlocked(input);
 	}
 }
 
