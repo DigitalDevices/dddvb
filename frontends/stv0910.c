@@ -1329,6 +1329,7 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 			p->fec_inner = FEC_NONE;
 			break;
 		}
+		p->modulation = QPSK;
 		p->rolloff = ROLLOFF_35;
 	}
 	if (state->receive_mode != RCVMODE_NONE) {
