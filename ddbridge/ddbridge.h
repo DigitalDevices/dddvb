@@ -567,15 +567,6 @@ int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm);
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data);
 
-struct mci_cfg {
-	int type;
-	struct dvb_frontend_ops *fe_ops;
-	u32 base_size;
-	u32 state_size;
-	int (*init)(struct mci *mci);
-	int (*base_init)(struct mci_base *mci_base);
-};
-
 struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr, int tuner);
 
 #endif

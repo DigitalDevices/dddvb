@@ -149,6 +149,52 @@ static int ddb_mci_get_iq(struct mci *mci, u32 demod, s16 *i, s16 *q)
 	return stat;
 }
 
+int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
+{
+	struct mci_command cmd;
+
+	cmd.command = MCI_CMD_GETSTATUS;
+	cmd.demod = mci->demod;
+	return ddb_mci_cmd_raw(mci, &cmd, 1, res, 1);
+}
+
+int ddb_mci_get_snr(struct dvb_frontend *fe)
+{
+	struct mci *mci = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].svalue = (s64) mci->
+		signal_info.dvbs2_signal_info.signal_to_noise * 10;
+	return 0;
+}
+
+int ddb_mci_get_strength(struct dvb_frontend *fe)
+{
+	struct mci *mci = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	s32 str;
+
+	str = mci->signal_info.dvbs2_signal_info.channel_power * 10;
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].svalue = str;
+	return 0;
+}
+
+int ddb_mci_get_info(struct mci *mci)
+{
+	int stat;
+	struct mci_command cmd;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.command = MCI_CMD_GETSIGNALINFO;
+	cmd.demod = mci->demod;
+	stat = ddb_mci_cmd(mci, &cmd, &mci->signal_info);
+	return stat;
+}
+
 static void mci_handler(void *priv)
 {
 	struct mci_base *base = (struct mci_base *)priv;

@@ -97,8 +97,6 @@
 #define SX8_DEMOD_IQ_MODE        (1)
 #define SX8_DEMOD_WAIT_SIGNAL    (2)
 #define SX8_DEMOD_WAIT_MATYPE    (3)
-#define SX8_DEMOD_WAIT_FEC       (4)
-#define SX8_DEMOD_WAIT_FEC_S1    (5)
 #define SX8_DEMOD_TIMEOUT        (14)
 #define SX8_DEMOD_LOCKED         (15)
 
@@ -116,19 +114,24 @@
 #define MCI_CMD_SEARCH_DVBC     (0x20)
 #define MCI_CMD_SEARCH_DVBT     (0x21)
 #define MCI_CMD_SEARCH_DVBT2    (0x22)
+#define MCI_CMD_SEARCH_DVBC2    (0x23)
+#define MCI_CMD_SEARCH_ISDBT    (0x24)
 
 #define MCI_CMD_GET_IQSYMBOL     (0x30)
 
-#define MCI_BANDWIDTH_1_7MHZ     (0)
-#define MCI_BANDWIDTH_5MHZ       (1)
-#define MCI_BANDWIDTH_6MHZ       (2)
-#define MCI_BANDWIDTH_7MHZ       (3)
-#define MCI_BANDWIDTH_8MHZ       (4)
+#define MCI_BANDWIDTH_UNKNOWN    (0)
+#define MCI_BANDWIDTH_1_7MHZ     (1)
+#define MCI_BANDWIDTH_5MHZ       (5)
+#define MCI_BANDWIDTH_6MHZ       (6)
+#define MCI_BANDWIDTH_7MHZ       (7)
+#define MCI_BANDWIDTH_8MHZ       (8)
 
-#define M4_MODE_SX  (2)
-#define M4_MODE_C   (3)
-#define M4_MODE_T   (4)
-#define M4_MODE_T2  (5)
+#define M4_MODE_DVBSX            (2)
+#define M4_MODE_DVBC             (3)
+#define M4_MODE_DVBT             (4)
+#define M4_MODE_DVBT2            (5)
+#define M4_MODE_DVBC2            (6)
+#define M4_MODE_ISDBT            (7)
 
 #define SX8_CMD_INPUT_ENABLE     (0x40)
 #define SX8_CMD_INPUT_DISABLE    (0x41)
@@ -138,6 +141,8 @@
 #define SX8_CMD_DISABLE_IQOUTPUT (0x45)
 
 #define M4_CMD_GET_T2_L1INFO      (0x50)
+#define M4_CMD_GET_C2_L1P2        (0x50)
+#define M4_CMD_GET_IDS            (0x51)
 
 #define MCI_STATUS_OK             (0x00)
 #define MCI_STATUS_UNSUPPORTED    (0x80)
@@ -175,52 +180,85 @@ struct mci_command {
 			u32 scrambling_sequence_index;
 			u32 frequency_range;
 		} dvbs2_search;
+
 		struct {
-			uint8_t   flags;
-			uint8_t   bandwidth;
-			uint8_t   rsvd1;
-			uint8_t   retry;
-			uint32_t  frequency;
+			u8   flags;
+			u8   bandwidth;
+			u8   rsvd1;
+			u8   retry;
+			u32  frequency;
 		} dvbc_search;
 		
 		struct {
-			uint8_t   flags;       /* Bit 0: LP Stream */
-			uint8_t   bandwidth;
-			uint8_t   rsvd1;
-			uint8_t   retry;
-			uint32_t  frequency;
+			u8   flags;       /* Bit 0: LP Stream */
+			u8   bandwidth;
+			u8   rsvd1;
+			u8   retry;
+			u32  frequency;
 		} dvbt_search;
 		
 		struct {
-			uint8_t   flags;       /* Bit 0: T2 Lite Profile, 7: PLP, */
-			uint8_t   bandwidth;
-			uint8_t   rsvd1;
-			uint8_t   retry;
-			uint32_t  frequency;
-			uint32_t  reserved;
-			uint8_t   plp;
-			uint8_t   rsvd2[3];
+			u8   flags;       /* Bit 0: T2 Lite Profile, 7: PLP, */
+			u8   bandwidth;
+			u8   rsvd1;
+			u8   retry;
+			u32  frequency;
+			u32  reserved;
+			u8   plp;
+			u8   rsvd2[3];
 		} dvbt2_search;
 		
 		struct {
-			uint8_t   Tap;
-			uint8_t   Rsvd;
-			uint16_t  Point;
+			u8   flags;
+			u8   bandwidth;
+			u8   rsvd1;
+			u8   retry;
+			u32  frequency;
+			u32  reserved;
+			u8   plp;
+			u8   data_slice;
+			u8   rsvd2[2];
+		} dvbc2_search;
+		
+		struct {
+			u8   flags;              
+			u8   bandwidth;
+			u8   rsvd1;
+			u8   retry;
+			u32  frequency;
+		} isdbt_search;
+		
+		struct {
+			u8   tap;
+			u8   rsvd;
+			u16  point;
 		} get_iq_symbol;
 
 		struct {
-			uint8_t   flags;              /*  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain */
-			uint8_t   roll_off;
-			uint8_t   rsvd1;
-			uint8_t   rsvd2;              
-			uint32_t  frequency;
-			uint32_t  symbol_rate;         /* Only in VTM mode. */
-			uint16_t  gain;
+			u8   flags;              /*  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain */
+			u8   roll_off;
+			u8   rsvd1;
+			u8   rsvd2;              
+			u32  frequency;
+			u32  symbol_rate;         /* Only in VTM mode. */
+			u16  gain;
 		} sx8_start_iq;
 		
 		struct {
-			uint8_t     flags; /* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB, 2 = Minimum, 3 = Maximum */
+			u8     flags; /* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB, 2 = Minimum, 3 = Maximum */
 		} sx8_input_enable;
+
+		struct {
+			u8   Offset;        // Offset into list, must be multiple of 64
+			u8   Select;        // 0 = Slices, 1 = PLPs  (C2 Only)
+			u8   DataSlice;     // DataSlice to get PLPList (C2 Only)
+		} Get_IDs;
+
+		struct {
+			u8   Select;        // 0 = Base, 1 = DataSilce, 2 = PLP,  Bit 7:  Set new ID
+			u8   ID;            // DataSliceID, PLPId 
+		} Get_L1Info;
+		
 	};
 };
 
@@ -250,6 +288,7 @@ struct mci_result {
 			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
+
 		struct {
 			u8  modulation;
 			u8  rsvd1[3];
@@ -260,9 +299,10 @@ struct mci_result {
 			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
 			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
-			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
+			u32 ber_numerator;     /* Bit error rate: PreRS */
 			u32 ber_denominator;
 		} dvbc_signal_info;
+
 		struct {
 			u8  tps_25_32;         /* Constellation (2), Hierarchy (3), Coderate HP (3) */
 			u8  tps_33_39;         /* Coderate LP (3), Guardinterval (2), FFT (2), 0 (1) */
@@ -274,9 +314,10 @@ struct mci_result {
 			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
 			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
-			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
+			u32 ber_numerator;     /* Bit error rate: PreRS */
 			u32 ber_denominator;
 		} dvbt_signal_info;
+
 		struct {
 			u32 rsvd0;
 			u32 frequency;         /* actual frequency in Hz */
@@ -286,9 +327,40 @@ struct mci_result {
 			s16 signal_to_noise;     /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 			s16 rsvd2;
 			u32 packet_errors;      /* Counter for packet errors. (set to 0 on Start command) */
-			u32 ber_numerator;      /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
+			u32 ber_numerator;      /* Bit error rate: PreRS */
 			u32 ber_denominator;
 		} dvbt2_signal_info;
+
+		struct {  // Work in Progress
+			u32 rsvd0     ;        // Cell Identifier
+			
+			u32 frequency;         // actual frequency in Hz
+			u32 rsvd1;             //
+			s16 channel_power;      // channel power in dBm x 100
+			s16 band_power;         // band power in dBm x 100
+			s16 signal_to_noise; // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			s16 rsvd2;
+			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
+			u32 ber_numerator;      // Bit error rate: PreBCH
+			u32 ber_denominator;              
+		} DVBC2_SignalInfo;
+
+		struct {
+			u32 rsvd0;
+			
+			u32 frequency;         // actual frequency in Hz
+			u32 rsvd1;             //
+			s16 channel_power;      // channel power in dBm x 100
+			s16 band_power;         // band power in dBm x 100
+			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+			s16 rsvd2;
+			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
+			u32 ber_numerator;      // Bit error rate: PreRS 
+			u32 ber_denominator;
+			
+			u8  tmcc_info[13];      // TMCC B20 - B121
+		} isdbt_signal_info;
+
 		struct {
 			s16 i;
 			s16 q;
@@ -299,6 +371,61 @@ struct mci_result {
 			u8  t2_l1_post_d[19];
 			u8  t2_l1_post_c[19];
 		} dvbt2_l1_info;
+
+		struct {
+			u8  NetworkID[2];
+			u8  C2SystemID[2];
+			u8  StartFrequency[3];
+			u8  C2BandWidth[2];
+			u8  GuardInterval;
+			u8  C2FrameLength[2];
+			u8  L1P2ChangeCounter;
+			u8  NumDataSlices;
+			u8  NumNotches;
+			struct {                  
+				u8 Start[2]; 
+				u8 Width[2]; 
+				u8 Reserved3;
+			} NotchData[15];
+			u8  ReservedTone;
+			u8  Reserved4[2];        // EWS 1 bit, C2_Version 4 bit, Rsvd 11 bit
+		} DVBC2_L1Part2;
+
+		struct {
+			u8  NumIDs;
+			u8  Offset;
+			u8  IDs[64];
+		} DVBC2_IDList;
+
+		struct {
+			u8  SliceID;
+			u8  TunePosition[2];
+			u8  OffsetLeft[2];
+			u8  OffsetRight[2];
+			u8  TIDepth;
+			u8  Type;
+			u8  FECHeaderType;
+			u8  ConstConf;
+			u8  LeftNotch;
+			u8  NumPLP;
+			u8  Reserved2;
+		} DVBC2_SliceInfo;
+
+		struct {
+			u8  PLPID;
+			u8  Bundled;
+			u8  Type;
+			u8  PayloadType;
+			u8  GroupID;
+			u8  Start[2];
+			u8  FEC_Type;
+			u8  Mod;
+			u8  Cod;
+			u8  PSISIReprocessing;
+			u8  TransportstreamID[2];
+			u8  OrginalNetworkID[2];
+			u8  Reserved1;
+		} DVBC2_PLPInfo;
 	};
 	u32 version[4];
 };
@@ -391,11 +518,26 @@ struct mci {
 	int                  nr;
 	int                  demod;
 	int                  tuner;
+
+	struct mci_result    signal_info;
+};
+
+struct mci_cfg {
+	int type;
+	struct dvb_frontend_ops *fe_ops;
+	u32 base_size;
+	u32 state_size;
+	int (*init)(struct mci *mci);
+	int (*base_init)(struct mci_base *mci_base);
 };
 
 int ddb_mci_cmd(struct mci *state, struct mci_command *command, struct mci_result *result);
 int ddb_mci_cmd_raw(struct mci *state, struct mci_command *command, u32 command_len,
 		    struct mci_result *result, u32 result_len);
 int ddb_mci_config(struct mci *state, u32 config);
+int ddb_mci_get_status(struct mci *mci, struct mci_result *res);
+int ddb_mci_get_snr(struct dvb_frontend *fe);
+int ddb_mci_get_info(struct mci *mci);
+int ddb_mci_get_strength(struct dvb_frontend *fe);
 
 #endif

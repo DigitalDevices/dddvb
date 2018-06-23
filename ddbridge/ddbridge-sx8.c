@@ -52,7 +52,6 @@ struct sx8 {
 
 	int                  first_time_lock;
 	int                  started;
-	struct mci_result    signal_info;
 
 	u32                  bb_mode;
 	u32                  local_frequency;
@@ -108,64 +107,23 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
-static int get_info(struct dvb_frontend *fe)
-{
-	int stat;
-	struct sx8 *state = fe->demodulator_priv;
-	struct mci_command cmd;
-
-	memset(&cmd, 0, sizeof(cmd));
-	cmd.command = MCI_CMD_GETSIGNALINFO;
-	cmd.demod = state->mci.demod;
-	stat = ddb_mci_cmd(&state->mci, &cmd, &state->signal_info);
-	return stat;
-}
-
-static int get_snr(struct dvb_frontend *fe)
-{
-	struct sx8 *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-
-	p->cnr.len = 1;
-	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = (s64) state->signal_info.dvbs2_signal_info.signal_to_noise * 10;
-	return 0;
-}
-
-static int get_strength(struct dvb_frontend *fe)
-{
-	struct sx8 *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	s32 str;
-
-	str = state->signal_info.dvbs2_signal_info.channel_power * 10;
-	p->strength.len = 1;
-	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue = str;
-	return 0;
-}
-
 static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	int stat;
 	struct sx8 *state = fe->demodulator_priv;
-	struct mci_command cmd;
-	u32 val;
-	struct mci_result *res = (struct mci_result *)&val;
+	struct mci_result res;
 
-	cmd.command = MCI_CMD_GETSTATUS;
-	cmd.demod = state->mci.demod;
-	stat = ddb_mci_cmd_raw(&state->mci, &cmd, 1, res, 1);
+	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
 		return stat;
 	*status = 0x00;
-	get_info(fe);
-	get_strength(fe);
-	if (res->status == SX8_DEMOD_WAIT_MATYPE)
+	ddb_mci_get_info(&state->mci);
+	ddb_mci_get_strength(fe);
+	if (res.status == SX8_DEMOD_WAIT_MATYPE)
 		*status = 0x0f;
-	if (res->status == SX8_DEMOD_LOCKED) {
+	if (res.status == SX8_DEMOD_LOCKED) {
 		*status = 0x1f;
-		get_snr(fe);
+		ddb_mci_get_snr(fe);
 	}
 	return stat;
 }
@@ -346,7 +304,8 @@ unlock:
 }
 
 
-static int start_iq(struct dvb_frontend *fe, u32 flags, u32 roll_off, u32 ts_config)
+static int start_iq(struct dvb_frontend *fe, u32 flags,
+		    u32 roll_off, u32 ts_config)
 {
 	struct sx8 *state = fe->demodulator_priv;
 	struct mci_base *mci_base = state->mci.base;
@@ -408,7 +367,7 @@ static int set_parameters(struct dvb_frontend *fe)
 	}
 	if (iq_mode)
 		ts_config = (SX8_TSCONFIG_TSHEADER | SX8_TSCONFIG_MODE_IQ);
-	if (iq_mode < 3) {
+	if (iq_mode < 2) {
 		u32 mask;
 
 		switch (p->modulation) {
@@ -433,14 +392,12 @@ static int set_parameters(struct dvb_frontend *fe)
 		}
 		stat = start(fe, 3, mask, ts_config);
 	} else {
-		u32 flags = (iq_mode == 2) ? 1 : 0;
-
-		stat = start_iq(fe, flags, 4, ts_config);
+		stat = start_iq(fe, iq_mode & 1, 4, ts_config);
 	}
 	if (!stat) {
 		state->started = 1;
 		state->first_time_lock = 1;
-		state->signal_info.status = SX8_DEMOD_WAIT_SIGNAL;
+		state->mci.signal_info.status = SX8_DEMOD_WAIT_SIGNAL;
 	}
 	return stat;
 }
@@ -489,8 +446,6 @@ static int set_input(struct dvb_frontend *fe, int input)
 
 static int sleep(struct dvb_frontend *fe)
 {
-	struct sx8 *state = fe->demodulator_priv;
-
 	stop(fe);
 	return 0;
 }

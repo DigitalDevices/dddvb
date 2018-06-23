@@ -60,6 +60,24 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	return 0;
 }
 
+static int max_set_input_unlocked(struct dvb_frontend *fe, int in);
+
+static int max_emulate_switch(struct dvb_frontend *fe,
+			      u8 *cmd, u32 len)
+{
+	int input;
+
+	if (len !=4)
+		return -1;
+
+	if ((cmd[0] != 0xe0) || (cmd[1] != 0x10) || (cmd[2] != 0x39))
+		return -1;
+
+	input = cmd[3] & 3;
+	max_set_input_unlocked(fe, input);
+	return 0;
+}
+
 static int max_send_master_cmd(struct dvb_frontend *fe,
 			       struct dvb_diseqc_master_cmd *cmd)
 {
@@ -73,6 +91,10 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 
 	if (fmode == 2 || fmode == 1)
 		return 0;
+
+	if (fmode == 4)
+		max_emulate_switch(fe, cmd->msg, cmd->msg_len);
+
 	if (dvb->diseqc_send_master_cmd)
 		dvb->diseqc_send_master_cmd(fe, cmd);
 
@@ -181,7 +203,8 @@ static int max_set_input_unlocked(struct dvb_frontend *fe, int in)
 		dvb->input = in;
 		dev->link[port->lnr].lnb.voltage[dvb->input] |= obit;
 	}
-	res = dvb->set_input(fe, in);
+	if (dvb->set_input)
+		res = dvb->set_input(fe, in);
 	return res;
 }
 
@@ -416,7 +439,7 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 
 	demod = input->nr;
 	tuner = demod & 3;
-	if (fmode == 3)
+	if (fmode >= 3)
 		tuner = 0;
 	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg, demod, tuner);
 	if (!dvb->fe) {
@@ -456,16 +479,18 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	struct ddb_link *link = &dev->link[port->lnr];
 	int demod, tuner;
 	struct mci_cfg cfg;
-
+	int fm = fmode;
+	
 	demod = input->nr;
 	tuner = demod & 3;
 	switch (type) {
 	case DDB_TUNER_MCI_SX8:
 		cfg = ddb_max_sx8_cfg;
-		if (fmode == 3)
+		if (fm >= 3)
 			tuner = 0;
 		break;
 	case DDB_TUNER_MCI_M4:
+		fm = 0;
 		cfg = ddb_max_m4_cfg;
 		break;
 	default:
@@ -480,7 +505,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		lnb_command(dev, port->lnr, input->nr, LNB_CMD_INIT);
 		lnb_set_voltage(dev, port->lnr, input->nr, SEC_VOLTAGE_OFF);
 	}
-	ddb_lnb_init_fmode(dev, link, fmode);
+	ddb_lnb_init_fmode(dev, link, fm);
 
 	dvb->fe->ops.set_voltage = max_set_voltage;
 	dvb->fe->ops.enable_high_lnb_voltage = max_enable_high_lnb_voltage;
@@ -494,4 +519,3 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	dvb->input = tuner;
 	return 0;
 }
-
