@@ -4027,7 +4027,7 @@ static ssize_t fmode_store(struct device *device, struct device_attribute *attr,
 
 	if (sscanf(buf, "%u\n", &val) != 1)
 		return -EINVAL;
-	if (val > 3)
+	if (val > 4)
 		return -EINVAL;
 	ddb_lnb_init_fmode(dev, &dev->link[num], val);
 	return count;
