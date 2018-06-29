@@ -111,6 +111,9 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	int stat;
 	struct sx8 *state = fe->demodulator_priv;
+	struct mci_base *mci_base = state->mci.base;
+	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_result res;
 
 	stat = ddb_mci_get_status(&state->mci, &res);
@@ -118,12 +121,18 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 		return stat;
 	*status = 0x00;
 	ddb_mci_get_info(&state->mci);
-	ddb_mci_get_strength(fe);
 	if (res.status == SX8_DEMOD_WAIT_MATYPE)
 		*status = 0x0f;
 	if (res.status == SX8_DEMOD_LOCKED) {
 		*status = 0x1f;
-		ddb_mci_get_snr(fe);
+		if (state->mci.signal_info.dvbs2_signal_info.standard == 2) {
+			sx8_base->used_ldpc_bitrate[state->mci.nr] =
+				p->symbol_rate *
+				dvbs2_bits_per_symbol[
+					state->mci.signal_info.
+					dvbs2_signal_info.pls_code];
+		} else 
+			sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;
 	}
 	return stat;
 }
@@ -228,6 +237,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 			if (sx8_base->demod_in_use[i])
 				used_demods++;
 		}
+		printk("used_ldpc_bitrate = %u\n", used_ldpc_bitrate);
 		if ((used_ldpc_bitrate >= MAX_LDPC_BITRATE)  ||
 		    ((ts_config & SX8_TSCONFIG_MODE_MASK) >
 		     SX8_TSCONFIG_MODE_NORMAL && used_demods > 0)) {
@@ -450,6 +460,14 @@ static int sleep(struct dvb_frontend *fe)
 	return 0;
 }
 
+static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
+{
+	struct sx8 *state = fe->demodulator_priv;
+
+	ddb_mci_proc_info(&state->mci, p);
+	return 0;
+}
+
 static struct dvb_frontend_ops sx8_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2 },
 	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
@@ -468,6 +486,7 @@ static struct dvb_frontend_ops sx8_ops = {
 					  FE_CAN_MULTISTREAM,
 	},
 	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
 	.tune                           = tune,
 	.release                        = release,
 	.read_status                    = read_status,

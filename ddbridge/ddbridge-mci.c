@@ -195,6 +195,113 @@ int ddb_mci_get_info(struct mci *mci)
 	return stat;
 }
 
+/****************************************************************************/
+/****************************************************************************/
+
+void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
+{
+	const enum fe_modulation modcod2mod[0x20] = {
+		QPSK, QPSK, QPSK, QPSK,
+		QPSK, QPSK, QPSK, QPSK,
+		QPSK, QPSK, QPSK, QPSK,
+		PSK_8, PSK_8, PSK_8, PSK_8,
+		PSK_8, PSK_8, APSK_16, APSK_16,
+		APSK_16, APSK_16, APSK_16, APSK_16,
+		APSK_32, APSK_32, APSK_32, APSK_32,
+		APSK_32,
+	};
+	const enum fe_code_rate modcod2fec[0x20] = {
+		FEC_NONE, FEC_1_4, FEC_1_3, FEC_2_5,
+		FEC_1_2, FEC_3_5, FEC_2_3, FEC_3_4,
+		FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
+		FEC_3_5, FEC_2_3, FEC_3_4, FEC_5_6,
+		FEC_8_9, FEC_9_10, FEC_2_3, FEC_3_4,
+		FEC_4_5, FEC_5_6, FEC_8_9, FEC_9_10,
+		FEC_3_4, FEC_4_5, FEC_5_6, FEC_8_9,
+		FEC_9_10, FEC_NONE, FEC_NONE, FEC_NONE,
+	};
+	const enum fe_code_rate dvbs_fec_lut[8] = {
+		FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6,
+		FEC_NONE, FEC_7_8, FEC_NONE, FEC_NONE,
+	};
+	const enum fe_rolloff ro_lut[8] = {
+		ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_10,
+		ROLLOFF_5, ROLLOFF_15, ROLLOFF_35, ROLLOFF_35
+	};
+	
+	p->frequency =
+		mci->signal_info.dvbs2_signal_info.frequency;
+	switch (p->delivery_system) {
+	default:
+	case SYS_DVBS:
+	case SYS_DVBS2:
+	{
+		u32 pls_code =
+			mci->signal_info.dvbs2_signal_info.pls_code;
+		
+		p->frequency =
+			mci->signal_info.dvbs2_signal_info.frequency / 1000;
+		p->delivery_system =
+			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
+			SYS_DVBS2 : SYS_DVBS;
+		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
+			u32 modcod = (0x7c & pls_code) >> 2;
+			
+			p->delivery_system = SYS_DVBS2;
+			p->rolloff =
+				ro_lut[mci->signal_info.
+				       dvbs2_signal_info.roll_off & 7];
+			p->pilot = (pls_code & 1) ? PILOT_ON : PILOT_OFF;
+			p->fec_inner = modcod2fec[modcod];
+			p->modulation = modcod2mod[modcod];
+			p->transmission_mode = pls_code;
+		} else {
+			p->delivery_system = SYS_DVBS;
+			p->rolloff = ROLLOFF_35;
+			p->pilot = PILOT_OFF;
+			p->fec_inner = dvbs_fec_lut[pls_code & 7];
+			p->modulation = QPSK;
+		}
+		break;
+	}
+	case SYS_DVBC_ANNEX_A:
+		break;
+	case SYS_DVBT:
+		break;
+	case SYS_DVBT2:
+		break;
+	case SYS_DVBC2:
+		break;
+	case SYS_ISDBT:
+		break;
+	}
+	p->pre_bit_error.len = 1;
+	p->pre_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_error.stat[0].uvalue =
+		mci->signal_info.dvbs2_signal_info.ber_numerator;
+
+	p->pre_bit_count.len = 1;
+	p->pre_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+	p->pre_bit_count.stat[0].uvalue =
+		mci->signal_info.dvbs2_signal_info.ber_denominator;
+
+	p->block_error.len = 1;
+	p->block_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->block_error.stat[0].uvalue =
+		mci->signal_info.dvbs2_signal_info.packet_errors;
+	p->block_count.stat[0].scale = FE_SCALE_NOT_AVAILABLE;
+
+	p->cnr.len = 1;
+	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
+	p->cnr.stat[0].svalue = (s64) mci->
+		signal_info.dvbs2_signal_info.signal_to_noise * 10;
+
+	p->strength.len = 1;
+	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
+	p->strength.stat[0].svalue =
+		mci->signal_info.dvbs2_signal_info.channel_power * 10;
+}
+
 static void mci_handler(void *priv)
 {
 	struct mci_base *base = (struct mci_base *)priv;

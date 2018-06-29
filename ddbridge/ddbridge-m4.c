@@ -388,6 +388,14 @@ static int get_algo(struct dvb_frontend *fe)
 	return DVBFE_ALGO_HW;
 }
 
+static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties *p)
+{
+	struct m4 *state = fe->demodulator_priv;
+
+	ddb_mci_proc_info(&state->mci, p);
+	return 0;
+}
+
 static struct dvb_frontend_ops m4_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2, SYS_ISDBT,
 		    SYS_DVBS, SYS_DVBS2, },
@@ -411,6 +419,7 @@ static struct dvb_frontend_ops m4_ops = {
 	},
 	.release                        = release,
 	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
 	.read_status                    = read_status,
 	.tune                           = tune,
 	.sleep                          = sleep,

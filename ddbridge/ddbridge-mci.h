@@ -245,19 +245,21 @@ struct mci_command {
 		} sx8_start_iq;
 		
 		struct {
-			u8     flags; /* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB, 2 = Minimum, 3 = Maximum */
+			/* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB,
+			   2 = Minimum, 3 = Maximum */
+			u8     flags; 
 		} sx8_input_enable;
-
+		
 		struct {
 			u8   Offset;        // Offset into list, must be multiple of 64
 			u8   Select;        // 0 = Slices, 1 = PLPs  (C2 Only)
 			u8   DataSlice;     // DataSlice to get PLPList (C2 Only)
-		} Get_IDs;
+		} get_ids;
 
 		struct {
-			u8   Select;        // 0 = Base, 1 = DataSilce, 2 = PLP,  Bit 7:  Set new ID
-			u8   ID;            // DataSliceID, PLPId 
-		} Get_L1Info;
+			u8   select;        // 0 = Base, 1 = DataSilce, 2 = PLP,  Bit 7:  Set new ID
+			u8   id;            // DataSliceID, PLPId 
+		} get_l1_info;
 		
 	};
 };
@@ -343,7 +345,7 @@ struct mci_result {
 			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
 			u32 ber_numerator;      // Bit error rate: PreBCH
 			u32 ber_denominator;              
-		} DVBC2_SignalInfo;
+		} dvbc2_signal_info;
 
 		struct {
 			u32 rsvd0;
@@ -365,6 +367,7 @@ struct mci_result {
 			s16 i;
 			s16 q;
 		} iq_symbol;
+
 		struct {
 			u8  t2_l1_pre[37];
 			u8  t2_l1_post[15];
@@ -539,5 +542,6 @@ int ddb_mci_get_status(struct mci *mci, struct mci_result *res);
 int ddb_mci_get_snr(struct dvb_frontend *fe);
 int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
+void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
 
 #endif
