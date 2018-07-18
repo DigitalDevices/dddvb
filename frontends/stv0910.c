@@ -1169,14 +1169,14 @@ static int probe(struct stv *state)
 	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh | 0x01);
 	write_reg(state, RSTV0910_P1_TSCFGH, state->tscfgh);
 	write_reg(state, RSTV0910_P1_TSCFGM, 0xC0);  /* Manual speed */
-	write_reg(state, RSTV0910_P1_TSCFGL, 0x20);
+	write_reg(state, RSTV0910_P1_TSCFGL, 0x60);
 
 	write_reg(state, RSTV0910_P1_TSSPEED, state->tsspeed);
 
 	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh | 0x01);
 	write_reg(state, RSTV0910_P2_TSCFGH, state->tscfgh);
 	write_reg(state, RSTV0910_P2_TSCFGM, 0xC0);  /* Manual speed */
-	write_reg(state, RSTV0910_P2_TSCFGL, 0x20);
+	write_reg(state, RSTV0910_P2_TSCFGL, 0x60);
 
 	write_reg(state, RSTV0910_P2_TSSPEED, state->tsspeed);
 
