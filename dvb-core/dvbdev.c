@@ -59,6 +59,7 @@ static const char * const dnames[] = {
 };
 
 #ifdef CONFIG_DVB_DYNAMIC_MINORS
+#define MAX_DVB_MINORS		400
 #define MAX_DVB_MINORS		512
 #define DVB_MAX_IDS		MAX_DVB_MINORS
 #else
@@ -780,9 +781,10 @@ static int dvbdev_check_free_adapter_num(int num)
 	list_for_each(entry, &dvb_adapter_list) {
 		struct dvb_adapter *adap;
 		adap = list_entry(entry, struct dvb_adapter, list_head);
-		if (adap->num == num)
+		if (num >= adap->num && num < adap->num + adap->num_reserved)
 			return 0;
 	}
+
 	return 1;
 }
 
@@ -802,7 +804,7 @@ static int dvbdev_get_free_adapter_num (void)
 
 int dvb_register_adapter(struct dvb_adapter *adap, const char *name,
 			 struct module *module, struct device *device,
-			 short *adapter_nums)
+			 short *adapter_nums, int num_reserved)
 {
 	int i, num;
 
@@ -837,6 +839,7 @@ int dvb_register_adapter(struct dvb_adapter *adap, const char *name,
 	adap->device = device;
 	adap->mfe_shared = 0;
 	adap->mfe_dvbdev = NULL;
+	adap->num_reserved = num_reserved;
 	mutex_init (&adap->mfe_lock);
 
 	list_add_tail (&adap->list_head, &dvb_adapter_list);

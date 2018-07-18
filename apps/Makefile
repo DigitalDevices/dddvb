@@ -1,20 +1,14 @@
-all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3
+PTHREAD_BINS=cit modt
+INCLUDE_BINS=setmod setmod2 setmod3
+STANDARD_BINS=flashprog ddtest ddflash pls
 
-cit: cit.c
-	$(CC) -o cit cit.c -lpthread
+all: $(PTHREAD_BINS) $(INCLUDE_BINS) $(STANDARD_BINS)
 
-modt: modt.c
-	$(CC) -o modt modt.c -lpthread
+$(PTHREAD_BINS): %: %.c
+	gcc -o $@ $< -lpthread
 
-setmod: setmod.c
-	$(CC) -o setmod setmod.c -I../include/
+$(STANDARD_BINS): %: %.c
+	gcc -o $@ $<
 
-setmod2: setmod2.c
-	$(CC) -o setmod2 setmod2.c -I../include/
-
-setmod3: setmod3.c
-	$(CC) -o setmod3 setmod3.c -I../include/
-
-%.o: %.c
-	$(CC) $(CFLAGS) -o $@ $<
-
+$(INCLUDE_BINS): %: %.c
+	gcc -o $@ $< -I../include

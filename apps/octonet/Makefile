@@ -1,20 +1,9 @@
-all: ddtest octonet octokey ddflash
+PROGS=ddtest octonet octokey ddflash
+all: $(PROGS)
 
-install: all
-	install -m 0755 ddtest $(DESTDIR)/usr/bin
-	install -m 0755 octonet $(DESTDIR)/usr/bin
-	install -m 0755 octokey $(DESTDIR)/usr/bin
-	install -m 0755 ddflash $(DESTDIR)/usr/bin
+install: $(subst,$(PROGS),%,install-%)
+$(subst,$(PROGS),%,install-%): install-%: %
+	install -m 0755 $< $(DESTDIR)/usr/bin
 
-ddflash: ddflash.c
-	$(CC) -o ddflash ddflash.c
-
-ddtest: ddtest.c
-	$(CC) -o ddtest ddtest.c
-
-octonet: octonet.c
-	$(CC) -o octonet octonet.c
-
-octokey: octokey.c
-	$(CC) -o octokey octokey.c
-
+$(PROGS): %: %.c
+	$(CC) -o $@ $<
