@@ -590,6 +590,10 @@ static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
 		}
 	}
 	mutex_unlock(&ci->lock);
+
+	/* Ensure cam stability after reset */
+	msleep(2000);
+	
 	return 0;
 }
 
