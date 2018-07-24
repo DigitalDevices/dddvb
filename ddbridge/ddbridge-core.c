@@ -532,7 +532,6 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 	if (input->dma) {
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 		input->dma->running = 0;
-		spin_unlock_irq(&input->dma->lock);
 	}
 }
 
