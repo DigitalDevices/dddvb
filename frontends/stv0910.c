@@ -1854,6 +1854,8 @@ struct dvb_frontend *stv0910_attach(struct i2c_adapter *i2c,
 	state->tsgeneral = (cfg->parallel == 2) ? 0x02 : 0x00;
 	state->i2crpt = 0x0A | ((cfg->rptlvl & 0x07) << 4);
 	state->tsspeed = cfg->parallel ? 0x10 : 0x28;
+	if (cfg->tsspeed)
+		state->tsspeed = cfg->tsspeed;
 	state->nr = nr;
 	state->regoff = state->nr ? 0 : 0x200;
 	state->search_range = 16000000;
