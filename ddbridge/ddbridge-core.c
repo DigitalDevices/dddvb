@@ -1399,6 +1399,7 @@ static struct stv0910_cfg stv0910_p = {
 	.parallel = 1,
 	.rptlvl   = 4,
 	.clk      = 30000000,
+	.tsspeed  = 0x10,
 };
 
 static int has_lnbh25(struct i2c_adapter *i2c, u8 adr)
@@ -1413,12 +1414,17 @@ static int demod_attach_stv0910(struct ddb_input *input, int type)
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct stv0910_cfg cfg = stv0910_p;
+	struct ddb *dev = input->port->dev;
 	u8 lnbh_adr = 0x08;
 
 	if (stv0910_single)
 		cfg.single = 1;
 	if (type)
 		cfg.parallel = 2;
+	if ((input->port->nr == 0) &&
+	    ((dev->link[0].ids.hwid & 0xffffff) <
+	     dev->link[0].info->hw_min))
+		cfg.tsspeed = 0x28;
 	dvb->fe = dvb_attach(stv0910_attach, i2c, &cfg, (input->nr & 1));
 	if (!dvb->fe) {
 		cfg.adr = 0x6c;
