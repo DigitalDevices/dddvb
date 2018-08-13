@@ -181,6 +181,33 @@ static const struct ddb_regset octopro_gtl = {
 /****************************************************************************/
 /****************************************************************************/
 
+static const struct ddb_regset gtl_mini_input = {
+	.base = 0x400,
+	.num  = 0x14,
+	.size = 0x10,
+};
+
+static const struct ddb_regset gtl_mini_idma = {
+	.base = 0x800,
+	.num  = 0x40,
+	.size = 0x10,
+};
+
+static const struct ddb_regset gtl_mini_idma_buf = {
+	.base = 0x4000,
+	.num  = 0x40,
+	.size = 0x100,
+};
+
+static const struct ddb_regset gtl_mini_gtl = {
+	.base = 0xe00,
+	.num  = 0x03,
+	.size = 0x40,
+};
+
+/****************************************************************************/
+/****************************************************************************/
+
 static const struct ddb_regmap octopus_map = {
 	.irq_version = 1,
 	.irq_base_i2c = 0,
@@ -193,6 +220,7 @@ static const struct ddb_regmap octopus_map = {
 	.odma = &octopus_odma,
 	.odma_buf = &octopus_odma_buf,
 	.input = &octopus_input,
+
 	.output = &octopus_output,
 };
 
@@ -256,6 +284,18 @@ static const struct ddb_regmap octopus_sdr_map = {
 	.odma = &octopus_mod_2_odma,
 	.odma_buf = &octopus_mod_2_odma_buf,
 	.channel = &octopus_mod_2_channel,
+};
+
+static const struct ddb_regmap gtl_mini = {
+	.irq_version = 2,
+	.irq_base_i2c = 32,
+	.irq_base_idma = 64,
+	.irq_base_odma = 128,
+	.irq_base_gtl = 8,
+	.idma = &gtl_mini_idma,
+	.idma_buf = &gtl_mini_idma_buf,
+	.input = &gtl_mini_input,
+	.gtl = &gtl_mini_gtl,
 };
 
 /****************************************************************************/
@@ -599,6 +639,15 @@ static const struct ddb_info ddb_m4 = {
 	.temp_num = 1,
 };
 
+static const struct ddb_info ddb_gtl_mini = {
+	.type     = DDB_OCTONET,
+	.name     = "Digital Devices Octopus GT Mini",
+	.regmap   = &gtl_mini,
+	.port_num = 0,
+	.i2c_mask = 0x00,
+	.ns_num   = 0,
+};
+
 /****************************************************************************/
 /****************************************************************************/
 
@@ -717,6 +766,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0012, 0x0042, ddb_ci),
 	DDB_DEVID(0x0013, 0x0043, ddb_ci_s2_pro),
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
+	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
 
         /* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),

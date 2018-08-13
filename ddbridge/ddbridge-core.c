@@ -4337,8 +4337,10 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 			if (1 & ddbreadl(dev, regs))
 				break;
 		}
-		if (c == 5)
+		if (c == 5) {
+			ddbwritel(dev, 8, regs);
 			return -1;
+		}
 	}
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
 	subid = ddbreadl(dev, DDB_LINK_TAG(l) | 12);
