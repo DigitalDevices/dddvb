@@ -43,7 +43,7 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 	Start = strtoul(argv[0],NULL,16);
 	Len   = strtoul(argv[1],NULL,16);
 	if (argc == 3) {
-		fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC);
+		fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
 		if (fd < 0) {
 			printf("Could not open file %s\n", argv[2]);
 			return -1;
