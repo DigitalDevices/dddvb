@@ -27,6 +27,7 @@
 #include <linux/ioctl.h>
 #include <linux/wait.h>
 #include <linux/uaccess.h>
+#include <linux/version.h>
 #include "dmxdev.h"
 
 static int debug;
