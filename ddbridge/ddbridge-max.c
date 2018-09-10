@@ -473,7 +473,6 @@ extern struct mci_cfg ddb_max_m4_cfg;
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
 	struct ddb *dev = input->port->dev;
-	//struct i2c_adapter *i2c = &input->port->i2c->adap;
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 	struct ddb_port *port = input->port;
 	struct ddb_link *link = &dev->link[port->lnr];
@@ -514,8 +513,14 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
 	dvb->fe->ops.diseqc_send_burst = max_send_burst;
 	dvb->fe->sec_priv = input;
-	dvb->set_input = dvb->fe->ops.set_input;
-	dvb->fe->ops.set_input = max_set_input;
+	switch (type) {
+	case DDB_TUNER_MCI_M4:
+		break;
+	default:
+		dvb->set_input = dvb->fe->ops.set_input;
+		dvb->fe->ops.set_input = max_set_input;
+		break;
+	}
 	dvb->input = tuner;
 	return 0;
 }
