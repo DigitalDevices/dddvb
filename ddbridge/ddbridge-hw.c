@@ -640,7 +640,7 @@ static const struct ddb_info ddb_m4 = {
 };
 
 static const struct ddb_info ddb_gtl_mini = {
-	.type     = DDB_OCTONET,
+	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus GT Mini",
 	.regmap   = &gtl_mini,
 	.port_num = 0,
