@@ -93,17 +93,23 @@
 
 /********************************************************/
 
-#define SX8_DEMOD_STOPPED        (0)
-#define SX8_DEMOD_IQ_MODE        (1)
-#define SX8_DEMOD_WAIT_SIGNAL    (2)
-#define SX8_DEMOD_WAIT_MATYPE    (3)
-#define SX8_DEMOD_TIMEOUT        (14)
-#define SX8_DEMOD_LOCKED         (15)
+#define MCI_DEMOD_STOPPED        (0)
+#define MCI_DEMOD_WAIT_SIGNAL    (2)
+#define MCI_DEMOD_TIMEOUT        (14)
+#define MCI_DEMOD_LOCKED         (15)
 
-#define M4_DEMOD_STOPPED         (0)
-#define M4_DEMOD_WAIT_SIGNAL     (1)
-#define M4_DEMOD_TIMEOUT         (14)
-#define M4_DEMOD_LOCKED          (15)
+#define SX8_DEMOD_IQ_MODE        (1)
+#define SX8_DEMOD_WAIT_MATYPE    (3)
+
+#define M4_DEMOD_WAIT_TS         (6)
+#define M4_DEMOD_C2SCAN          (16)
+
+#define MCI_STATUS_OK                 (0x00)
+#define MCI_STATUS_UNSUPPORTED        (0x80)
+#define MCI_STATUS_INVALID_PARAMETER  (0xFC)
+#define MCI_STATUS_RETRY              (0xFD)
+#define MCI_STATUS_NOT_READY          (0xFE)
+#define MCI_STATUS_ERROR              (0xFF)
 
 #define MCI_CMD_STOP             (0x01)
 #define MCI_CMD_GETSTATUS        (0x02)
@@ -111,11 +117,16 @@
 #define MCI_CMD_RFPOWER          (0x04)
 
 #define MCI_CMD_SEARCH_DVBS     (0x10)
+#define MCI_CMD_SEARCH_ISDBS    (0x11)
+
 #define MCI_CMD_SEARCH_DVBC     (0x20)
 #define MCI_CMD_SEARCH_DVBT     (0x21)
 #define MCI_CMD_SEARCH_DVBT2    (0x22)
 #define MCI_CMD_SEARCH_DVBC2    (0x23)
+
 #define MCI_CMD_SEARCH_ISDBT    (0x24)
+#define MCI_CMD_SEARCH_ISDBC    (0x25)
+#define MCI_CMD_SEARCH_J83B     (0x26)
 
 #define MCI_CMD_GET_IQSYMBOL     (0x30)
 
@@ -167,12 +178,6 @@
   
 #define M4_SIGNALINFO_FLAG_CHANGE (0x01)
 #define M4_SIGNALINFO_FLAG_EWS    (0x02)
-
-#define MCI_STATUS_OK             (0x00)
-#define MCI_STATUS_UNSUPPORTED    (0x80)
-#define MCI_STATUS_RETRY          (0xFD)
-#define MCI_STATUS_NOT_READY      (0xFE)
-#define MCI_STATUS_ERROR          (0xFF)
 
 #define MCI_SUCCESS(status)     ((status & MCI_STATUS_UNSUPPORTED) == 0)
 
