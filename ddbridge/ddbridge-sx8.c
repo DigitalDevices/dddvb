@@ -123,7 +123,7 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	ddb_mci_get_info(&state->mci);
 	if (res.status == SX8_DEMOD_WAIT_MATYPE)
 		*status = 0x0f;
-	if (res.status == SX8_DEMOD_LOCKED) {
+	if (res.status == MCI_DEMOD_LOCKED) {
 		*status = 0x1f;
 		if (state->mci.signal_info.dvbs2_signal_info.standard == 2) {
 			sx8_base->used_ldpc_bitrate[state->mci.nr] =
@@ -407,7 +407,7 @@ static int set_parameters(struct dvb_frontend *fe)
 	if (!stat) {
 		state->started = 1;
 		state->first_time_lock = 1;
-		state->mci.signal_info.status = SX8_DEMOD_WAIT_SIGNAL;
+		state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
 	}
 	return stat;
 }
