@@ -1560,11 +1560,30 @@ static void dvb_input_detach(struct ddb_input *input)
 
 static int dvb_register_adapters(struct ddb *dev)
 {
-	int i, ret = 0;
+	int i, ret = 0, l = 0;
 	struct ddb_port *port;
 	struct dvb_adapter *adap;
 
-	if (adapter_alloc == 3 || dev->link[0].info->type == DDB_MOD ||
+	if (adapter_alloc == 4) {
+		for (i = 0; i < dev->port_num; i++) {
+			port = &dev->port[i];
+			if (port->lnr >= l) {
+				adap = port->dvb[0].adap;
+				ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
+							   port->dev->dev,
+							   adapter_nr);
+				if (ret < 0)
+					return ret;
+				port->dvb[0].adap_registered = 1;
+				l = port->lnr + 1;
+			}
+			port->dvb[0].adap = adap;
+			port->dvb[1].adap = adap;
+		}
+		return 0;
+	}
+
+	if (adapter_alloc >= 3 || dev->link[0].info->type == DDB_MOD ||
 	    dev->link[0].info->type == DDB_OCTONET ||
 	    dev->link[0].info->type == DDB_OCTOPRO ) {
 		port = &dev->port[0];
@@ -1644,7 +1663,7 @@ static void dvb_unregister_adapters(struct ddb *dev)
 	struct ddb_port *port;
 	struct ddb_dvb *dvb;
 
-	for (i = 0; i < dev->link[0].info->port_num; i++) {
+	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
 
 		dvb = &port->dvb[0];

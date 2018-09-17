@@ -249,6 +249,10 @@ int main(int argc, char **argv)
 			fname="DVBBridgeV2B_DD01_0013_PRO.fpga";
 			printf("Octopus PRO\n");
 			break;
+		case 0x0020:
+			fname="DVBBridgeV2B_DD01_0020.fpga";
+			printf("Octopus GT Mini\n");
+			break;
 		case 0x0201:
 			fname="DVBModulatorV1B_DVBModulatorV1B.bit";
 			printf("Modulator\n");
