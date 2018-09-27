@@ -55,7 +55,7 @@
  * Maximum number of Delivery systems per frontend. It
  * should be smaller or equal to 32
  */
-#define MAX_DELSYS	8
+#define MAX_DELSYS	16
 
 /**
  * struct dvb_frontend_tune_settings - parameters to adjust frontend tuning

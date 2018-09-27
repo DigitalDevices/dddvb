@@ -285,7 +285,7 @@ struct mci_command {
 			u8   rsvd1;
 			u8   retry;
 			u32  frequency;
-		} j83b_Search;
+		} j83b_search;
 		
 		struct {
 			u8   tap;
