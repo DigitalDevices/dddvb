@@ -1,7 +1,7 @@
 /*
  * ddbridge-modulator.c: Digital Devices modulator cards
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2018 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -1852,7 +1852,8 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	return ret;
 }
 
-static int mod_init_sdr_iq(struct ddb *dev, u32 Frequency)
+
+static int mod_init_sdr_iq(struct ddb *dev)
 {
 	int streams = dev->link[0].info->port_num;
 	int i, ret = 0;
@@ -1866,7 +1867,6 @@ static int mod_init_sdr_iq(struct ddb *dev, u32 Frequency)
 	if (ret)
 		dev_err(dev->dev, "RFDAC setup failed\n");
 
-	ddbwritel(dev, 0x3000, 0x244);
 	ddbwritel(dev, 0x01, 0x240);
 
 	//mod3_set_base_frequency(dev, 602000000);
@@ -1874,16 +1874,11 @@ static int mod_init_sdr_iq(struct ddb *dev, u32 Frequency)
 		struct ddb_mod *mod = &dev->mod[i];
 
 		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
-		ddbwritel(dev, 0x306, SDR_CHANNEL_CONFIG(i));
-		ddbwritel(dev, 0x72492492, SDR_CHANNEL_ARICW(i));
-		//mod3_set_frequency(mod, Frequency + 8000000 * i);
-		ddbwritel(dev, 0x00011f80, SDR_CHANNEL_RGAIN(i));
 	}
-	ddbwritel(dev, -699050667, SDR_CHANNEL_CFCW(0));
-	ddbwritel(dev, 699050667, SDR_CHANNEL_CFCW(1));
 
 	mod_set_attenuator(dev, 0);
-	mod_set_vga(dev, 64);
+	udelay(10);
+	mod_set_vga(dev, 120);
 	return ret;
 }
 
@@ -1898,7 +1893,7 @@ int ddbridge_mod_init(struct ddb *dev)
 	case 16:
 		return mod_init_3(dev, 503250000);
 	case 17:
-		return mod_init_sdr_iq(dev, 503250000);
+		return mod_init_sdr_iq(dev);
 	default:
 		return -1;
 	}
