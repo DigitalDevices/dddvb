@@ -46,7 +46,6 @@ static int stop(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
 	struct mci_command cmd;
-	struct mci_base *mci_base = state->mci.base;
 
 	if (!state->started)
 		return -1;
@@ -62,8 +61,6 @@ static int stop(struct dvb_frontend *fe)
 static int search_s2(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
@@ -72,11 +69,12 @@ static int search_s2(struct dvb_frontend *fe)
 	cmd.command = MCI_CMD_SEARCH_DVBS;
 	cmd.dvbs2_search.flags = 3;
 	cmd.dvbs2_search.s2_modulation_mask = 3;
-	cmd.dvbs2_search.retry = 2;
+	cmd.dvbs2_search.retry = 0;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
 	cmd.dvbs2_search.scrambling_sequence_index = 0; //p->scrambling_sequence_index;
-	cmd.dvbs2_search.input_stream_id = p->stream_id;
+	if (p->stream_id != NO_STREAM_ID_FILTER)
+		cmd.dvbs2_search.input_stream_id = p->stream_id;
 	cmd.tuner = state->mci.nr;
 	cmd.demod = state->mci.tuner;
 	cmd.output = state->mci.nr;
@@ -90,8 +88,6 @@ static int search_s2(struct dvb_frontend *fe)
 static int search_c(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
@@ -109,7 +105,7 @@ static int search_c(struct dvb_frontend *fe)
 		cmd.dvbc_search.bandwidth = MCI_BANDWIDTH_8MHZ;
 		break;
 	}
-	cmd.dvbc_search.retry = 2;
+	cmd.dvbc_search.retry = 0;
 	cmd.dvbc_search.frequency = p->frequency;
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
@@ -124,8 +120,6 @@ static int search_c(struct dvb_frontend *fe)
 static int search_t(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
@@ -146,7 +140,7 @@ static int search_t(struct dvb_frontend *fe)
 		cmd.dvbt_search.bandwidth = MCI_BANDWIDTH_8MHZ;
 		break;
 	}
-	cmd.dvbt_search.retry = 2;
+	cmd.dvbt_search.retry = 0;
 	cmd.dvbt_search.frequency = p->frequency;
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
@@ -158,15 +152,85 @@ static int search_t(struct dvb_frontend *fe)
 	return stat;
 }
 
-static int search_t2(struct dvb_frontend *fe)
+static int search_isdbs(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
-	u32 flags = 0;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.command = MCI_CMD_SEARCH_ISDBS;
+	cmd.isdbs_search.retry = 0;
+	if (p->stream_id != NO_STREAM_ID_FILTER) {
+		cmd.isdbs_search.flags = (p->stream_id & 0xffff0000) ? 0 : 1;
+		cmd.isdbs_search.tsid = p->stream_id;
+	}
+	cmd.isdbs_search.frequency = p->frequency * 1000;
+	cmd.tuner = state->mci.nr;
+	cmd.demod = state->mci.tuner;
+	cmd.output = state->mci.nr;
+
+	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
+	if (stat)
+		stop(fe);
+	return stat;
+}
+
+static int search_isdbc(struct dvb_frontend *fe)
+{
+	struct m4 *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	struct mci_command cmd;
+	int stat;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.command = MCI_CMD_SEARCH_ISDBC;
+	cmd.isdbc_search.retry = 0;
+	if (p->stream_id != NO_STREAM_ID_FILTER) {
+		cmd.isdbc_search.flags = (p->stream_id & 0xffff0000) ? 0 : 1;
+		cmd.isdbc_search.tsid = p->stream_id;
+		cmd.isdbc_search.onid = (p->stream_id & 0x10000) >> 16;
+	}
+	cmd.isdbc_search.bandwidth = MCI_BANDWIDTH_6MHZ;
+	cmd.isdbc_search.frequency = p->frequency;
+	cmd.demod = state->mci.tuner;
+	cmd.output = state->mci.nr;
+
+	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
+	if (stat)
+		stop(fe);
+	return stat;
+}
+
+static int search_j83b(struct dvb_frontend *fe)
+{
+	struct m4 *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	struct mci_command cmd;
+	int stat;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.command = MCI_CMD_SEARCH_J83B;
+	cmd.j83b_search.flags = 0;
+	cmd.j83b_search.retry = 0;
+	cmd.j83b_search.bandwidth = MCI_BANDWIDTH_6MHZ;
+	cmd.j83b_search.frequency = p->frequency;
+	cmd.demod = state->mci.tuner;
+	cmd.output = state->mci.nr;
+
+	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
+	if (stat)
+		stop(fe);
+	return stat;
+}
+
+static int search_t2(struct dvb_frontend *fe)
+{
+	struct m4 *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	struct mci_command cmd;
+	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBT2;
@@ -187,7 +251,7 @@ static int search_t2(struct dvb_frontend *fe)
 		cmd.dvbt_search.bandwidth = MCI_BANDWIDTH_8MHZ;
 		break;
 	}
-	cmd.dvbt2_search.retry = 2;
+	cmd.dvbt2_search.retry = 0;
 	cmd.dvbt2_search.frequency = p->frequency;
 	if (p->stream_id != NO_STREAM_ID_FILTER) {
 		cmd.dvbt2_search.plp = p->stream_id & 0xff;
@@ -207,12 +271,9 @@ static int search_t2(struct dvb_frontend *fe)
 static int search_c2(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
-	u32 flags = 0;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBC2;
@@ -224,7 +285,7 @@ static int search_c2(struct dvb_frontend *fe)
 		cmd.dvbc2_search.bandwidth = MCI_BANDWIDTH_8MHZ;
 		break;
 	}
-	cmd.dvbc2_search.retry = 2;
+	cmd.dvbc2_search.retry = 0;
 	cmd.dvbc2_search.frequency = p->frequency;
 	if (p->stream_id != NO_STREAM_ID_FILTER) {
 		cmd.dvbc2_search.plp = p->stream_id & 0xff;
@@ -243,12 +304,9 @@ static int search_c2(struct dvb_frontend *fe)
 static int search_isdbt(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct m4_base *m4_base = (struct m4_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
 	int stat;
-	u32 flags = 0;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_ISDBT;
@@ -263,7 +321,7 @@ static int search_isdbt(struct dvb_frontend *fe)
 		cmd.isdbt_search.bandwidth = MCI_BANDWIDTH_6MHZ;
 		break;
 	}
-	cmd.isdbt_search.retry = 2;
+	cmd.isdbt_search.retry = 0;
 	cmd.isdbt_search.frequency = p->frequency;
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
@@ -296,6 +354,9 @@ static int set_parameters(struct dvb_frontend *fe)
 	case SYS_DVBC_ANNEX_A:
 		res = search_c(fe);
 		break;
+	case SYS_DVBC_ANNEX_B:
+		res = search_j83b(fe);
+		break;
 	case SYS_DVBT:
 		state->iq_constellation_tap = 5;
 		res = search_t(fe);
@@ -308,6 +369,13 @@ static int set_parameters(struct dvb_frontend *fe)
 		break;
 	case SYS_ISDBT:
 		res = search_isdbt(fe);
+		break;
+	case SYS_ISDBS:
+		res = search_isdbs(fe);
+		break;
+	case SYS_DVBC_ANNEX_C:
+	case SYS_ISDBC:
+		res = search_isdbc(fe);
 		break;
 	default:
 		return -EINVAL;
@@ -329,7 +397,9 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (stat)
 		return stat;
 	*status = 0x00;
-	ddb_mci_get_info(&state->mci);
+	stat = ddb_mci_get_info(&state->mci);
+	if (stat)
+		return stat;
 	ddb_mci_get_strength(fe);
 	if (res.status == MCI_DEMOD_WAIT_SIGNAL)
 		*status = 0x01;
@@ -397,8 +467,10 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 }
 
 static struct dvb_frontend_ops m4_ops = {
-	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2, SYS_ISDBT,
-		    SYS_DVBS, SYS_DVBS2, },
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B, SYS_DVBC_ANNEX_C,
+		    SYS_ISDBC, SYS_DVBC2,
+		    SYS_DVBT, SYS_DVBT2, SYS_ISDBT,
+		    SYS_DVBS, SYS_DVBS2, SYS_ISDBS, },
 	.info = {
 		.name = "M4",
 		.frequency_min = 950000,	/* DVB-T: 47125000 */

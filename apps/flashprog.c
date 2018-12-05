@@ -267,7 +267,11 @@ int main(int argc, char **argv)
 			break;
 		case 0x0220:
 			fname="SDRModulatorV1A_DD01_0220.fpga";
-			printf("SDRModulator\n");
+			printf("SDRModulator ATV\n");
+			break;
+		case 0x0221:
+			fname="SDRModulatorV1A_DD01_0221_IQ.fpga";
+			printf("SDRModulator IQ\n");
 			break;
 		default:
 			printf("UNKNOWN\n");

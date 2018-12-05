@@ -1,7 +1,7 @@
 /*
  * ddbridge-modulator.c: Digital Devices modulator cards
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2018 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -292,7 +292,7 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	u32 Symbolrate = mod->symbolrate;
 
-	if (dev->link[0].info->version < 3)
+	if (dev->link[0].info->version < 16)
 		mod_calc_rateinc(mod);
 
 	mod->LastInPacketCount = 0;
@@ -311,7 +311,7 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 	mod->State = CM_STARTUP;
 	mod->StateCounter = CM_STARTUP_DELAY;
 
-	if (dev->link[0].info->version == 3)
+	if (dev->link[0].info->version >= 16)
 		mod->Control = 0xfffffff0 &
 			ddbreadl(dev, CHANNEL_CONTROL(output->nr));
 	else
@@ -363,11 +363,11 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 			  CHANNEL_SETTINGS(output->nr));
 		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ |
 				 CHANNEL_CONTROL_ENABLE_DVB);
-	} else if (dev->link[0].info->version == 3) {
+	} else if (dev->link[0].info->version >= 16) {
 		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ |
 				 CHANNEL_CONTROL_ENABLE_DVB);
 	}
-	if (dev->link[0].info->version < 3) {
+	if (dev->link[0].info->version < 16) {
 		mod_set_rateinc(dev, output->nr);
 		mod_set_incs(output);
 	}
@@ -1499,7 +1499,7 @@ static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 
 static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
-	if (mod->port->dev->link[0].info->version == 3)
+	if (mod->port->dev->link[0].info->version >= 16)
 		return mod3_prop_proc(mod, tvp);
 	switch (tvp->cmd) {
 	case MODULATOR_SYMBOL_RATE:
@@ -1592,7 +1592,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		(struct dtv_properties __user *) parg;
 	int i, ret = 0;
 
-	if (dev->link[0].info->version == 3 && cmd != FE_SET_PROPERTY)
+	if (dev->link[0].info->version >= 16 && cmd != FE_SET_PROPERTY)
 		return -EINVAL;
 	mutex_lock(&dev->ioctl_mutex);
 	switch (cmd) {
@@ -1852,6 +1852,36 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	return ret;
 }
 
+
+static int mod_init_sdr_iq(struct ddb *dev)
+{
+	int streams = dev->link[0].info->port_num;
+	int i, ret = 0;
+
+	ret = mod_setup_max2871(dev, max2871_sdr);
+	if (ret)
+		dev_err(dev->dev, "PLL setup failed\n");
+	ret = rfdac_init(dev);
+	if (ret)
+		ret = rfdac_init(dev);
+	if (ret)
+		dev_err(dev->dev, "RFDAC setup failed\n");
+
+	ddbwritel(dev, 0x01, 0x240);
+
+	//mod3_set_base_frequency(dev, 602000000);
+	for (i = 0; i < streams; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+
+		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
+	}
+
+	mod_set_attenuator(dev, 0);
+	udelay(10);
+	mod_set_vga(dev, 120);
+	return ret;
+}
+
 int ddbridge_mod_init(struct ddb *dev)
 {
 	switch (dev->link[0].info->version) {
@@ -1860,8 +1890,10 @@ int ddbridge_mod_init(struct ddb *dev)
 		return mod_init_1(dev, 722000000);
 	case 2:
 		return mod_init_2(dev, 114000000);
-	case 3:
+	case 16:
 		return mod_init_3(dev, 503250000);
+	case 17:
+		return mod_init_sdr_iq(dev);
 	default:
 		return -1;
 	}

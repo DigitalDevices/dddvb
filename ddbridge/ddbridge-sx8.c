@@ -237,7 +237,6 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 			if (sx8_base->demod_in_use[i])
 				used_demods++;
 		}
-		printk("used_ldpc_bitrate = %u\n", used_ldpc_bitrate);
 		if ((used_ldpc_bitrate >= MAX_LDPC_BITRATE)  ||
 		    ((ts_config & SX8_TSCONFIG_MODE_MASK) >
 		     SX8_TSCONFIG_MODE_NORMAL && used_demods > 0)) {
@@ -443,14 +442,12 @@ static int set_input(struct dvb_frontend *fe, int input)
 	struct sx8 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
-	printk("fe %u, set input = %u\n", state->mci.nr, input);
 	if (input >= SX8_TUNER_NUM)
 		return -EINVAL;
 	if (state->mci.tuner == input)
 		return 0;
 	stop(fe);
 	state->mci.tuner = p->input = input;
-	printk("fe %u, input = %u\n", state->mci.nr, input);
 	return 0;
 }
 

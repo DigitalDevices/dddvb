@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 		break;
 	}
 
-	dd = dddvb_init(config, 0xffff);
+	dd = dddvb_init(config, 0);//0xffff);
 	if (!dd) {
 		printf("dddvb_init failed\n");
 		exit(-1);

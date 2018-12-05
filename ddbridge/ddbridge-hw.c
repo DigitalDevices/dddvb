@@ -517,10 +517,20 @@ static const struct ddb_info ddb_mod_fsm_4 = {
 	.lostlock_irq = 9,
 };
 
-static const struct ddb_info ddb_sdr = {
+static const struct ddb_info ddb_sdr_atv = {
 	.type     = DDB_MOD,
-	.name     = "Digital Devices SDR",
-	.version  = 3,
+	.name     = "Digital Devices SDR ATV",
+	.version  = 16,
+	.regmap   = &octopus_sdr_map,
+	.port_num = 16,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
+static const struct ddb_info ddb_sdr_iq = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices SDR IQ",
+	.version  = 17,
 	.regmap   = &octopus_sdr_map,
 	.port_num = 16,
 	.temp_num = 1,
@@ -777,7 +787,8 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0210, 0x0001, ddb_mod_fsm_24),
 	DDB_DEVID(0x0210, 0x0002, ddb_mod_fsm_16),
 	DDB_DEVID(0x0210, 0x0003, ddb_mod_fsm_8),
-	DDB_DEVID(0x0220, 0x0001, ddb_sdr),
+	DDB_DEVID(0x0220, 0x0001, ddb_sdr_atv),
+	DDB_DEVID(0x0221, 0x0001, ddb_sdr_iq),
 
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),
