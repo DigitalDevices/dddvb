@@ -43,7 +43,7 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 	Start = strtoul(argv[0],NULL,16);
 	Len   = strtoul(argv[1],NULL,16);
 	if (argc == 3) {
-		fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC);
+		fd = open(argv[2], O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
 		if (fd < 0) {
 			printf("Could not open file %s\n", argv[2]);
 			return -1;
@@ -402,6 +402,7 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SPANSION_S25FL116K: SectorSize = 4096; FlashSize = 0x200000; break;
         case SPANSION_S25FL132K: SectorSize = 4096; FlashSize = 0x400000; break;
         case SPANSION_S25FL164K: SectorSize = 4096; FlashSize = 0x800000; break;
+	case WINBOND_W25Q16JV: SectorSize = 4096; FlashSize = 0x200000; break;
 	}
 	if (SectorSize == 0) 
 		return 0;
@@ -571,6 +572,7 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SPANSION_S25FL116K: 
         case SPANSION_S25FL132K: 
         case SPANSION_S25FL164K: 
+	case WINBOND_W25Q16JV:
 		err = FlashWritePageMode(dev,FlashOffset,Buffer,BufferSize,0x1C); break;
 	}
 	
@@ -1284,7 +1286,7 @@ int lic_erase(int dev, int argc, char* argv[], uint32_t Flags)
 
 static int read_sfpd(int dev, uint8_t adr, uint8_t *val)
 {
-	uint8_t cmd[5] = { 0x5a, 0, 0, adr, 00 };     
+	uint8_t cmd[5] = { 0x5a, 0, 0, adr, 0 };     
 	int r;
 	
 	r = flashio(dev, cmd, 5, val, 1);
@@ -1306,6 +1308,17 @@ static int read_sst_id(int dev, uint8_t *id)
 	return 0;
 }
 
+static int read_winbd(int dev, uint8_t *val)
+{
+	uint8_t cmd[5] = { 0x4b, 0, 0, 0, 0 };     
+	int r;
+	
+	r = flashio(dev, cmd, 5, val, 8);
+	if (r < 0)
+		return r;
+	return 0;
+}
+
 int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 {
 	int Flash = FlashDetect(dev);
@@ -1313,8 +1326,12 @@ int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 	uint8_t Id[8];
 	uint32_t len, i, adr;
 	
-
+	
 	switch(Flash) {
+	case WINBOND_W25Q16JV:
+		read_winbd(dev, Id);
+		len = 8;
+		break;
         case SPANSION_S25FL116K:
         case SPANSION_S25FL132K:
         case SPANSION_S25FL164K:

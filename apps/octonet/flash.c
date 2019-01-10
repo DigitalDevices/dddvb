@@ -7,6 +7,7 @@ enum {
 	SPANSION_S25FL116K = 5,
 	SPANSION_S25FL132K = 6,
 	SPANSION_S25FL164K = 7,
+	WINBOND_W25Q16JV = 8,
 };
 
 static uint32_t linknr = 0;
@@ -47,6 +48,8 @@ int FlashDetect(int dev)
 		r = SPANSION_S25FL164K; 
 	else if ( Id[0] == 0x1F && Id[1] == 0x28)
 		r = ATMEL_AT45DB642D; 
+	else if ( Id[0] == 0xef && Id[1] == 0x40 && Id[2] == 0x15 )
+		r = WINBOND_W25Q16JV; 
 	else 
 		r = UNKNOWN_FLASH;
 	
@@ -74,6 +77,9 @@ int FlashDetect(int dev)
 		break;
         case SPANSION_S25FL164K : 
 		printf("Flash: SPANSION S25FL164K 64 MBit\n"); 
+		break;
+        case WINBOND_W25Q16JV : 
+		printf("Flash: Winbond W25Q16JV 16 MBit\n"); 
 		break;
 	}
 	return r;
@@ -120,6 +126,11 @@ static int flashdetect(int fd, uint32_t *sector_size, uint32_t *flash_size)
 		printf("Flash: SPANSION S25FL164K 64 MBit\n");
 		*sector_size = 4096; 
 		*flash_size = 0x800000; 
+	} else if (id[0] == 0xef && id[1] == 0x40 && id[2] == 0x15) {
+		flash_type = WINBOND_W25Q16JV;
+		printf("Flash: Winbond 16 MBit\n");
+		*sector_size = 4096; 
+		*flash_size = 0x200000; 
 	} else if (id[0] == 0x1F && id[1] == 0x28) {
 		flash_type = ATMEL_AT45DB642D; 
 		printf("Flash: Atmel AT45DB642D  64 MBit\n");
