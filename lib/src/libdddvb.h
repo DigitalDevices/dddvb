@@ -65,6 +65,10 @@ static inline void dddvb_set_frequency(struct dddvb_params *p, uint32_t freq) {
 	p->param[PARAM_FREQ] = freq;
 };
 
+static inline void dddvb_set_bandwidth(struct dddvb_params *p, uint32_t bandw) {
+	p->param[PARAM_BW_HZ] = bandw;
+};
+
 static inline void dddvb_set_symbol_rate(struct dddvb_params *p, uint32_t srate) {
 	p->param[PARAM_SR] = srate;
 };

@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 	struct dddvb *dd;
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
-	uint32_t frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
+	uint32_t bandwidth = 8000000, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
 	uint32_t id = DDDVB_UNDEF, pls = DDDVB_UNDEF, num = DDDVB_UNDEF;
 	enum fe_code_rate fec = FEC_AUTO;
 	enum fe_delivery_system delsys = ~0;
@@ -36,6 +36,7 @@ int main(int argc, char **argv)
                 static struct option long_options[] = {
 			{"config", required_argument, 0, 'c'},
 			{"frequency", required_argument, 0, 'f'},
+			{"bandwidth", required_argument, 0, 'b'},
 			{"symbolrate", required_argument, 0, 's'},
 			{"delsys", required_argument, 0, 'd'},
 			{"id", required_argument, 0, 'i'},
@@ -46,7 +47,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"c:i:f:s:d:p:hg:r:n:",
+				"c:i:f:s:d:p:hg:r:n:b:",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -57,6 +58,9 @@ int main(int argc, char **argv)
 			break;
 		case 'f':
 			frequency = strtoul(optarg, NULL, 0);
+			break;
+		case 'b':
+			bandwidth = strtoul(optarg, NULL, 0);
 			break;
 		case 's':
 			symbol_rate = strtoul(optarg, NULL, 0);
@@ -84,6 +88,12 @@ int main(int argc, char **argv)
 				delsys = SYS_DVBT;
 			if (!strcmp(optarg, "T2"))
 				delsys = SYS_DVBT2;
+			if (!strcmp(optarg, "J83B"))
+				delsys = SYS_DVBC_ANNEX_B;
+			if (!strcmp(optarg, "ISDBC"))
+				delsys = SYS_ISDBC;
+			if (!strcmp(optarg, "ISDBT"))
+				delsys = SYS_ISDBT;
 			break;
 		case 'p':
 			if (!strcmp(optarg, "h"))
@@ -131,6 +141,7 @@ int main(int argc, char **argv)
 	}
 	dddvb_param_init(&p);
 	dddvb_set_frequency(&p, frequency);
+	dddvb_set_bandwidth(&p, bandwidth);
 	dddvb_set_symbol_rate(&p, symbol_rate);
 	dddvb_set_polarization(&p, pol);
 	dddvb_set_delsys(&p, delsys);
