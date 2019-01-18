@@ -1445,7 +1445,8 @@ static void mod3_set_cfcw(struct ddb_mod *mod, u32 f)
 	tmp = ((s64) (freq - dcf)) << 32;
 	tmp = div64_s64(tmp, srdac);
 	cfcw = (u32) tmp;
-	dev_info(dev->dev, "f=%u cfcw = %08x nr = %u\n", f, cfcw, mod->port->nr);
+	dev_info(dev->dev, "f=%u cfcw = %08x dcf = %08x, nr = %u\n",
+		 f, cfcw, dcf, mod->port->nr);
 	ddbwritel(dev, cfcw, SDR_CHANNEL_CFCW(mod->port->nr));
 }
 
@@ -1870,9 +1871,11 @@ static int mod_init_sdr_iq(struct ddb *dev)
 	ddbwritel(dev, 0x01, 0x240);
 
 	//mod3_set_base_frequency(dev, 602000000);
+	dev->mod_base.frequency = 570000000;
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
+		mod->port = &dev->port[i];
 		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
 	}
 
