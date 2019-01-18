@@ -444,7 +444,7 @@ struct mci_result {
 			s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
 			s16 rsvd2;
 			u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-
+			u32 ber_numerator;     // Bit error rate: PreRS Segment A
 			u32 ber_denominator;
 			u32 ber_rsvd1;          // Place holder for modulation bit error rate
 			u32 ber_rsvd2;

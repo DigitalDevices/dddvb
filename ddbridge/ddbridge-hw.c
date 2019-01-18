@@ -789,6 +789,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0210, 0x0003, ddb_mod_fsm_8),
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr_atv),
 	DDB_DEVID(0x0221, 0x0001, ddb_sdr_iq),
+	DDB_DEVID(0x0222, 0x0001, ddb_sdr_iq),
 
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),
