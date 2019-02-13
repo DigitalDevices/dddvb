@@ -98,26 +98,6 @@ struct mxl {
 	unsigned long        tune_time;
 };
 
-static void le32_to_cpusn(u32 *data, u32 size)
-{
-	u32 i;
-
-	for (i = 0; i < size; data++, i += 4)
-		le32_to_cpus(data);
-}
-
-static void flip_data_in_dword(u32 size, u8 *d)
-{
-	u32 i;
-	u8 t;
-
-	for (i = 0; i < size; i += 4) {
-		t = d[i + 3]; d[i + 3] = d[i]; d[i] = t;
-		t = d[i + 2]; d[i + 2] = d[i + 1]; d[i + 1] = t;
-	}
-}
-
-
 static void convert_endian(u8 flag, u32 size, u8 *d)
 {
 	u32 i;
@@ -249,6 +229,7 @@ static int write_register(struct mxl *state, u32 reg, u32 val)
 	return stat;
 }
 
+#if 0
 static int write_register_block(struct mxl *state, u32 reg,
 				u32 size, u8 *data)
 {
@@ -272,6 +253,7 @@ static int write_register_block(struct mxl *state, u32 reg,
 	mutex_unlock(&state->base->i2c_lock);
 	return stat;
 }
+#endif
 
 static int write_firmware_block(struct mxl *state,
 				u32 reg, u32 size, u8 *regDataPtr)
@@ -375,6 +357,7 @@ static int update_by_mnemonic(struct mxl *state,
 	return stat;
 }
 
+#if 0
 static void extract_from_mnemonic(u32 regAddr, u8 lsbPos, u8 width,
 				  u32 *toAddr, u8 *toLsbPos, u8 *toWidth)
 {
@@ -385,6 +368,7 @@ static void extract_from_mnemonic(u32 regAddr, u8 lsbPos, u8 width,
 	if (toWidth)
 		*toWidth = width;
 }
+#endif
 
 static int firmware_is_alive(struct mxl *state)
 {
@@ -397,6 +381,8 @@ static int firmware_is_alive(struct mxl *state)
 		return 0;
 	if (hb1 == hb0)
 		return 0;
+
+	pr_info("mxl5xx: Hydra FW alive. Hail!\n");
 	return 1;
 }
 
@@ -470,9 +456,9 @@ static int CfgDemodAbortTune(struct mxl *state)
 			    &cmdBuff[0]);
 }
 
+#if 0
 static int reset_fec_counter(struct mxl *state)
 {
-	MXL_HYDRA_DEMOD_ABORT_TUNE_T abortTuneCmd;
 	u32 demodIndex = (u32) state->demod;
 	u8 cmdSize = sizeof(u32);
 	u8 cmdBuff[MXL_HYDRA_OEM_MAX_CMD_BUFF_LEN];
@@ -482,6 +468,7 @@ static int reset_fec_counter(struct mxl *state)
 	return send_command(state, cmdSize + MXL_HYDRA_CMD_HEADER_SIZE,
 			    &cmdBuff[0]);
 }
+#endif
 
 static int send_master_cmd(struct dvb_frontend *fe,
 			   struct dvb_diseqc_master_cmd *cmd)
@@ -1118,8 +1105,6 @@ static int firmware_download(struct mxl *state, u8 *mbin, u32 mbin_len)
 	if (!firmware_is_alive(state))
 		return -1;
 
-	pr_info("mxl5xx: Hydra FW alive. Hail!\n");
-
 	/* sometimes register values are wrong shortly
 	   after first heart beats */
 	msleep(50);
@@ -1437,6 +1422,7 @@ static int config_ts(struct mxl *state, MXL_HYDRA_DEMOD_ID_E demodId,
 		{XPT_NCO_COUNT_MIN4}, {XPT_NCO_COUNT_MIN5},
 		{XPT_NCO_COUNT_MIN6}, {XPT_NCO_COUNT_MIN7} };
 	
+#if 0
 	MXL_REG_FIELD_T mxl561_xpt_ts_sync[MXL_HYDRA_DEMOD_ID_6] = {
 		{PAD_MUX_DIGIO_25_PINMUX_SEL}, {PAD_MUX_DIGIO_20_PINMUX_SEL},
 		{PAD_MUX_DIGIO_17_PINMUX_SEL}, {PAD_MUX_DIGIO_11_PINMUX_SEL},
@@ -1445,6 +1431,7 @@ static int config_ts(struct mxl *state, MXL_HYDRA_DEMOD_ID_E demodId,
 		{PAD_MUX_DIGIO_26_PINMUX_SEL}, {PAD_MUX_DIGIO_19_PINMUX_SEL},
 		{PAD_MUX_DIGIO_18_PINMUX_SEL}, {PAD_MUX_DIGIO_10_PINMUX_SEL},
 		{PAD_MUX_DIGIO_09_PINMUX_SEL}, {PAD_MUX_DIGIO_02_PINMUX_SEL}};
+#endif
 
 	demodId = state->base->ts_map[demodId];
 	
@@ -1609,6 +1596,7 @@ static int config_mux(struct mxl *state)
 	return 0;
 }
 
+#if 0
 static int config_dis(struct mxl *state, u32 id)
 {
 	MXL_HYDRA_DISEQC_ID_E diseqcId = id;
@@ -1630,6 +1618,7 @@ static int config_dis(struct mxl *state, u32 id)
 	return send_command(state, cmdSize + MXL_HYDRA_CMD_HEADER_SIZE,
 			    &cmdBuff[0]);
 }
+#endif
 
 static int load_fw(struct mxl *state, struct mxl5xx_cfg *cfg)
 {
