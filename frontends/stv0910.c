@@ -1641,6 +1641,7 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 
 static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
+#if 0
 	struct stv *state = fe->demodulator_priv;
 	u8 value;
 
@@ -1655,6 +1656,7 @@ static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 	set_reg(DISTXFIFO, value);
 	set_reg(DISTXCFG, 0x3a);
 	wait_dis(state, 0x20, 0x20);
+#endif
 	return 0;
 }
 
