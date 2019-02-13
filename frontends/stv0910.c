@@ -150,10 +150,12 @@ static int write_reg(struct stv *state, u16 reg, u8 val)
 	return (i2c_transfer(state->base->i2c, &msg, 1) == 1) ? 0 : -1;
 }
 
+#if 0
 static int write_reg_off(struct stv *state, u16 reg, u8 val)
 {
 	return write_reg(state, reg + state->regoff, val);
 }
+#endif
 
 static inline int i2c_read_regs16(struct i2c_adapter *adapter, u8 adr,
 				  u16 reg, u8 *val, int len)
