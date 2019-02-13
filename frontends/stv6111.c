@@ -100,12 +100,12 @@ static int read_reg(struct stv *state, u8 reg, u8 *val)
 	return i2c_read(state->i2c, state->adr, &reg, 1, val, 1);
 }
 
+#if 0
 static int read_regs(struct stv *state, u8 reg, u8 *val, int len)
 {
 	return i2c_read(state->i2c, state->adr, &reg, 1, val, len);
 }
 
-#if 0
 static void dump_regs(struct stv *state)
 {
 	u8 d[11], *c = &state->reg[0];
