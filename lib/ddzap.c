@@ -102,7 +102,14 @@ int main(int argc, char **argv)
 				pol = 0;
 			break;
 		case 'h':
-			printf("no help yet\n");
+			printf("ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
+			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
+			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
+			       "\n"
+			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
+			       "      polarity        = h,v\n"
+			       "      polarity        = h,v\n"
+			       "\n");
 			exit(-1);
 		default:
 			break;
