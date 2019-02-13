@@ -273,6 +273,10 @@ int main(int argc, char **argv)
 			fname="SDRModulatorV1A_DD01_0221_IQ.fpga";
 			printf("SDRModulator IQ\n");
 			break;
+		case 0x0222:
+			fname="SDRModulatorV1A_DD01_0222_DVBT.fpga";
+			printf("SDRModulator DVBT\n");
+			break;
 		default:
 			printf("UNKNOWN\n");
 			break;
