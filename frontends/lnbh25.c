@@ -106,6 +106,7 @@ static int lnbh25_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	return 0;
 }
 
+#if 0
 static int lnbh25_set_tone(struct dvb_frontend *fe,
 			   enum fe_sec_tone_mode tone)
 {
@@ -113,6 +114,7 @@ static int lnbh25_set_tone(struct dvb_frontend *fe,
 
 	return 0;
 }
+#endif
 
 static int lnbh25_init(struct lnbh25 *lnbh)
 {

@@ -355,6 +355,7 @@ static int read_tps(struct cxd_state *state, u8 *tps)
 /*  OFDMInfo[3] [3:0]  OFDM_NDSYM[11:8] */
 /*  OFDMInfo[4] [7:0]  OFDM_NDSYM[7:0]  */
 
+#if 0
 static int read_t2_ofdm_info(struct cxd_state *state, u8 *ofdm)
 {
 	if (state->last_status != 0x1f)
@@ -365,6 +366,7 @@ static int read_t2_ofdm_info(struct cxd_state *state, u8 *ofdm)
 	unfreeze_regst(state);
 	return 0;
 }
+#endif
 
 /* Read DVBT2 QAM, 
    Data PLP
@@ -390,6 +392,7 @@ static int read_t2_ofdm_info(struct cxd_state *state, u8 *ofdm)
  19-37 same for common PLP
 */
 
+#if 0
 static int read_t2_tlp_info(struct cxd_state *state, u8 off, u8 count, u8 *tlp)
 {
 	if (state->last_status != 0x1f)
@@ -400,6 +403,7 @@ static int read_t2_tlp_info(struct cxd_state *state, u8 off, u8 count, u8 *tlp)
 	unfreeze_regst(state);
 	return 0;
 }
+#endif
 
 static void Active_to_Sleep(struct cxd_state *state)
 {
@@ -2243,7 +2247,7 @@ static int get_algo(struct dvb_frontend *fe)
 
 static int get_fe_t2(struct cxd_state *state, struct dtv_frontend_properties *p)
 {
-	struct dvb_frontend *fe = &state->frontend;
+	//struct dvb_frontend *fe = &state->frontend;
 	u8 ofdm[5], modcod[2];
 	
 	freeze_regst(state);
@@ -2343,7 +2347,7 @@ static int get_fe_t2(struct cxd_state *state, struct dtv_frontend_properties *p)
 
 static int get_fe_t(struct cxd_state *state, struct dtv_frontend_properties *p)
 {
-	struct dvb_frontend *fe = &state->frontend;
+	//struct dvb_frontend *fe = &state->frontend;
 	u8 tps[7];
 
 	read_tps(state, tps);
@@ -2444,7 +2448,7 @@ static int get_fe_t(struct cxd_state *state, struct dtv_frontend_properties *p)
 
 static int get_fe_c(struct cxd_state *state,  struct dtv_frontend_properties *p)
 {
-	struct dvb_frontend *fe = &state->frontend;
+	//struct dvb_frontend *fe = &state->frontend;
 	u8 qam;
 
 	freeze_regst(state);
