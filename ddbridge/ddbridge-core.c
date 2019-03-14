@@ -3877,6 +3877,24 @@ static ssize_t bpsnr_show(struct device *device,
 	return sprintf(buf, "%s\n", snr);
 }
 
+static ssize_t gtl_snr_show(struct device *device,
+			    struct device_attribute *attr, char *buf)
+{
+	struct ddb *dev = dev_get_drvdata(device);
+	int num = attr->attr.name[6] - 0x30;
+	char snr[16];
+
+	ddbridge_flashread(dev, num, snr, 0x10, 15);
+	snr[15] = 0; /* in case it is not terminated on EEPROM */
+	return sprintf(buf, "%s\n", snr);
+}
+
+static ssize_t gtl_snr_store(struct device *device, struct device_attribute *attr,
+			 const char *buf, size_t count)
+{
+	return 0;
+}
+
 static ssize_t redirect_show(struct device *device,
 			     struct device_attribute *attr, char *buf)
 {
@@ -4122,6 +4140,12 @@ static struct device_attribute ddb_attrs_snr[] = {
 	__ATTR(snr3, 0664, snr_show, snr_store),
 };
 
+static struct device_attribute ddb_attrs_gtl_snr[] = {
+	__ATTR(gtlsnr1, 0664, gtl_snr_show, gtl_snr_store),
+	__ATTR(gtlsnr2, 0664, gtl_snr_show, gtl_snr_store),
+	__ATTR(gtlsnr3, 0664, gtl_snr_show, gtl_snr_store),
+};
+
 static struct device_attribute ddb_attrs_ctemp[] = {
 	__ATTR_MRO(temp0, ctemp_show),
 	__ATTR_MRO(temp1, ctemp_show),
@@ -4192,6 +4216,9 @@ static void ddb_device_attrs_del(struct ddb *dev)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_snr[i]);
 		device_remove_file(dev->ddb_dev, &ddb_attrs_ctemp[i]);
 	}
+	if (dev->link[0].info->regmap->gtl)
+		for (i = 0; i < dev->link[0].info->regmap->gtl->num; i++)
+			device_remove_file(dev->ddb_dev, &ddb_attrs_gtl_snr[i]);
 	for (i = 0; ddb_attrs[i].attr.name; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs[i]);
 }
@@ -4224,6 +4251,10 @@ static int ddb_device_attrs_add(struct ddb *dev)
 					       &ddb_attrs_led[i]))
 				goto fail;
 	}
+	if (dev->link[0].info->regmap->gtl)
+		for (i = 0; i < dev->link[0].info->regmap->gtl->num; i++)
+			if (device_create_file(dev->ddb_dev, &ddb_attrs_gtl_snr[i]))
+				goto fail;
 	for (i = 0; i < 4; i++)
 		if (dev->link[i].info &&
 		    dev->link[i].info->tempmon_irq)
