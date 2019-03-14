@@ -1524,6 +1524,7 @@ static void dvb_input_detach(struct ddb_input *input)
 	case 0x41:
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
+		/* fallthrough */
 	case 0x40:
 		if (dvb->fe)
 			dvb_unregister_frontend(dvb->fe);
@@ -1843,8 +1844,8 @@ static int dvb_input_attach(struct ddb_input *input)
 		memcpy(&dvb->fe2->ops.tuner_ops,
 		       &dvb->fe->ops.tuner_ops,
 		       sizeof(struct dvb_tuner_ops));
+		dvb->attached = 0x41;
 	}
-	dvb->attached = 0x41;
 	return 0;
 }
 
