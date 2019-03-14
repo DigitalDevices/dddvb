@@ -84,6 +84,9 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 	stat = wait_for_completion_timeout(&state->base->completion, HZ);
 	if (stat == 0) {
 		printk("MCI timeout\n");
+		val = ddblreadl(link, MCI_CONTROL);
+		if (val == 0xffffffff)
+			printk("Lost PCIe link!\n");
 		return -EIO;
 	}
 	if (res && res_len)
