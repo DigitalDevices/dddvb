@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 			printf("Octopus MAXM4\n");
 			break;
 		case 0x0011:
-			fname="CIBridgeV1B_CIBridgeV1B.fpga";
+			fname="DVBBridgeV2B_DD01_0011.fpga";
 			printf("Octopus CI\n");
 			break;
 		case 0x0012:
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
 		printf("Using bitstream %s\n", fname);
 
 		fsize = lseek(fh,0,SEEK_END);
-		if( fsize > 4000000 || fsize < SectorSize )
+		if( fsize > FlashSize/2 - 0x10000 || fsize < SectorSize )
 		{
 			close(fh);
 			printf("Invalid File Size \n");
