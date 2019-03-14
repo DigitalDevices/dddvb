@@ -1399,7 +1399,7 @@ static struct stv0910_cfg stv0910_p = {
 	.parallel = 1,
 	.rptlvl   = 4,
 	.clk      = 30000000,
-	.tsspeed  = 0x10,
+	.tsspeed  = 0x20,
 };
 
 static int has_lnbh25(struct i2c_adapter *i2c, u8 adr)
