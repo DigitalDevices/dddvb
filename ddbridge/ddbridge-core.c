@@ -2562,7 +2562,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
-		    io->port->dev->link[0].info->version == 3) {
+		    io->port->dev->link[0].info->version >= 16) {
 			dma->num = OUTPUT_DMA_BUFS_SDR;
 			dma->size = OUTPUT_DMA_SIZE_SDR;
 			dma->div = 1;
