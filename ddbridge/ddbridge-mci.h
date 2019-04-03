@@ -147,7 +147,8 @@
 #define M4_CMD_GET_L1INFO         (0x50)
 #define M4_CMD_GET_IDS            (0x51)
 #define M4_CMD_GET_DVBT_TPS       (0x52)
-#define M4_CMD_GET_BBHEADER       (0x53)
+#define MCI_CMD_GET_BBHEADER      (0x53)
+#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 #define M4_CMD_GET_ISDBT_TMCC     (0x54)
 #define M4_CMD_GET_ISDBS_TMCC     (0x55)
 #define M4_CMD_GET_ISDBC_TSMF     (0x56)
@@ -286,7 +287,11 @@ struct mci_command {
 			u8   retry;
 			u32  frequency;
 		} j83b_search;
-		
+
+		struct {
+			u8   flags;              //  Bit 0 : 1 = short info (1st 4 Bytes)
+		} get_signalinfo;
+
 		struct {
 			u8   tap;
 			u8   rsvd;
@@ -294,12 +299,12 @@ struct mci_command {
 		} get_iq_symbol;
 
 		struct {
-			u8   flags;              /*  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain */
+			u8   flags;              /*  Bit 0 : 1 = VTM, 0 = SCAN.  Bit 1: Set Gain */
 			u8   roll_off;
 			u8   rsvd1;
 			u8   rsvd2;              
 			u32  frequency;
-			u32  symbol_rate;         /* Only in VTM mode. */
+			u32  symbol_rate;         /* Only in VTM (versatile tuner mode). */
 			u16  gain;
 		} sx8_start_iq;
 		
@@ -620,6 +625,8 @@ struct mci_result {
 			u8  SYNCD[2];
 			u8  rsvd;
 			u8  ISSY[3];
+			u8  min_input_stream_id;
+			u8  max_input_stream_id;
 		} BBHeader;
 		
 		struct {
