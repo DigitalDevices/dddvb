@@ -26,6 +26,10 @@
 #include "ddbridge-i2c.h"
 #include "ddbridge-mci.h"
 
+static int default_mod = 3;
+module_param(default_mod, int, 0444);
+MODULE_PARM_DESC(default_mod, "default modulations enabled, default is  3 (1 = QPSK, 2 = 8PSK, 4 = 16APSK, ...)");
+
 static const u32 MCLK = (1550000000 / 12);
 static const u32 MAX_LDPC_BITRATE = (720000000);
 static const u32 MAX_DEMOD_LDPC_BITRATE = (1550000000 / 6);
@@ -131,6 +135,7 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 				dvbs2_bits_per_symbol[
 					state->mci.signal_info.
 					dvbs2_signal_info.pls_code];
+			//printk("PLS %02x\n", state->mci.signal_info.dvbs2_signal_info.pls_code);
 		} else 
 			sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;
 	}
@@ -285,13 +290,13 @@ unlock:
 	if (sx8_base->iq_mode) {
 		cmd.command = SX8_CMD_ENABLE_IQOUTPUT;
 		cmd.demod = state->mci.demod;
-		cmd.output = 0;
+		cmd.output = p->stream_id & 7;
 		ddb_mci_cmd(&state->mci, &cmd, NULL);
 		ddb_mci_config(&state->mci, ts_config);
 	}
-	if (p->stream_id != NO_STREAM_ID_FILTER && p->stream_id != 0x80000000)
+	if (p->stream_id != NO_STREAM_ID_FILTER && !(p->stream_id & 0xf0000000))
 		flags |= 0x80;
-	printk("frontend %u: tuner=%u demod=%u\n", state->mci.nr, state->mci.tuner, state->mci.demod);
+	//printk("frontend %u: tuner=%u demod=%u\n", state->mci.nr, state->mci.tuner, state->mci.demod);
 	cmd.command = MCI_CMD_SEARCH_DVBS;
 	cmd.dvbs2_search.flags = flags;
 	cmd.dvbs2_search.s2_modulation_mask = modmask;
@@ -396,7 +401,7 @@ static int set_parameters(struct dvb_frontend *fe)
 			mask = 0x07;
 			break;
 		default:
-			mask = 0x03;
+			mask = default_mod;
 			break;
 		}
 		stat = start(fe, 3, mask, ts_config);
