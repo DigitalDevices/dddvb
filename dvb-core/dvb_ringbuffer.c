@@ -115,7 +115,7 @@ ssize_t dvb_ringbuffer_avail(struct dvb_ringbuffer *rbuf)
 void dvb_ringbuffer_flush(struct dvb_ringbuffer *rbuf)
 {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0))
-	rbuf->pread = &rbuf->pwrite;
+	rbuf->pread = rbuf->pwrite;
 #else
 	/* dvb_ringbuffer_flush() counts as read operation
 	 * smp_load_acquire() to load write pointer
