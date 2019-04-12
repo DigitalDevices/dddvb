@@ -3495,9 +3495,11 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		struct i2c_adapter *adap;
 		u8 *mbuf, *hbuf = &dev->iobuf[0];
 
+		if (!dev->link[0].info->regmap->i2c)
+			return -EINVAL;
 		if (copy_from_user(&i2c, parg, sizeof(i2c)))
 			return -EFAULT;
-		if (i2c.bus > dev->link[0].info->regmap->i2c->num)
+		if (i2c.bus > dev->i2c_num)
 			return -EINVAL;
 		if (i2c.mlen + i2c.hlen > 512)
 			return -EINVAL;
@@ -3521,7 +3523,7 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (copy_from_user(&i2c, parg, sizeof(i2c)))
 			return -EFAULT;
-		if (i2c.bus > dev->link[0].info->regmap->i2c->num)
+		if (i2c.bus > dev->i2c_num)
 			return -EINVAL;
 		if (i2c.mlen + i2c.hlen > 250)
 			return -EINVAL;
