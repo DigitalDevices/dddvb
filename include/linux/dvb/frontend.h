@@ -314,6 +314,33 @@ enum fe_code_rate {
 	FEC_2_5,
 	FEC_1_4,
 	FEC_1_3,
+	FEC_13_45,
+	FEC_9_20,
+	FEC_11_20,
+	FEC_5_9_L,
+	FEC_26_45_L,
+	FEC_23_36,
+	FEC_25_36,
+	FEC_13_18,
+	FEC_1_2_L,
+	FEC_8_15_L,
+	FEC_26_45,
+	FEC_3_5_L,
+	FEC_28_45,
+	FEC_2_3_L,
+	FEC_7_9,
+	FEC_32_45_L,
+	FEC_77_90,
+	FEC_32_45,
+	FEC_11_15,
+	FEC_29_45_L,
+	FEC_31_45_L,
+	FEC_11_15_L,
+	FEC_11_45,
+	FEC_4_15,
+	FEC_14_45,
+	FEC_7_15,
+	FEC_8_15,
 };
 
 /**
@@ -354,6 +381,8 @@ enum fe_modulation {
 	APSK_64,
 	APSK_128,
 	APSK_256,
+	APSK_8,
+	MODULATION_NONE,
 };
 
 /**
