@@ -274,21 +274,21 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
 		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
-			u32 modcod = (0x7c & pls_code) >> 2;
 			
 			p->delivery_system = SYS_DVBS2;
 			p->rolloff =
 				ro_lut[mci->signal_info.
 				       dvbs2_signal_info.roll_off & 7];
 			p->pilot = (pls_code & 1) ? PILOT_ON : PILOT_OFF;
-			if(modcod & 0x80) //DVB-S2X
+			if(pls_code & 0x80) //DVB-S2X
 			{
-				uint8_t modcodS2X = (modcod & 0x7F) >> 1;
+				uint8_t modcodS2X = (pls_code & 0x7F) >> 1;
 				p->fec_inner = modcod2fecS2X[modcodS2X];
 				p->modulation = modcod2modS2X[modcodS2X];
 			}
 			else
 			{
+				u32 modcod = (0x7c & pls_code) >> 2;
 				p->fec_inner = modcod2fec[modcod];
 				p->modulation = modcod2mod[modcod];
 			}
