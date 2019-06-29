@@ -9,8 +9,56 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
-
+#include <stdbool.h>
 #include <linux/dvb/mod.h>
+
+
+bool supportedsx8(const enum fe_modulation mod, const enum fe_code_rate fec)
+{
+	switch(mod)
+	{
+	case QPSK:
+		if(fec == FEC_1_2 || fec == FEC_3_5 || fec == FEC_2_3 || fec == FEC_3_4 || fec == FEC_4_5 || fec == FEC_5_6 || fec == FEC_8_9 || fec == FEC_9_10 /**/ || fec == FEC_1_4 || fec == FEC_1_3 || fec == FEC_2_5 || fec == FEC_11_45 || fec == FEC_4_15 || fec == FEC_14_45 || fec == FEC_7_15 || fec == FEC_8_15 || fec == FEC_32_45 )
+		{
+			return true;
+		}
+		else
+			return false;
+	case PSK_8:
+		if(fec == FEC_3_5 || fec == FEC_2_3 || fec == FEC_3_4 || fec == FEC_5_6 || fec == FEC_8_9 || fec == FEC_9_10 /**/ || fec == FEC_7_15 || fec == FEC_8_15 || fec == FEC_26_45 || fec == FEC_32_45)
+			return true;
+		else
+			return false;
+	case APSK_16:
+		if(fec == FEC_2_3 || fec == FEC_3_4 || fec == FEC_4_5 || fec == FEC_5_6 || fec == FEC_8_9 || fec == FEC_9_10 /**/  || fec == FEC_7_15 || fec == FEC_8_15 || fec == FEC_26_45 || fec == FEC_3_5 || fec == FEC_32_45)
+			return true;
+		else
+			return false;
+	case APSK_32:
+		if(fec == FEC_3_4 || fec == FEC_4_5 || fec == FEC_5_6 || fec == FEC_8_9 || fec == FEC_9_10 /**/ || fec == FEC_2_3 || fec == FEC_32_45)
+			return true;
+		else
+			return false;
+	case APSK_64:
+		if(fec == FEC_32_45_L || fec == FEC_11_15 || fec == FEC_7_9 || fec == FEC_4_5 || fec == FEC_5_6)
+			return true;
+		else
+			return false;
+	case APSK_128:
+		if(fec == FEC_3_4 || fec == FEC_7_9 || fec == FEC_29_45_L || fec == FEC_2_3_L)
+			return true;
+		else
+			return false;
+	case APSK_256:
+		if(fec == FEC_31_45_L || fec == FEC_32_45 || fec == FEC_11_15_L || fec == FEC_3_4)
+			return true;
+		else
+			return false;
+	default:
+		return false;
+	};
+	return false;
+} 
 
 char* modulation2text(const enum fe_modulation mod)
 {
@@ -182,24 +230,28 @@ int main()
 
 
 uint8_t modcod;
+
 modcod = 248;
 if(modcod2modS2X[((modcod & 0x7F) >> 1)] == APSK_32)
 	printf("modcod2modS2X OK APSK_32=%s \r\n", modulation2text(modcod2modS2X[((modcod & 0x7F) >> 1)] ) );
 if(modcod2fecS2X[((modcod & 0x7F) >> 1)] == FEC_32_45)
 	printf("modcod2modS2X OK FEC_32_45=%s\r\n", fec2text(modcod2fecS2X[((modcod & 0x7F) >> 1)]));
-
+printf("supported=%d\r\n\r\n", (uint16_t)supportedsx8(modcod2modS2X[((modcod & 0x7F) >> 1)], modcod2fecS2X[((modcod & 0x7F) >> 1)]));
 
 modcod = 132;
 if(modcod2modS2X[((modcod & 0x7F) >> 1)] == QPSK)
 	printf("modcod2modS2X OK QPSK=%s \r\n", modulation2text(modcod2modS2X[((modcod & 0x7F) >> 1)] ) );
 if(modcod2fecS2X[((modcod & 0x7F) >> 1)] == FEC_13_45)
 	printf("modcod2modS2X OK FEC_13_45=%s\r\n", fec2text(modcod2fecS2X[((modcod & 0x7F) >> 1)]));
+printf("supported=%d\r\n\r\n", (uint16_t)supportedsx8(modcod2modS2X[((modcod & 0x7F) >> 1)], modcod2fecS2X[((modcod & 0x7F) >> 1)]));
 
 modcod = 184;
 if(modcod2modS2X[((modcod & 0x7F) >> 1)] == APSK_64)
 	printf("modcod2modS2X OK 64APSK=%s \r\n", modulation2text(modcod2modS2X[((modcod & 0x7F) >> 1)] ) );
 if(modcod2fecS2X[((modcod & 0x7F) >> 1)] == FEC_32_45_L)
 	printf("modcod2modS2X OK FEC_32_45_L=%s\r\n", fec2text(modcod2fecS2X[((modcod & 0x7F) >> 1)]));
+printf("supported=%d\r\n\r\n", (uint16_t)supportedsx8(modcod2modS2X[((modcod & 0x7F) >> 1)], modcod2fecS2X[((modcod & 0x7F) >> 1)]));
+
 
 }
 
