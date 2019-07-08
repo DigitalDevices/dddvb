@@ -1542,13 +1542,32 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	return 0;
 }
 
+static int mod_prop_get3(struct ddb_mod *mod, struct dtv_property *tvp)
+{
+	struct ddb *dev = mod->port->dev;
+
+	switch (tvp->cmd) {
+	case MODULATOR_INFO:
+		tvp->u.data = dev->link[0].info->version;
+		return 0;
+	default:
+		return -1;
+	}
+}
+
 static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
 {
 	struct ddb *dev = mod->port->dev;
 
+	if (mod->port->dev->link[0].info->version >= 16)
+		return mod_prop_get3(mod, tvp);
 	if (mod->port->dev->link[0].info->version != 2)
 		return -1;
 	switch (tvp->cmd) {
+	case MODULATOR_INFO:
+		tvp->u.data = 2;
+		return 0;
+
 	case MODULATOR_GAIN:
 		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);;
 		return 0;
