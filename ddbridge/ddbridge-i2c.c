@@ -65,7 +65,7 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 	}
 	val &= 0x70000;
 	if (val == 0x20000)
-		dev_err(dev->dev, "I2C bus errorx\n");
+		dev_err(dev->dev, "I2C bus error\n");
 	if (val)
 		return -EIO;
 	return 0;
