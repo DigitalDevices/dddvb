@@ -1916,6 +1916,8 @@ int ddbridge_mod_init(struct ddb *dev)
 		return mod_init_3(dev, 503250000);
 	case 17:
 		return mod_init_sdr_iq(dev);
+	case 18:
+		return mod_init_sdr_iq(dev);
 	default:
 		return -1;
 	}
