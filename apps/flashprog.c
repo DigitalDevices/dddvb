@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 			printf("Octopus PRO\n");
 			break;
 		case 0x0020:
-			fname="DVBBridgeV2B_DD01_0020.fpga";
+			fname="DVBBridgeV2C_DD01_0020.fpga";
 			printf("Octopus GT Mini\n");
 			break;
 		case 0x0201:
