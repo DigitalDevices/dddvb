@@ -1105,7 +1105,7 @@ static void dummy_release(struct dvb_frontend *fe)
 }
 
 static struct dvb_frontend_ops dummy_ops = {
-	.delsys = { SYS_DVBC_ANNEX_A },
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2 },
 	.info = {
 		.name = "DUMMY DVB-C/C2 DVB-T/T2",
 		.frequency_stepsize = 166667,	/* DVB-T only */
@@ -2072,7 +2072,8 @@ static void ddb_port_probe(struct ddb_port *port)
 	/* Handle missing ports and ports without I2C */
 
 	if (dummy_tuner && !port->nr &&
-	    link->ids.device == 0x0005) {
+	    (link->ids.device == 0x0005 ||
+	     link->ids.device == 0x000a)) {
 		port->name = "DUMMY";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DUMMY;
