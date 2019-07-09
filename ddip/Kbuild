@@ -2,4 +2,4 @@ obj-$(CONFIG_DVB_DDBRIDGE) += ddip.o
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends -Idrivers/media/dvb-frontends
 EXTRA_CFLAGS += -Idrivers/media/common/tuners 
-NOSTDINC_FLAGS += -I$(SUBDIRS)/frontends -I$(SUBDIRS)/include -I$(SUBDIRS)/dvb-core 
+NOSTDINC_FLAGS += -I$(KBUILD_EXTMOD)/frontends -I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/dvb-core 
