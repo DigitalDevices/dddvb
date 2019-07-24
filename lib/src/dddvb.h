@@ -13,7 +13,10 @@
 #include <linux/dvb/net.h>
 
 
+#include <libdvben50221/en50221_stdcam.h>
+
 #define DDDVB_MAX_DVB_FE 256
+#define DDDVB_MAX_DVB_CA 256
 
 #define DDDVB_MAX_SOURCE 4
 
@@ -74,6 +77,7 @@ struct dddvb_fe {
 	uint32_t quality;
 	int64_t strength;
 	int64_t cnr;
+	int64_t ber;
 	int first;
 
 	uint32_t tune;
@@ -85,6 +89,44 @@ struct dddvb_fe {
 	struct dddvb_status status;
 };
 
+struct dddvb_ca {
+	struct dddvb *dd;
+	struct osstrm *stream;
+	int fd;
+	int ci_rfd;
+	int ci_wfd;
+	uint32_t type;
+	int anum;
+	int fnum;
+	int state;
+	int nr;
+	int input;
+
+	pthread_t pt;
+	pthread_t poll_pt;
+
+	pthread_mutex_t mutex;
+
+	struct en50221_transport_layer *tl;
+	struct en50221_session_layer *sl;
+	struct en50221_stdcam *stdcam;
+	int resource_ready;
+	int sentpmt;
+	int moveca;
+	int ca_pmt_version[MAX_PMT];
+	int data_pmt_version;
+
+	int setpmt;
+	uint32_t pmt[MAX_PMT];
+	uint32_t pmt_new[MAX_PMT];
+	uint32_t pmt_old[MAX_PMT];
+
+	int mmi_state;
+	uint8_t mmi_buf[16];
+	int mmi_bufp;
+	int sock;
+};
+	
 struct dddvb {
 	pthread_mutex_t lock;
 	pthread_mutex_t uni_lock;
@@ -103,7 +145,11 @@ struct dddvb {
 	uint32_t dvbfe_num;
 	uint32_t scif_type;
 
+	uint32_t dvbca_num;
+	int exit;
+	
 	struct dddvb_fe dvbfe[DDDVB_MAX_DVB_FE];
+	struct dddvb_ca dvbca[DDDVB_MAX_DVB_CA];
 };
 
 int dddvb_dvb_init(struct dddvb *dd);
@@ -112,7 +158,7 @@ int parse_config(struct dddvb *dd, char *name, char *sec,
 void dddvb_fe_handle(struct dddvb_fe *fe);
 int dddvb_fe_tune(struct dddvb_fe *fe, struct dddvb_params *p);
 int dddvb_fe_start(struct dddvb_fe *fe);
-
+int scan_dvbca(struct dddvb *dd);
 
 
 #endif /* _DDDVB_H_ */

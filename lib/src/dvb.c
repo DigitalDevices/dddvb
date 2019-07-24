@@ -533,6 +533,9 @@ static int open_fe(struct dddvb_fe *fe)
 	return 0;
 }
 
+
+#include "dvb_quality.c"
+
 static void get_stats(struct dddvb_fe *fe)
 {
 	uint16_t sig = 0, snr = 0;
@@ -545,7 +548,7 @@ static void get_stats(struct dddvb_fe *fe)
 	ioctl(fe->fd, FE_READ_STATUS, &stat);
 	fe->stat = stat;
 	fe->lock = (stat == 0x1f) ? 1 : 0;
-	//calc_lq(fe);
+	calc_lq(fe);
 	if (!get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st)) {
 
 		fe->strength = str = st.stat[0].svalue;
@@ -886,6 +889,7 @@ int dddvb_dvb_init(struct dddvb *dd)
 	parse_config(dd, "", "scif", &scif_config);
 	set_lnb(dd, 0, 0, 9750000, 10600000, 11700000);
 	parse_config(dd, "", "LNB", &lnb_config);
+	scan_dvbca(dd);
 }
 
 
