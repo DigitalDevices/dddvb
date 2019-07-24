@@ -598,6 +598,7 @@ int dvb_create_media_graph(struct dvb_adapter *adap,
 	unsigned demux_pad = 0;
 	unsigned dvr_pad = 0;
 	unsigned ntuner = 0, ndemod = 0;
+	u16 source_pad = 0;
 	int ret;
 	static const char *connector_name = "Television";
 
@@ -657,8 +658,19 @@ int dvb_create_media_graph(struct dvb_adapter *adap,
 		ret = media_device_register_entity(mdev, conn);
 		if (ret)
 			return ret;
+		
+		if (!ntuner) {
 
-		if (!ntuner)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,2,0))
+		        if ((ret =  media_get_pad_index(tuner, true,
+  						    PAD_SIGNAL_ANALOG)) < 0)
+			        return ret;
+		        source_pad = (u16) ret;
+			ret = 0;
+#else
+			source_pad = TUNER_PAD_RF_INPUT;
+#endif
+		
 			ret = media_create_pad_links(mdev,
 						     MEDIA_ENT_F_CONN_RF,
 						     conn, 0,
@@ -666,22 +678,33 @@ int dvb_create_media_graph(struct dvb_adapter *adap,
 						     demod, 0,
 						     MEDIA_LNK_FL_ENABLED,
 						     false);
-		else
+		} else {
 			ret = media_create_pad_links(mdev,
 						     MEDIA_ENT_F_CONN_RF,
 						     conn, 0,
 						     MEDIA_ENT_F_TUNER,
-						     tuner, TUNER_PAD_RF_INPUT,
+						     tuner, source_pad,
 						     MEDIA_LNK_FL_ENABLED,
 						     false);
+		}
 		if (ret)
 			return ret;
 	}
 
 	if (ntuner && ndemod) {
+		    
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,2,0))
+	        if ((ret =  media_get_pad_index(tuner, true, PAD_SIGNAL_ANALOG)) < 0)
+		        return ret;
+		source_pad = (u16) ret;
+		ret = 0;
+#else
+		source_pad = TUNER_PAD_OUTPUT;
+#endif
+		
 		ret = media_create_pad_links(mdev,
 					     MEDIA_ENT_F_TUNER,
-					     tuner, TUNER_PAD_OUTPUT,
+					     tuner, source_pad,
 					     MEDIA_ENT_F_DTV_DEMOD,
 					     demod, 0, MEDIA_LNK_FL_ENABLED,
 					     false);
