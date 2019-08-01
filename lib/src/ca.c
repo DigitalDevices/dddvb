@@ -597,13 +597,16 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 
 int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len)
 {
-	dbgprintf(DEBUG_CA, "ca_write\n");
-	return 0;
+	struct dddvb_ca *ca = &dd->dvbca[nr];
+
+	return write(ca->wfd, buf, len);
 }
 
 int dddvb_ca_read(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len)
 {
-	dbgprintf(DEBUG_CA, "ca_read\n");
+	struct dddvb_ca *ca = &dd->dvbca[nr];
+
+	return read(ca->rfd, buf, len);
 	return 0;
 }
 
