@@ -80,6 +80,24 @@ static int get_stat(int fd, uint32_t cmd, struct dtv_fe_stats *stats)
 	return 0;
 }
 
+static int get_stat_num(int fd, uint32_t cmd, struct dtv_fe_stats *stats, int num)
+{
+	struct dtv_property p;
+	struct dtv_properties c;
+	int ret;
+
+	p.cmd = cmd;
+	c.num = num;
+	c.props = &p;
+	ret = ioctl(fd, FE_GET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_GET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	memcpy(stats, &p.u.st, num*sizeof(struct dtv_fe_stats));
+	return 0;
+}
+
 
 
 static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
