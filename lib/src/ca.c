@@ -599,15 +599,14 @@ int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len)
 {
 	struct dddvb_ca *ca = &dd->dvbca[nr];
 
-	return write(ca->wfd, buf, len);
+	return write(ca->ci_wfd, buf, len);
 }
 
 int dddvb_ca_read(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len)
 {
 	struct dddvb_ca *ca = &dd->dvbca[nr];
 
-	return read(ca->rfd, buf, len);
-	return 0;
+	return read(ca->ci_rfd, buf, len);
 }
 
 int dddvb_ca_set_pmts(struct dddvb *dd, uint32_t nr, uint8_t **pmts)
