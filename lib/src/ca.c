@@ -240,7 +240,10 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 		if (pmts[i])
 			num++;
 	for (i = 0; i < num; i++) {
-		section = section_codec(pmts[i], len);
+		memcpy(sec, pmts[i], 4096);
+		len = ((sec[1] & 0x0f) << 8) | sec[2];
+		len += 3;
+		section = section_codec(sec, len);
 		section_ext = section_ext_decode(section, 0);
 		pmt = mpeg_pmt_section_codec(section_ext);
 
