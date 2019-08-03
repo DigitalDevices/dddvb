@@ -234,11 +234,12 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 	int i, size, num, len;
 
 	if (!ca->resource_ready)
-		return 0;
-	dbgprintf(DEBUG_CA, "handle pmts\n");
-	for (i = num = 0; i < MAX_PMT; i++) 
-		if (pmts[i])
-			num++;
+		return -EBUSY;
+	for (i = 0; i < MAX_PMT; i++) 
+		if (!pmts[i])
+		    break;
+	num = i;
+	dbgprintf(DEBUG_CA, "handle %d pmts\n", num);
 	for (i = 0; i < num; i++) {
 		memcpy(sec, pmts[i], 3);
 		len = ((sec[1] & 0x0f) << 8) | sec[2];
@@ -419,8 +420,9 @@ static void handle_ci(struct dddvb_ca *ca)
 		}
 		pthread_mutex_unlock(&ca->mutex);
 
-		if (!ca->sentpmt)
-			handle_pmts(ca);
+		/*
+		  if (!ca->sentpmt)
+		    handle_pmts(ca);
 		else {
 			pmt_count++;
 			if (pmt_count == 10) {
@@ -428,6 +430,7 @@ static void handle_ci(struct dddvb_ca *ca)
 				pmt_count = 0;
 			}
 		}
+		*/
 		tdt_count++;
 		if (tdt_count == 10) {
 			//handle_tdt(ca);
@@ -594,7 +597,7 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 
 	sprintf(fname, "/dev/dvb/adapter%d/ci%d", a, f); 
 	ca->ci_wfd = open(fname, O_WRONLY);
-	ca->ci_rfd = open(fname, O_RDONLY);
+	ca->ci_rfd = open(fname, O_RDONLY | O_NONBLOCK);
 	dd->dvbca_num++;
 	return 0;
 }
