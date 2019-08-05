@@ -44,7 +44,7 @@ static u16 calc_pcs16(struct dvb_ns_params *p, int ipv)
 	u32 sum = 0, i;
 	u16 pcs;
 
-	for (i = 0; i < ipv ? 16 : 4; i += 2) {
+	for (i = 0; i < (ipv ? 16 : 4); i += 2) {
 		sum += (p->sip[i] << 8) | p->sip[i + 1];
 		sum += (p->dip[i] << 8) | p->dip[i + 1];
 	}

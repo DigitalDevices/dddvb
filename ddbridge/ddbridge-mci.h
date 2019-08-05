@@ -114,7 +114,7 @@
 #define MCI_CMD_STOP             (0x01)
 #define MCI_CMD_GETSTATUS        (0x02)
 #define MCI_CMD_GETSIGNALINFO    (0x03)
-#define MCI_CMD_RFPOWER          (0x04)
+//#define MCI_CMD_RFPOWER          (0x04)
 
 #define MCI_CMD_SEARCH_DVBS     (0x10)
 #define MCI_CMD_SEARCH_ISDBS    (0x11)
@@ -147,7 +147,8 @@
 #define M4_CMD_GET_L1INFO         (0x50)
 #define M4_CMD_GET_IDS            (0x51)
 #define M4_CMD_GET_DVBT_TPS       (0x52)
-#define M4_CMD_GET_BBHEADER       (0x53)
+#define MCI_CMD_GET_BBHEADER      (0x53)
+#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 #define M4_CMD_GET_ISDBT_TMCC     (0x54)
 #define M4_CMD_GET_ISDBS_TMCC     (0x55)
 #define M4_CMD_GET_ISDBC_TSMF     (0x56)
@@ -178,6 +179,12 @@
   
 #define M4_SIGNALINFO_FLAG_CHANGE (0x01)
 #define M4_SIGNALINFO_FLAG_EWS    (0x02)
+
+#define SX8_ROLLOFF_25  1
+#define SX8_ROLLOFF_20  2
+#define SX8_ROLLOFF_15  5
+#define SX8_ROLLOFF_10  3
+#define SX8_ROLLOFF_05  4   
 
 #define MCI_SUCCESS(status)     ((status & MCI_STATUS_UNSUPPORTED) == 0)
 
@@ -286,27 +293,38 @@ struct mci_command {
 			u8   retry;
 			u32  frequency;
 		} j83b_search;
-		
+
+		struct {
+			u8   flags;              //  Bit 0 : 1 = short info (1st 4 Bytes)
+		} get_signalinfo;
+
 		struct {
 			u8   tap;
 			u8   rsvd;
 			u16  point;
 		} get_iq_symbol;
 
+
 		struct {
-			u8   flags;              /*  Bit 0 : 0 = VTM, 1 = SCAN.  Bit 1: Set Gain */
-			u8   roll_off;
-			u8   rsvd1;
-			u8   rsvd2;              
-			u32  frequency;
-			u32  symbol_rate;         /* Only in VTM mode. */
-			u16  gain;
+			uint8_t   flags;    /* Bit 0 : 0 = VTM/SDR, 1 = SCAN,  Bit 1: Disable AGC, Bit 2: Set Gain */
+			uint8_t   roll_off;
+			uint8_t   rsvd1;
+			uint8_t   rsvd2;
+			uint32_t  frequency;
+			uint32_t  symbol_rate; /* Only in VTM/SDR mode, SCAN Mode uses exactly 1550/24 MSymbols/s.*/
+			uint8_t   gain;         /* Gain in 0.25 dB Steps */
+			/* Frequency, symbolrate and gain can be schanged while running */
 		} sx8_start_iq;
 		
 		struct {
-			/* Bit 1:0 = STVVGLNA Gain.  0 = AGC, 1 = 0dB,
-			   2 = Minimum, 3 = Maximum */
-			u8     flags; 
+			uint8_t   flags;
+                        /*   Bit 0:1 Preamp Mode;  0 = Preamp AGC, 1 == Minimum (~ -17dB) ,
+			     2 = Medium, 3 = Maximum gain {~ 15dB}
+			     Bit 2: Bypass Input LNA (6 dB less gain) (Note this is after Preamp)
+			     Bit 4: Set RF Gain
+			     Bit 5: Freeze RF Gain (Turn AGC off at current gain, only when already enabled)
+			     Bit 7: Optimize RF Gain and freeze for FFT */
+			uint8_t   rf_gain;       /*   0 .. 50 dB */
 		} sx8_input_enable;
 		
 		struct {
@@ -357,8 +375,8 @@ struct mci_result {
 		
 		struct {
 			u8  standard; /* 1 = DVB-S, 2 = DVB-S2X */
-			u8  pls_code; /* puncture rate for DVB-S */
-			u8  roll_off;           /* 2-0: rolloff */
+			u8  pls_code; /* PLS code for DVB-S2/S2X, puncture rate for DVB-S */
+			u8  roll_off; /* 2-0: rolloff, 7: spectrum inversion */
 			u8  flags;
 			u32 frequency;         /* actual frequency in Hz */
 			u32 symbol_rate;       /* actual symbolrate in Hz */
@@ -391,8 +409,6 @@ struct mci_result {
 			u8  modulation2;        // bit 7..5: CodeRate Low, bit 4..3 Guard Interval, bit 2..1 FFT Mode
 			u8  Rsvd0;
 			u8  Flags;
-			//u16 tps_cell_id;       /* Cell Identifier */
-
 			u32 frequency;         /* actual frequency in Hz */
 			u32 rsvd1;
 			s16 channel_power;     /* channel power in dBm x 100 */
@@ -492,6 +508,7 @@ struct mci_result {
 		
 		struct {
 			u8   TPSInfo[7];
+                        // uint16_t TPS_CellID;        // Cell Identifier
 		} DVBT_TPSInfo;
 		
 		struct {
@@ -620,6 +637,8 @@ struct mci_result {
 			u8  SYNCD[2];
 			u8  rsvd;
 			u8  ISSY[3];
+			u8  min_input_stream_id;
+			u8  max_input_stream_id;
 		} BBHeader;
 		
 		struct {
@@ -644,7 +663,11 @@ struct mci_result {
 			u8   Extension[8];   // 61 bits, right aligned
 		} ISDBS_TMCCInfo;
 	};
-	u32 version[4];
+	u32 version[3];
+	u32 version_rsvd;
+	u8  version_major;
+	u8  version_minor;
+	u8  version_sub;
 };
 
 

@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 			printf("Octopus MAXM4\n");
 			break;
 		case 0x0011:
-			fname="CIBridgeV1B_CIBridgeV1B.fpga";
+			fname="DVBBridgeV2B_DD01_0011.fpga";
 			printf("Octopus CI\n");
 			break;
 		case 0x0012:
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
 			printf("Octopus PRO\n");
 			break;
 		case 0x0020:
-			fname="DVBBridgeV2B_DD01_0020.fpga";
+			fname="DVBBridgeV2C_DD01_0020.fpga";
 			printf("Octopus GT Mini\n");
 			break;
 		case 0x0201:
@@ -273,6 +273,10 @@ int main(int argc, char **argv)
 			fname="SDRModulatorV1A_DD01_0221_IQ.fpga";
 			printf("SDRModulator IQ\n");
 			break;
+		case 0x0222:
+			fname="SDRModulatorV1A_DD01_0222_DVBT.fpga";
+			printf("SDRModulator DVBT\n");
+			break;
 		default:
 			printf("UNKNOWN\n");
 			break;
@@ -285,7 +289,7 @@ int main(int argc, char **argv)
 		printf("Using bitstream %s\n", fname);
 
 		fsize = lseek(fh,0,SEEK_END);
-		if( fsize > 4000000 || fsize < SectorSize )
+		if( fsize > FlashSize/2 - 0x10000 || fsize < SectorSize )
 		{
 			close(fh);
 			printf("Invalid File Size \n");

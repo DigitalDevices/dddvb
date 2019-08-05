@@ -24,7 +24,8 @@ int main(int argc, char **argv)
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
 	uint32_t bandwidth = 8000000, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
-	uint32_t id = DDDVB_UNDEF, pls = DDDVB_UNDEF, num = DDDVB_UNDEF;
+	uint32_t id = DDDVB_UNDEF, pls = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
+	uint32_t verbosity = 0;
 	enum fe_code_rate fec = FEC_AUTO;
 	enum fe_delivery_system delsys = ~0;
 	char *config = "config/";
@@ -38,16 +39,18 @@ int main(int argc, char **argv)
 			{"frequency", required_argument, 0, 'f'},
 			{"bandwidth", required_argument, 0, 'b'},
 			{"symbolrate", required_argument, 0, 's'},
+			{"source", required_argument, 0, 'l'},
 			{"delsys", required_argument, 0, 'd'},
 			{"id", required_argument, 0, 'i'},
 			{"pls", required_argument, 0, 'g'},
 			{"root", required_argument, 0, 'r'},
 			{"num", required_argument, 0, 'n'},
+			{"verbosity", required_argument, 0, 'v'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"c:i:f:s:d:p:hg:r:n:b:",
+				"c:i:f:s:d:p:hg:r:n:b:l:v:",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -64,6 +67,12 @@ int main(int argc, char **argv)
 			break;
 		case 's':
 			symbol_rate = strtoul(optarg, NULL, 0);
+			break;
+		case 'l':
+			source = strtoul(optarg, NULL, 0);
+			break;
+		case 'v':
+			verbosity = strtoul(optarg, NULL, 0);
 			break;
 		case 'g':
 			pls = strtoul(optarg, NULL, 0);
@@ -102,7 +111,14 @@ int main(int argc, char **argv)
 				pol = 0;
 			break;
 		case 'h':
-			printf("no help yet\n");
+			printf("ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
+			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
+			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
+			       "\n"
+			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
+			       "      polarity        = h,v\n"
+			       "      polarity        = h,v\n"
+			       "\n");
 			exit(-1);
 		default:
 			break;
@@ -124,7 +140,7 @@ int main(int argc, char **argv)
 		break;
 	}
 
-	dd = dddvb_init(config, 0);//0xffff);
+	dd = dddvb_init(config, verbosity);
 	if (!dd) {
 		printf("dddvb_init failed\n");
 		exit(-1);
@@ -141,6 +157,7 @@ int main(int argc, char **argv)
 	}
 	dddvb_param_init(&p);
 	dddvb_set_frequency(&p, frequency);
+	dddvb_set_src(&p, source);
 	dddvb_set_bandwidth(&p, bandwidth);
 	dddvb_set_symbol_rate(&p, symbol_rate);
 	dddvb_set_polarization(&p, pol);
@@ -148,6 +165,12 @@ int main(int argc, char **argv)
 	dddvb_set_id(&p, id);
 	dddvb_set_pls(&p, pls);
 	dddvb_dvb_tune(fe, &p);
+	{
+		uint8_t ts[188];
+		
+		dddvb_ca_write(dd, 0, ts, 188);
+
+	}
 	while (1) {
 		fe_status_t stat;
 		int64_t str, cnr;

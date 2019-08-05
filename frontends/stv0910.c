@@ -150,10 +150,12 @@ static int write_reg(struct stv *state, u16 reg, u8 val)
 	return (i2c_transfer(state->base->i2c, &msg, 1) == 1) ? 0 : -1;
 }
 
+#if 0
 static int write_reg_off(struct stv *state, u16 reg, u8 val)
 {
 	return write_reg(state, reg + state->regoff, val);
 }
+#endif
 
 static inline int i2c_read_regs16(struct i2c_adapter *adapter, u8 adr,
 				  u16 reg, u8 *val, int len)
@@ -1639,6 +1641,7 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 
 static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 {
+#if 0
 	struct stv *state = fe->demodulator_priv;
 	u8 value;
 
@@ -1653,6 +1656,7 @@ static int send_burst(struct dvb_frontend *fe, enum fe_sec_mini_cmd burst)
 	set_reg(DISTXFIFO, value);
 	set_reg(DISTXCFG, 0x3a);
 	wait_dis(state, 0x20, 0x20);
+#endif
 	return 0;
 }
 

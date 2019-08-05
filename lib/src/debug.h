@@ -14,6 +14,7 @@ extern uint32_t dddvb_debug;
 #define DEBUG_DVB     16
 #define DEBUG_IGMP    32
 #define DEBUG_SWITCH  64
+#define DEBUG_CA     128
 #define DEBUG_DEBUG  256
 
 

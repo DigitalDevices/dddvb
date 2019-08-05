@@ -1,7 +1,7 @@
 /*
  * ddbridge-hw.c: Digital Devices device information tables
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *
@@ -537,6 +537,16 @@ static const struct ddb_info ddb_sdr_iq = {
 	.tempmon_irq = 8,
 };
 
+static const struct ddb_info ddb_sdr_dvbt = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVBT",
+	.version  = 18,
+	.regmap   = &octopus_sdr_map,
+	.port_num = 16,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
 static const struct ddb_info ddb_octopro_hdin = {
 	.type     = DDB_OCTOPRO_HDIN,
 	.name     = "Digital Devices OctopusNet Pro HDIN",
@@ -789,7 +799,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0210, 0x0003, ddb_mod_fsm_8),
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr_atv),
 	DDB_DEVID(0x0221, 0x0001, ddb_sdr_iq),
-	DDB_DEVID(0x0222, 0x0001, ddb_sdr_iq),
+	DDB_DEVID(0x0222, 0x0001, ddb_sdr_dvbt),
 
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),

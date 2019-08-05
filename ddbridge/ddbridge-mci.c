@@ -83,7 +83,17 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 	
 	stat = wait_for_completion_timeout(&state->base->completion, HZ);
 	if (stat == 0) {
+		u32 istat = ddblreadl(link, INTERRUPT_STATUS);
+
 		printk("MCI timeout\n");
+		val = ddblreadl(link, MCI_CONTROL);
+		if (val == 0xffffffff)
+			printk("Lost PCIe link!\n");
+		else {
+			printk("DDBridge IRS %08x\n", istat);
+			if (istat & 1) 
+				ddblwritel(link, istat & 1, INTERRUPT_ACK);
+		}
 		return -EIO;
 	}
 	if (res && res_len)

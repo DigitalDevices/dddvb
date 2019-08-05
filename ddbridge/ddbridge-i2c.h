@@ -1,7 +1,7 @@
 /*
  * ddbridge-i2c.h: Digital Devices bridge i2c driver
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *

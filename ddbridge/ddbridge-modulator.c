@@ -1477,11 +1477,45 @@ static int mod3_set_ari(struct ddb_mod *mod, u32 rate)
 }
 
 
+static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
+{
+	u32 cic, inc;
+	
+	switch (rate) {
+	case SYS_DVBT_6:
+		inc = 1917396114;
+		cic = 8;
+		break;
+	case SYS_DVBT_7:
+		inc = 1957341867;
+		cic = 7;
+		break;
+	case SYS_DVBT_8:
+		//rate = 8126984;
+		inc = 1917396114;
+		cic = 6;
+		break;
+	case SYS_ISDBT_6:
+		inc = 1988410754;
+		cic = 7;
+		break;
+	default:
+		return -EINVAL;
+	}
+	ddbwritel(mod->port->dev, inc, SDR_CHANNEL_ARICW(mod->port->nr));
+	ddbwritel(mod->port->dev, cic << 8, SDR_CHANNEL_CONFIG(mod->port->nr));
+	return 0;
+}
+
+
 static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 {
 	switch (tvp->cmd) {
 	case MODULATOR_OUTPUT_ARI:
 		return mod3_set_ari(mod, tvp->u.data);
+
+	case MODULATOR_OUTPUT_RATE:
+		return mod3_set_sample_rate(mod, tvp->u.data);
 
 	case MODULATOR_FREQUENCY:
 		return mod3_set_frequency(mod, tvp->u.data);
@@ -1542,15 +1576,37 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 	return 0;
 }
 
+static int mod_prop_get3(struct ddb_mod *mod, struct dtv_property *tvp)
+{
+	struct ddb *dev = mod->port->dev;
+
+	switch (tvp->cmd) {
+	case MODULATOR_INFO:
+		tvp->u.data = dev->link[0].info->version;
+		return 0;
+	case MODULATOR_GAIN:
+		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);
+		return 0;
+	default:
+		return -1;
+	}
+}
+
 static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
 {
 	struct ddb *dev = mod->port->dev;
 
+	if (mod->port->dev->link[0].info->version >= 16)
+		return mod_prop_get3(mod, tvp);
 	if (mod->port->dev->link[0].info->version != 2)
 		return -1;
 	switch (tvp->cmd) {
+	case MODULATOR_INFO:
+		tvp->u.data = 2;
+		return 0;
+
 	case MODULATOR_GAIN:
-		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);;
+		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);
 		return 0;
 
 	case MODULATOR_ATTENUATOR:
@@ -1896,6 +1952,8 @@ int ddbridge_mod_init(struct ddb *dev)
 	case 16:
 		return mod_init_3(dev, 503250000);
 	case 17:
+		return mod_init_sdr_iq(dev);
+	case 18:
 		return mod_init_sdr_iq(dev);
 	default:
 		return -1;

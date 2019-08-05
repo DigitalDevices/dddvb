@@ -3644,7 +3644,6 @@ static int stv090x_read_status(struct dvb_frontend *fe, enum fe_status *status)
 
 	{
 		u16 val;
-		u32 ber;
 		
 		stv090x_read_cnr(fe, &val);
 		stv090x_read_signal_strength(fe, &val);
@@ -3657,7 +3656,7 @@ static int stv090x_read_status(struct dvb_frontend *fe, enum fe_status *status)
 static int stv090x_read_ber(struct dvb_frontend *fe, u32 *ber)
 {
         struct stv090x_state *state = fe->demodulator_priv;
-	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	//struct dtv_frontend_properties *p = &fe->dtv_property_cache;
         u32 reg, h, m, l;
         enum fe_status status;
 
@@ -5075,7 +5074,7 @@ static int stv090x_set_gpio(struct dvb_frontend *fe, u8 gpio, u8 dir,
 static int stv090x_get_frontend(struct dvb_frontend *fe,  struct dtv_frontend_properties *p)
 {
 	struct stv090x_state *state = fe->demodulator_priv;
-	u8 tmp;
+	//u8 tmp;
 	u32 reg = 0;
 	
 	if (state->rec_mode == 2) {

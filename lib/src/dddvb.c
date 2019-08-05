@@ -3,7 +3,6 @@
 #include "debug.h"
 #include <string.h>
 
-
 LIBDDDVB_EXPORTED uint32_t dddvb_debug;
 LIBDDDVB_EXPORTED struct dddvb *global_dd = NULL;
 LIBDDDVB_EXPORTED pthread_mutex_t dddvb_mutex = PTHREAD_MUTEX_INITIALIZER; 

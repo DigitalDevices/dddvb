@@ -14,6 +14,9 @@ libdddvb:
 libdddvb-install:
 	$(MAKE) -C lib install
 
+libdddvb-clean:
+	$(MAKE) -C lib clean
+
 dep:
 	DIR=`pwd`; (cd $(TOPDIR); make SUBDIRS=$$DIR dep)
 

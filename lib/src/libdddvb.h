@@ -60,6 +60,10 @@ LIBDDDVB_EXPORTED struct dddvb *dddvb_init(char *config, uint32_t flags);
 LIBDDDVB_EXPORTED int dddvb_dvb_tune(struct dddvb_fe *fe, struct dddvb_params *p);
 LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc(struct dddvb *dd, uint32_t type);
 LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc_num(struct dddvb *dd, uint32_t type, uint32_t num);
+LIBDDDVB_EXPORTED int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len);
+LIBDDDVB_EXPORTED int dddvb_ca_read(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len);
+LIBDDDVB_EXPORTED int dddvb_ca_set_pmts(struct dddvb *dd, uint32_t nr, uint8_t **pmts);
+
 
 static inline void dddvb_set_frequency(struct dddvb_params *p, uint32_t freq) {
 	p->param[PARAM_FREQ] = freq;
@@ -109,11 +113,25 @@ static inline int64_t dddvb_get_cnr(struct dddvb_fe *fe) {
 	return fe->cnr;
 };
 
+static inline int64_t dddvb_get_ber(struct dddvb_fe *fe) {
+	return fe->ber;
+};
+
+static inline uint32_t dddvb_get_quality(struct dddvb_fe *fe) {
+	return fe->quality;
+};
+
 static inline void dddvb_param_init(struct dddvb_params *p) {
 	int i;
 
 	for (i = 0; i < 32; i++) 
 		p->param[i] = DDDVB_UNDEF;
 };
+
+#if 0
+static inline int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len) {
+	return ca_write(dd, nr, buf, len);
+};
+#endif
 
 #endif /* _LIBDDDVB_H_ */

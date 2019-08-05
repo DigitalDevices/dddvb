@@ -1,7 +1,7 @@
 /*
  * ddbridge-core.c: Digital Devices bridge core functions
  *
- * Copyright (C) 2010-2016 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -1105,7 +1105,7 @@ static void dummy_release(struct dvb_frontend *fe)
 }
 
 static struct dvb_frontend_ops dummy_ops = {
-	.delsys = { SYS_DVBC_ANNEX_A },
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2 },
 	.info = {
 		.name = "DUMMY DVB-C/C2 DVB-T/T2",
 		.frequency_stepsize = 166667,	/* DVB-T only */
@@ -1399,7 +1399,7 @@ static struct stv0910_cfg stv0910_p = {
 	.parallel = 1,
 	.rptlvl   = 4,
 	.clk      = 30000000,
-	.tsspeed  = 0x10,
+	.tsspeed  = 0x20,
 };
 
 static int has_lnbh25(struct i2c_adapter *i2c, u8 adr)
@@ -1524,6 +1524,7 @@ static void dvb_input_detach(struct ddb_input *input)
 	case 0x41:
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
+		/* fallthrough */
 	case 0x40:
 		if (dvb->fe)
 			dvb_unregister_frontend(dvb->fe);
@@ -1843,8 +1844,8 @@ static int dvb_input_attach(struct ddb_input *input)
 		memcpy(&dvb->fe2->ops.tuner_ops,
 		       &dvb->fe->ops.tuner_ops,
 		       sizeof(struct dvb_tuner_ops));
+		dvb->attached = 0x41;
 	}
-	dvb->attached = 0x41;
 	return 0;
 }
 
@@ -2071,7 +2072,8 @@ static void ddb_port_probe(struct ddb_port *port)
 	/* Handle missing ports and ports without I2C */
 
 	if (dummy_tuner && !port->nr &&
-	    link->ids.device == 0x0005) {
+	    (link->ids.device == 0x0005 ||
+	     link->ids.device == 0x000a)) {
 		port->name = "DUMMY";
 		port->class = DDB_PORT_TUNER;
 		port->type = DDB_TUNER_DUMMY;
@@ -2561,7 +2563,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
-		    io->port->dev->link[0].info->version == 3) {
+		    io->port->dev->link[0].info->version >= 16) {
 			dma->num = OUTPUT_DMA_BUFS_SDR;
 			dma->size = OUTPUT_DMA_SIZE_SDR;
 			dma->div = 1;
@@ -3496,7 +3498,7 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (copy_from_user(&i2c, parg, sizeof(i2c)))
 			return -EFAULT;
-		if (i2c.bus > dev->link[0].info->regmap->i2c->num)
+		if (i2c.bus > dev->i2c_num)
 			return -EINVAL;
 		if (i2c.mlen + i2c.hlen > 512)
 			return -EINVAL;
@@ -3520,7 +3522,7 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 		if (copy_from_user(&i2c, parg, sizeof(i2c)))
 			return -EFAULT;
-		if (i2c.bus > dev->link[0].info->regmap->i2c->num)
+		if (i2c.bus > dev->i2c_num)
 			return -EINVAL;
 		if (i2c.mlen + i2c.hlen > 250)
 			return -EINVAL;
@@ -3876,6 +3878,24 @@ static ssize_t bpsnr_show(struct device *device,
 	return sprintf(buf, "%s\n", snr);
 }
 
+static ssize_t gtl_snr_show(struct device *device,
+			    struct device_attribute *attr, char *buf)
+{
+	struct ddb *dev = dev_get_drvdata(device);
+	int num = attr->attr.name[6] - 0x30;
+	char snr[16];
+
+	ddbridge_flashread(dev, num, snr, 0x10, 15);
+	snr[15] = 0; /* in case it is not terminated on EEPROM */
+	return sprintf(buf, "%s\n", snr);
+}
+
+static ssize_t gtl_snr_store(struct device *device, struct device_attribute *attr,
+			 const char *buf, size_t count)
+{
+	return 0;
+}
+
 static ssize_t redirect_show(struct device *device,
 			     struct device_attribute *attr, char *buf)
 {
@@ -4121,6 +4141,12 @@ static struct device_attribute ddb_attrs_snr[] = {
 	__ATTR(snr3, 0664, snr_show, snr_store),
 };
 
+static struct device_attribute ddb_attrs_gtl_snr[] = {
+	__ATTR(gtlsnr1, 0664, gtl_snr_show, gtl_snr_store),
+	__ATTR(gtlsnr2, 0664, gtl_snr_show, gtl_snr_store),
+	__ATTR(gtlsnr3, 0664, gtl_snr_show, gtl_snr_store),
+};
+
 static struct device_attribute ddb_attrs_ctemp[] = {
 	__ATTR_MRO(temp0, ctemp_show),
 	__ATTR_MRO(temp1, ctemp_show),
@@ -4191,6 +4217,9 @@ static void ddb_device_attrs_del(struct ddb *dev)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_snr[i]);
 		device_remove_file(dev->ddb_dev, &ddb_attrs_ctemp[i]);
 	}
+	if (dev->link[0].info->regmap->gtl)
+		for (i = 0; i < dev->link[0].info->regmap->gtl->num; i++)
+			device_remove_file(dev->ddb_dev, &ddb_attrs_gtl_snr[i]);
 	for (i = 0; ddb_attrs[i].attr.name; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs[i]);
 }
@@ -4223,6 +4252,10 @@ static int ddb_device_attrs_add(struct ddb *dev)
 					       &ddb_attrs_led[i]))
 				goto fail;
 	}
+	if (dev->link[0].info->regmap->gtl)
+		for (i = 0; i < dev->link[0].info->regmap->gtl->num; i++)
+			if (device_create_file(dev->ddb_dev, &ddb_attrs_gtl_snr[i]))
+				goto fail;
 	for (i = 0; i < 4; i++)
 		if (dev->link[i].info &&
 		    dev->link[i].info->tempmon_irq)
@@ -4439,7 +4472,7 @@ static void tempmon_setfan(struct ddb_link *link)
 		while (pwm < 10 && temp >= link->temp_tab[pwm + 1])
 			pwm += 1;
 	} else {
-		while (pwm > 1 && temp < link->temp_tab[pwm - 2])
+		while (pwm > 1 && temp < (link->temp_tab[pwm] - 2))
 			pwm -= 1;
 	}
 	ddblwritel(link, (pwm << 8), TEMPMON_FANCONTROL);

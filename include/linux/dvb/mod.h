@@ -32,6 +32,16 @@ struct dvb_mod_channel_params {
 #define MODULATOR_GAIN           35
 #define MODULATOR_RESET          36
 #define MODULATOR_STATUS         37
+#define MODULATOR_INFO           38
 #define MODULATOR_OUTPUT_ARI     64
+#define MODULATOR_OUTPUT_RATE    65
+
+enum mod_output_rate {
+	SYS_DVBT_6 = 0,
+	SYS_DVBT_7,
+	SYS_DVBT_8,
+	SYS_ISDBT_6 = 16,
+};
+
 
 #endif /*_UAPI_DVBMOD_H_*/
