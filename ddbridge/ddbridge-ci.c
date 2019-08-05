@@ -1,7 +1,7 @@
 /*
  * ddbridge-ci.c: Digital Devices bridge and DuoFlex CI driver
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *

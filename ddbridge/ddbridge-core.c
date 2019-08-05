@@ -1,7 +1,7 @@
 /*
  * ddbridge-core.c: Digital Devices bridge core functions
  *
- * Copyright (C) 2010-2016 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
