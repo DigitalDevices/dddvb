@@ -4472,7 +4472,7 @@ static void tempmon_setfan(struct ddb_link *link)
 		while (pwm < 10 && temp >= link->temp_tab[pwm + 1])
 			pwm += 1;
 	} else {
-		while (pwm > 1 && temp < link->temp_tab[pwm - 2])
+		while (pwm > 1 && temp < (link->temp_tab[pwm] - 2))
 			pwm -= 1;
 	}
 	ddblwritel(link, (pwm << 8), TEMPMON_FANCONTROL);
