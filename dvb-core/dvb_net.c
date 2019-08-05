@@ -783,6 +783,7 @@ static void dvb_net_ule(struct net_device *dev, const u8 *buf, size_t buf_len)
 	int ret;
 	struct dvb_net_ule_handle h = {
 		.dev = dev,
+		.priv = netdev_priv(dev),
 		.buf = buf,
 		.buf_len = buf_len,
 		.skipped = 0L,
