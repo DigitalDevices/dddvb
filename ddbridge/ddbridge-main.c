@@ -1,7 +1,7 @@
 /*
  * ddbridge.c: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2017 Digital Devices GmbH
+ * Copyright (C) 2010-2019 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *
@@ -449,7 +449,7 @@ static __init int module_init_ddbridge(void)
 
 	pr_info("Digital Devices PCIE bridge driver "
 		DDBRIDGE_VERSION
-		", Copyright (C) 2010-17 Digital Devices GmbH\n");
+		", Copyright (C) 2010-19 Digital Devices GmbH\n");
 	stat = ddb_init_ddbridge();
 	if (stat < 0)
 		return stat;
