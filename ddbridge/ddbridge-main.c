@@ -436,11 +436,55 @@ static const struct pci_device_id ddb_id_table[] __devinitconst = {
 };
 MODULE_DEVICE_TABLE(pci, ddb_id_table);
 
+
+static pci_ers_result_t ddb_pci_slot_reset(struct pci_dev *dev)
+{
+	pr_info("pci_slot_reset\n");
+	return PCI_ERS_RESULT_RECOVERED;
+}
+
+static void ddb_pci_resume(struct pci_dev *dev)
+{
+	pr_info("pci_resume\n");
+}
+
+static pci_ers_result_t ddb_pci_mmio_enabled(struct pci_dev *pdev)
+{
+	pr_info("pci_mmio_enabled\n");
+	return PCI_ERS_RESULT_NEED_RESET;
+}
+
+static pci_ers_result_t ddb_pci_error_detected(struct pci_dev *pdev,
+					       pci_channel_state_t state)
+{
+	switch (state) {
+	case pci_channel_io_frozen:
+		
+		return PCI_ERS_RESULT_CAN_RECOVER;
+	case pci_channel_io_perm_failure:
+		return PCI_ERS_RESULT_DISCONNECT;
+		break;
+	case pci_channel_io_normal:
+	default:
+		break;
+	}
+	return PCI_ERS_RESULT_NEED_RESET;
+}
+
+static const struct pci_error_handlers ddb_error = {
+	.error_detected = ddb_pci_error_detected,
+	.mmio_enabled = ddb_pci_mmio_enabled,
+	.slot_reset = ddb_pci_slot_reset,
+	.resume = ddb_pci_resume,
+};
+
+
 static struct pci_driver ddb_pci_driver = {
 	.name        = "ddbridge",
 	.id_table    = ddb_id_table,
 	.probe       = ddb_probe,
 	.remove      = ddb_remove,
+	.err_handler = &ddb_error,
 };
 
 static __init int module_init_ddbridge(void)
