@@ -162,10 +162,7 @@ static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on)
 static int stop_iq(struct dvb_frontend *fe)
 {
 	struct sx8 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
 	struct mci_command cmd;
-	u32 input = state->mci.tuner;
 
 	if (!state->iq_started)
 		return -1;
