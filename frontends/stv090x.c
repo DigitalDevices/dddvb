@@ -3835,7 +3835,7 @@ static int stv090x_read_cnr(struct dvb_frontend *fe, u16 *cnr)
 	u32 reg_0, reg_1, reg, i;
 	s32 val_0, val_1, val = 0;
 	u8 lock_f;
-	s32 cnr_db;
+	s32 cnr_db = 0;
 	s32 div;
 	u32 last;
 
