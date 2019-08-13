@@ -1563,7 +1563,7 @@ static int dvb_register_adapters(struct ddb *dev)
 {
 	int i, ret = 0, l = 0;
 	struct ddb_port *port;
-	struct dvb_adapter *adap;
+	struct dvb_adapter *adap = 0;
 
 	if (adapter_alloc == 4) {
 		for (i = 0; i < dev->port_num; i++) {
