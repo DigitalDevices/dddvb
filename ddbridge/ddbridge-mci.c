@@ -141,6 +141,7 @@ int ddb_mci_cmd_raw(struct mci *state,
 	return stat;
 }
 
+#if 0
 static int ddb_mci_get_iq(struct mci *mci, u32 demod, s16 *i, s16 *q)
 {
 	int stat;
@@ -158,6 +159,7 @@ static int ddb_mci_get_iq(struct mci *mci, u32 demod, s16 *i, s16 *q)
 	}
 	return stat;
 }
+#endif
 
 int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
 {
