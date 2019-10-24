@@ -129,6 +129,7 @@ int main(int argc, char **argv)
 		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
 			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
+			       "      [-o (write dvr to stdout)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
 			       "      polarity        = h,v\n"
