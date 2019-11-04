@@ -408,7 +408,6 @@
 /* Attenuator/VGA */
 
 #define RF_ATTENUATOR   (0xD8)
-#define RF_ATTENUATOR   (0xD8)
 /*  0x00 =  0 dB
  *  0x01 =  1 dB
  *    ...
@@ -642,4 +641,11 @@
 	 (((vsblen) << 24) & SDR_VSB_LENGTH_MASK) |			\
 	 0								\
 		)
+
+/* SDR_CONTROL */
+
+#define SDR_CONTROL    (0xd0)
+#define SDR_GAIN_SMA   (0xd4)
+#define SDR_ATTENUATER (0xd8)
+#define SDR_GAIN_F     (0xdc)
 

@@ -511,11 +511,11 @@ static int mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 	return status;
 }
 
-static int mod_set_vga(struct ddb *dev, u32 Gain)
+static int mod_set_vga(struct ddb *dev, u32 gain)
 {
-	if (Gain > 255)
+	if (gain > 255)
 		return -EINVAL;
-	ddbwritel(dev, Gain, RF_VGA);
+	ddbwritel(dev, gain, RF_VGA);
 	return 0;
 }
 
@@ -623,6 +623,41 @@ static int mod_set_attenuator(struct ddb *dev, u32 Value)
 	if (Value > 31)
 		return -EINVAL;
 	ddbwritel(dev, Value, RF_ATTENUATOR);
+	return 0;
+}
+
+static int mod_set_sdr_attenuator(struct ddb *dev, u32 value)
+{
+	u32 control;
+	
+	if (value > 31)
+		return -EINVAL;
+	control = ddbreadl(dev, SDR_CONTROL);
+	if (control & 0x01000000) {
+		ddbwritel(dev, 0x03, SDR_CONTROL);
+	} else {
+		ddbwritel(dev, value, RF_ATTENUATOR);
+	}
+	return 0;
+}
+
+static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
+{
+	u32 control = ddbreadl(dev, SDR_CONTROL);
+
+	if (control & 0x01000000) {
+		if (gain > 511)
+			return -EINVAL;
+		ddbwritel(dev, 0x03, SDR_CONTROL);
+		ddbwritel(dev, gain, SDR_GAIN_F);
+		if (gain > 255)
+			gain = 255;
+		ddbwritel(dev, gain, SDR_GAIN_SMA);
+	} else {
+		if (gain > 255)
+			return -EINVAL;
+		ddbwritel(dev, gain, SDR_GAIN_F);
+	}
 	return 0;
 }
 
@@ -1423,7 +1458,9 @@ static int mod3_set_base_frequency(struct ddb *dev, u32 frequency)
 
 	if (frequency % 1000)
 		return -EINVAL;
-	if ((frequency < 114000000) || (frequency > 874000000))
+	if (frequency < 114000000)
+		return -EINVAL;
+	if (frequency > 1874000000)
 		return -EINVAL;
 	dev->mod_base.frequency = frequency;
 	tmp = frequency;
@@ -1524,10 +1561,10 @@ static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		return mod3_set_base_frequency(mod->port->dev, tvp->u.data);
 
 	case MODULATOR_ATTENUATOR:
-		return mod_set_attenuator(mod->port->dev, tvp->u.data);
+		return mod_set_sdr_attenuator(mod->port->dev, tvp->u.data);
 
 	case MODULATOR_GAIN:
-		return mod_set_vga(mod->port->dev, tvp->u.data);
+		return mod_set_sdr_gain(mod->port->dev, tvp->u.data);
 	}
 	return -EINVAL;
 }
@@ -1904,8 +1941,8 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 		ddbwritel(dev, 0x00002000, SDR_CHANNEL_FM1GAIN(i));
 		ddbwritel(dev, 0x00001000, SDR_CHANNEL_FM2GAIN(i));
 	}
-	mod_set_attenuator(dev, 0);
-	mod_set_vga(dev, 64);
+	mod_set_sdr_attenuator(dev, 0);
+	mod_set_sdr_gain(dev, 64);
 	return ret;
 }
 
@@ -1935,9 +1972,9 @@ static int mod_init_sdr_iq(struct ddb *dev)
 		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
 	}
 
-	mod_set_attenuator(dev, 0);
+	mod_set_sdr_attenuator(dev, 0);
 	udelay(10);
-	mod_set_vga(dev, 120);
+	mod_set_sdr_gain(dev, 120);
 	return ret;
 }
 
@@ -1947,13 +1984,13 @@ int ddbridge_mod_init(struct ddb *dev)
 	case 0:
 	case 1:
 		return mod_init_1(dev, 722000000);
-	case 2:
+	case 2: /* FSM */
 		return mod_init_2(dev, 114000000);
-	case 16:
+	case 16: /* PAL */
 		return mod_init_3(dev, 503250000);
-	case 17:
+	case 17: /* raw IQ */
 		return mod_init_sdr_iq(dev);
-	case 18:
+	case 18: /* IQ+FFT */
 		return mod_init_sdr_iq(dev);
 	default:
 		return -1;
