@@ -130,9 +130,11 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 		set_property(fd, DTV_INPUT, input);
 	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
 		set_property(fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
-	if (fe->param.param[PARAM_PLS] != DDDVB_UNDEF)
+	if (fe->param.param[PARAM_SSI] != DDDVB_UNDEF)
 		set_property(fd, DTV_SCRAMBLING_SEQUENCE_INDEX,
-			     fe->param.param[PARAM_PLS]);
+			     fe->param.param[PARAM_SSI]);
+	if (fe->param.param[PARAM_MTYPE] != DDDVB_UNDEF)
+		set_property(fd, DTV_MODULATION, fe->param.param[PARAM_MTYPE]);
 	set_property(fd, DTV_TUNE, 0);
 	return 0;
 }
@@ -280,9 +282,9 @@ static int tune_sat(struct dddvb_fe *fe)
 			freq -= lofs;
 		else
 			freq = lofs - freq;
-	} else 
+	} 
 #endif
-	{
+	if (freq > 2100000) {
 		if (lofs)
 			hi = (freq > lofs) ? 1 : 0;
 		if (hi) 
@@ -491,7 +493,7 @@ static int tune(struct dddvb_fe *fe)
 	int ret;
 
 	printf("tune()\n");
-	switch (fe->n_param.param[PARAM_MSYS]) {
+	switch (fe->param.param[PARAM_MSYS]) {
 	case SYS_DVBS:
 	case SYS_DVBS2:
 		ret = tune_sat(fe);
@@ -704,8 +706,7 @@ int dddvb_fe_get(struct dddvb_fe *fe, struct dddvb_params *p)
 
 	dbgprintf(DEBUG_DVB, "fe_get\n");
 	pthread_mutex_lock(&fe->mutex);
-	memcpy(fe->n_param.param, p->param, sizeof(fe->n_param.param));
-	fe->n_tune = 1;
+	memcpy(p->param, fe->n_param.param, sizeof(fe->n_param.param));
 	pthread_mutex_unlock(&fe->mutex);
 	return ret;
 }
@@ -916,3 +917,4 @@ int dddvb_dvb_exit(struct dddvb *dd)
 
 
 }
+

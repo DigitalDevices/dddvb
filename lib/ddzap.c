@@ -1,4 +1,4 @@
-#include <linux/dvb/frontend.h>
+#include "../include/linux/dvb/frontend.h"
 #include "src/libdddvb.h"
 #include <stdio.h>
 #include <string.h>
@@ -30,7 +30,8 @@ int main(int argc, char **argv)
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
 	uint32_t bandwidth = 8000000, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
-	uint32_t id = DDDVB_UNDEF, pls = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
+	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
+	uint32_t mtype= DDDVB_UNDEF;
 	uint32_t verbosity = 0;
 	enum fe_code_rate fec = FEC_AUTO;
 	enum fe_delivery_system delsys = ~0;
@@ -51,16 +52,18 @@ int main(int argc, char **argv)
 			{"source", required_argument, 0, 'l'},
 			{"delsys", required_argument, 0, 'd'},
 			{"id", required_argument, 0, 'i'},
-			{"pls", required_argument, 0, 'g'},
+			{"ssi", required_argument, 0, 'g'},
+			{"gold", required_argument, 0, 'g'},
 			{"root", required_argument, 0, 'r'},
 			{"num", required_argument, 0, 'n'},
+			{"mtype", required_argument, 0, 'm'},
 			{"verbosity", required_argument, 0, 'v'},
 			{"open_dvr", no_argument, 0, 'o'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"c:i:f:s:d:p:hg:r:n:b:l:v:o",
+				"c:i:f:s:d:p:hg:r:n:b:l:v:m:o",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -90,10 +93,10 @@ int main(int argc, char **argv)
 			verbosity = strtoul(optarg, NULL, 0);
 			break;
 		case 'g':
-			pls = strtoul(optarg, NULL, 0);
+			ssi = strtoul(optarg, NULL, 0);
 			break;
 		case 'r':
-			pls = root2gold(strtoul(optarg, NULL, 0));
+			ssi = root2gold(strtoul(optarg, NULL, 0));
 			break;
 		case 'i':
 			id = strtoul(optarg, NULL, 0);
@@ -101,16 +104,40 @@ int main(int argc, char **argv)
 		case 'n':
 			num = strtoul(optarg, NULL, 0);
 			break;
+		case 'm':
+			if (!strcmp(optarg, "16APSK"))
+				mtype = APSK_16;
+			if (!strcmp(optarg, "32APSK"))
+				mtype = APSK_32;
+			if (!strcmp(optarg, "64APSK"))
+				mtype = APSK_64;
+			if (!strcmp(optarg, "128APSK"))
+				mtype = APSK_128;
+			if (!strcmp(optarg, "256APSK"))
+				mtype = APSK_256;
+			if (mtype == DDDVB_UNDEF)
+				printf("unknown mtype %s\n", optarg);
+			break;
 		case 'd':
 			if (!strcmp(optarg, "C"))
 				delsys = SYS_DVBC_ANNEX_A;
+			if (!strcmp(optarg, "DVBC"))
+				delsys = SYS_DVBC_ANNEX_A;
 			if (!strcmp(optarg, "S"))
+				delsys = SYS_DVBS;
+			if (!strcmp(optarg, "DVBS"))
 				delsys = SYS_DVBS;
 			if (!strcmp(optarg, "S2"))
 				delsys = SYS_DVBS2;
+			if (!strcmp(optarg, "DVBS2"))
+				delsys = SYS_DVBS2;
 			if (!strcmp(optarg, "T"))
 				delsys = SYS_DVBT;
+			if (!strcmp(optarg, "DVBT"))
+				delsys = SYS_DVBT;
 			if (!strcmp(optarg, "T2"))
+				delsys = SYS_DVBT2;
+			if (!strcmp(optarg, "DVBT2"))
 				delsys = SYS_DVBT2;
 			if (!strcmp(optarg, "J83B"))
 				delsys = SYS_DVBC_ANNEX_B;
@@ -132,7 +159,6 @@ int main(int argc, char **argv)
 			       "      [-o (write dvr to stdout)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
-			       "      polarity        = h,v\n"
 			       "      polarity        = h,v\n"
 			       "\n");
 			exit(-1);
@@ -172,6 +198,7 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 	dddvb_param_init(&p);
+	dddvb_set_mtype(&p, mtype);
 	dddvb_set_frequency(&p, frequency);
 	dddvb_set_src(&p, source);
 	dddvb_set_bandwidth(&p, bandwidth);
@@ -179,27 +206,29 @@ int main(int argc, char **argv)
 	dddvb_set_polarization(&p, pol);
 	dddvb_set_delsys(&p, delsys);
 	dddvb_set_id(&p, id);
-	dddvb_set_pls(&p, pls);
+	dddvb_set_ssi(&p, ssi);
 	dddvb_dvb_tune(fe, &p);
+#if 0
 	{
 		uint8_t ts[188];
 		
 		dddvb_ca_write(dd, 0, ts, 188);
 
 	}
+#endif
 	if (!odvr){
-	    while (1) {
-		fe_status_t stat;
-		int64_t str, cnr;
-		
-		stat = dddvb_get_stat(fe);
-		str = dddvb_get_strength(fe);
-		cnr = dddvb_get_cnr(fe);
-		
-		printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-		       stat, str/1000, abs(str%1000), cnr/1000, abs(cnr%1000));
+		while (1) {
+			fe_status_t stat;
+			int64_t str, cnr;
+			
+			stat = dddvb_get_stat(fe);
+			str = dddvb_get_strength(fe);
+			cnr = dddvb_get_cnr(fe);
+			
+			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
+			       stat, str/1000, abs(str%1000), cnr/1000, abs(cnr%1000));
 		sleep(1);
-	    }
+		}
 	} else {
 #define BUFFSIZE (1024*188)
 	        fe_status_t stat;

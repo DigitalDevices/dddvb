@@ -7,8 +7,8 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 
-#include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
+#include <linux/dvb/dmx.h>
 #include <linux/dvb/video.h>
 #include <linux/dvb/net.h>
 
@@ -34,7 +34,7 @@
 #define PARAM_GI        15
 #define PARAM_PLP       16
 #define PARAM_ISI       16
-#define PARAM_PLS       17
+#define PARAM_SSI       17
 #define PARAM_T2ID      17
 #define PARAM_SM        18
 #define PARAM_C2TFT     19
@@ -93,12 +93,16 @@ static inline void dddvb_set_fec(struct dddvb_params *p, enum fe_code_rate fec) 
 	p->param[PARAM_FEC] = fec;
 };
 
-static inline void dddvb_set_pls(struct dddvb_params *p, uint32_t pls) {
-	p->param[PARAM_PLS] = pls;
+static inline void dddvb_set_ssi(struct dddvb_params *p, uint32_t val) {
+	p->param[PARAM_SSI] = val;
 };
 
 static inline void dddvb_set_id(struct dddvb_params *p, uint32_t id) {
 	p->param[PARAM_ISI] = id;
+};
+
+static inline void dddvb_set_mtype(struct dddvb_params *p, uint32_t val) {
+	p->param[PARAM_MTYPE] = val;
 };
 
 static inline uint32_t dddvb_get_stat(struct dddvb_fe *fe) {
