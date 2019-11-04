@@ -137,7 +137,7 @@ int main(int argc, char*argv[])
 	if (base > 0)
 		set_property(fd, MODULATOR_BASE_FREQUENCY, base);
 	if (freq > 0)
-		set_property(fd, MODULATOR_FREQUENCY, base);
+		set_property(fd, MODULATOR_FREQUENCY, freq);
 	if (rate > 0)
 		set_property(fd, MODULATOR_OUTPUT_RATE, rate);
 	
