@@ -204,9 +204,11 @@ struct mci_command {
 	union {
 		u32 params[31];
 		struct {
-			u8  flags;    /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled, 7: InputStreamID*/
-                        /* Bit 0 : QPSK, 1: 8PSK/8APSK, 2 : 16APSK, 3: 32APSK, 4: 64APSK, 5: 128APSK, 6: 256APSK */
-			u8  s2_modulation_mask;
+			u8  flags; /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled,
+				      6: FrequencyRange, 7: InputStreamID */
+			u8  s2_modulation_mask; /* Bit 0 : QPSK, 1: 8PSK/8APSK,
+						   2 : 16APSK, 3: 32APSK, 4: 64APSK,
+						   5: 128APSK, 6: 256APSK */
 			u8  rsvd1;
 			u8  retry;
 			u32 frequency;
@@ -306,7 +308,9 @@ struct mci_command {
 
 
 		struct {
-			uint8_t   flags;    /* Bit 0 : 0 = VTM/SDR, 1 = SCAN,  Bit 1: Disable AGC, Bit 2: Set Gain */
+			uint8_t   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
+					     Bit 1: 1 = Disable AGC, Bit 2:
+					     1 = Set Gain.   */
 			uint8_t   roll_off;
 			uint8_t   rsvd1;
 			uint8_t   rsvd2;
