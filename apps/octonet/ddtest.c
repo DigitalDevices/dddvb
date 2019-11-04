@@ -477,7 +477,7 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
 		
 		int fsize = lseek(fh,0,SEEK_END);
 		
-		if( fsize > 4000000 || fsize < SectorSize )
+		if( fsize > 5000000 || fsize < SectorSize )
 		{
 			close(fh);
 			printf("Invalid File Size \n");
