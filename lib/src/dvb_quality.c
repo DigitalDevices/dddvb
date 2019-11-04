@@ -349,7 +349,7 @@ static void calc_lq(struct dddvb_fe *fe)
 	get_property(fe->fd, DTV_INNER_FEC, &fec);
 	fe->param.param[PARAM_FEC] = fec;
 	get_property(fe->fd, DTV_MODULATION, &mod);
-	fe->param.param[PARAM_MTYPE] = mod;
+	//fe->param.param[PARAM_MTYPE] = mod;
 
 	get_stat(fe->fd, DTV_STAT_PRE_ERROR_BIT_COUNT, &st);
 	ber_num = st.stat[0].uvalue;
