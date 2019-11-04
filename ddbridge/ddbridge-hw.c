@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * ddbridge-hw.c: Digital Devices device information tables
  *
- * Copyright (C) 2010-2019 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *
@@ -18,8 +19,7 @@
  *
  *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, point your browser to
- * http://www.gnu.org/copyleft/gpl.html
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "ddbridge.h"
