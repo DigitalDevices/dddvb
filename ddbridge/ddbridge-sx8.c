@@ -315,7 +315,13 @@ unlock:
 	}
 	if (p->stream_id != NO_STREAM_ID_FILTER && !(p->stream_id & 0xf0000000))
 		flags |= 0x80;
-	//printk("frontend %u: tuner=%u demod=%u\n", state->mci.nr, state->mci.tuner, state->mci.demod);
+	//printk("bw %u\n", p->bandwidth_hz);
+	if (p->bandwidth_hz && (p->bandwidth_hz < 20000)) {
+		flags |= 0x40;
+		/* +/- range, so multiply bandwidth_hz (actually in kHz) by 500 */
+		cmd.dvbs2_search.frequency_range = p->bandwidth_hz * 500;
+		//printk("range %u\n", cmd.dvbs2_search.frequency_range);
+	}
 	cmd.command = MCI_CMD_SEARCH_DVBS;
 	cmd.dvbs2_search.flags = flags;
 	cmd.dvbs2_search.s2_modulation_mask = modmask;
