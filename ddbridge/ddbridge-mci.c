@@ -48,7 +48,7 @@ static int mci_reset(struct mci *state)
 	}
 	if ((status & MCI_CONTROL_READY) == 0 )
 		return -1;
-	if (link->ids.device == 0x0009)
+	if (link->ids.device == 0x0009  || link->ids.device == 0x000a)
 		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
 	return 0;
 }
@@ -57,7 +57,7 @@ int ddb_mci_config(struct mci *state, u32 config)
 {
 	struct ddb_link *link = state->base->link;
 
-	if (link->ids.device != 0x0009)
+	if (link->ids.device != 0x0009  && link->ids.device != 0x000a)
 		return -EINVAL;
 	ddblwritel(link, config, SX8_TSCONFIG);
 	return 0;
