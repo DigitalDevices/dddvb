@@ -48,7 +48,7 @@ static int mci_reset(struct mci *state)
 	}
 	if ((status & MCI_CONTROL_READY) == 0 )
 		return -1;
-	if (link->ids.device == 0x0009  || link->ids.device == 0x000a)
+	if (link->ids.device == 0x0009  || link->ids.device == 0x000b)
 		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
 	return 0;
 }
@@ -57,7 +57,7 @@ int ddb_mci_config(struct mci *state, u32 config)
 {
 	struct ddb_link *link = state->base->link;
 
-	if (link->ids.device != 0x0009  && link->ids.device != 0x000a)
+	if (link->ids.device != 0x0009  && link->ids.device != 0x000b)
 		return -EINVAL;
 	ddblwritel(link, config, SX8_TSCONFIG);
 	return 0;
@@ -87,14 +87,16 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 
 		printk("MCI timeout\n");
 		val = ddblreadl(link, MCI_CONTROL);
-		if (val == 0xffffffff)
+		if (val == 0xffffffff) {
 			printk("Lost PCIe link!\n");
-		else {
-			printk("DDBridge IRS %08x\n", istat);
+			return -EIO;
+		} else {
+			printk("DDBridge IRS %08x link %u\n", istat, link->nr);
 			if (istat & 1) 
-				ddblwritel(link, istat & 1, INTERRUPT_ACK);
+				ddblwritel(link, istat, INTERRUPT_ACK);
+			if (link->nr)
+				ddbwritel(link->dev, 0xffffff, INTERRUPT_ACK);
 		}
-		return -EIO;
 	}
 	if (res && res_len)
 		for (i = 0; i < res_len; i++)
