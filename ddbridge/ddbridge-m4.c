@@ -94,17 +94,12 @@ static int search_c(struct dvb_frontend *fe)
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBC;
-	switch (p->bandwidth_hz) {
-	case 6000000:
+	if (p->bandwidth_hz <= 6000000)
 		cmd.dvbc_search.bandwidth = MCI_BANDWIDTH_6MHZ;
-		break;
-	case 7000000:
+	else if (p->bandwidth_hz <= 7000000)
 		cmd.dvbc_search.bandwidth = MCI_BANDWIDTH_7MHZ;
-		break;
-	default:
+	else
 		cmd.dvbc_search.bandwidth = MCI_BANDWIDTH_8MHZ;
-		break;
-	}
 	cmd.dvbc_search.retry = 0;
 	cmd.dvbc_search.frequency = p->frequency;
 	cmd.tuner = state->mci.tuner;
