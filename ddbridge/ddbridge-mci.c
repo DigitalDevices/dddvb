@@ -120,12 +120,19 @@ int ddb_mci_cmd(struct mci *state,
 		struct mci_result *result)
 {
 	int stat;
-	
+	struct mci_result res;
+
+	if (!result)
+		result = &res;
 	mutex_lock(&state->base->mci_lock);
 	stat = ddb_mci_cmd_raw_unlocked(state,
 				 (u32 *)command, sizeof(*command)/sizeof(u32),
 				 (u32 *)result, sizeof(*result)/sizeof(u32));
 	mutex_unlock(&state->base->mci_lock);
+	if (command && result && (result->status & 0x80))
+		dev_warn(state->base->link->dev->dev,
+			 "mci_command 0x%02x, error=0x%02x\n",
+			 command->command, result->status);
 	return stat;
 }
 
