@@ -210,6 +210,8 @@ static int search_j83b(struct dvb_frontend *fe)
 	cmd.j83b_search.flags = 0;
 	cmd.j83b_search.retry = 0;
 	cmd.j83b_search.bandwidth = MCI_BANDWIDTH_6MHZ;
+	if (p->symbol_rate > 5500000)
+		cmd.j83b_search.bandwidth |= MCI_BANDWIDTH_EXTENSION;
 	cmd.j83b_search.frequency = p->frequency;
 	cmd.demod = state->mci.tuner;
 	cmd.output = state->mci.nr;
