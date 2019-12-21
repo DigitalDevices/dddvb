@@ -1,4 +1,4 @@
-all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3
+all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modcod
 
 cit: cit.c
 	$(CC) -o cit cit.c -lpthread
@@ -14,6 +14,9 @@ setmod2: setmod2.c
 
 setmod3: setmod3.c
 	$(CC) -o setmod3 setmod3.c -I../include/
+
+modcod: modcod.c
+	$(CC) -o modcod modcod.c -I../include/
 
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ $<
