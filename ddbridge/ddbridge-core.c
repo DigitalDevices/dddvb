@@ -328,6 +328,7 @@ static int ddb_buffers_alloc(struct ddb *dev)
 				if (dma_alloc(dev->pdev,
 					      port->input[0]->dma, 0) < 0)
 					return -1;
+			/* fallthrough */
 		case DDB_PORT_MOD:
 			if (port->output->dma)
 				if (dma_alloc(dev->pdev,
@@ -1792,6 +1793,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			osc24 = 0;
 		else
 			osc24 = 1;
+		/* fallthrough */
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
@@ -1808,6 +1810,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		break;
 	case DDB_TUNER_DVBC2T2I_SONY:
 		osc24 = 1;
+		/* fallthrough */
 	case DDB_TUNER_DVBCT2_SONY:
 	case DDB_TUNER_DVBC2T2_SONY:
 	case DDB_TUNER_ISDBT_SONY:
@@ -2265,7 +2268,8 @@ static int ddb_port_attach(struct ddb_port *port)
 		ret = ddb_ci_attach(port, ci_bitrate);
 		if (ret < 0)
 			break;
-	case DDB_PORT_LOOP:
+		/* fallthrough */
+	case DDB_PORT_LOOP: 
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
 					  &dvbdev_ci, (void *)port->output,
@@ -4661,6 +4665,7 @@ int ddb_exit_ddbridge(int stage, int error)
 	default:
 	case 2:
 		destroy_workqueue(ddb_wq);
+		/* fallthrough */
 	case 1:
 		ddb_class_destroy();
 	}
