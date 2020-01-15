@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 			str = dddvb_get_strength(fe);
 			cnr = dddvb_get_cnr(fe);
 			
-			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
+			fprintf(stderr,"stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
 			       stat, str/1000, abs(str%1000), cnr/1000, abs(cnr%1000));
 			sleep(1);
 		}
