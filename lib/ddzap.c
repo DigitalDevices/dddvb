@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 	struct dddvb *dd;
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
-	uint32_t bandwidth = 8000000, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
+	uint32_t bandwidth = DDDVB_UNDEF, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
 	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
 	uint32_t mtype= DDDVB_UNDEF;
 	uint32_t verbosity = 0;
@@ -147,9 +147,9 @@ int main(int argc, char **argv)
 				delsys = SYS_ISDBT;
 			break;
 		case 'p':
-			if (!strcmp(optarg, "h"))
+			if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
 				pol = 1;
-			if (!strcmp(optarg, "v"))
+			if (!strcmp(optarg, "v") || !strcmp(optarg, "V"))
 				pol = 0;
 			break;
 		case 'h':
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 			       "      [-o (write dvr to stdout)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
-			       "      polarity        = h,v\n"
+			       "      polarity        = h/H,v/V\n"
 			       "\n");
 			exit(-1);
 		default:
