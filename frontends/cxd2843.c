@@ -2502,7 +2502,8 @@ static struct dvb_frontend_ops common_ops_2854 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
@@ -2535,7 +2536,8 @@ static struct dvb_frontend_ops common_ops_2843 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
@@ -2573,7 +2575,8 @@ static struct dvb_frontend_ops common_ops_2837 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
