@@ -309,8 +309,8 @@ struct mci_command {
 
 		struct {
 			uint8_t   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
-					     Bit 1: 1 = Disable AGC, Bit 2:
-					     1 = Set Gain.   */
+					     Bit 1: 1 = Disable AGC,
+					     Bit 2: 1 = Set Gain.   */
 			uint8_t   roll_off;
 			uint8_t   rsvd1;
 			uint8_t   rsvd2;
