@@ -4319,7 +4319,7 @@ static void gtl_link_handler(void *priv)
 	struct ddb *dev = (struct ddb *)priv;
 	u32 regs = dev->link[0].info->regmap->gtl->base;
 
-	dev_info(dev->dev, "GT link change: %u\n",
+	dev_info(dev->dev, "GT link changed to %u\n",
 		 (1 & ddbreadl(dev, regs)));
 }
 
