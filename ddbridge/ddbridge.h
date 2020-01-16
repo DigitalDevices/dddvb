@@ -450,7 +450,7 @@ struct ddb {
 	struct ddb_dma         odma[DDB_MAX_OUTPUT];
 
 	struct device         *ddb_dev;
-	u32                    ddb_dev_users;
+	atomic_t               ddb_dev_users;
 	u32                    nr;
 	u8                     iobuf[1028];
 

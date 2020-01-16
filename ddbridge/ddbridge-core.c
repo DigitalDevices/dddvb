@@ -3340,7 +3340,7 @@ static int ddb_release(struct inode *inode, struct file *file)
 {
 	struct ddb *dev = file->private_data;
 
-	dev->ddb_dev_users--;
+	atomic_inc(&dev->ddb_dev_users);
 	return 0;
 }
 
@@ -3348,9 +3348,10 @@ static int ddb_open(struct inode *inode, struct file *file)
 {
 	struct ddb *dev = ddbs[iminor(inode)];
 
-	if (dev->ddb_dev_users)
+	if (!atomic_dec_and_test(&dev->ddb_dev_users)) {
+		atomic_inc(&dev->ddb_dev_users);
 		return -EBUSY;
-	dev->ddb_dev_users++;
+	}
 	file->private_data = dev;
 	return 0;
 }
@@ -4278,6 +4279,7 @@ static int ddb_device_create(struct ddb *dev)
 		return -ENOMEM;
 	mutex_lock(&ddb_mutex);
 	dev->nr = ddb_num;
+	atomic_set(&dev->ddb_dev_users, 1);
 	ddbs[dev->nr] = dev;
 	dev->ddb_dev = device_create(&ddb_class, dev->dev,
 				     MKDEV(ddb_major, dev->nr),
