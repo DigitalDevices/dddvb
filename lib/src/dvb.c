@@ -128,6 +128,9 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 	}
 	if (input != DDDVB_UNDEF)
 		set_property(fd, DTV_INPUT, input);
+	fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
+	if (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF)
+		set_property(fd, DTV_BANDWIDTH_HZ, fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
 		set_property(fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
 	if (fe->param.param[PARAM_SSI] != DDDVB_UNDEF)
@@ -374,7 +377,8 @@ static int tune_terr(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
@@ -422,7 +426,8 @@ static int tune_c2(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_STREAM_ID, .u.data = fe->param.param[PARAM_PLP] },
 		{ .cmd = DTV_TUNE },
 	};		
@@ -446,7 +451,8 @@ static int tune_terr2(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_STREAM_ID, .u.data = fe->param.param[PARAM_PLP] },
 		{ .cmd = DTV_TUNE },
 	};		
@@ -470,7 +476,8 @@ static int tune_isdbt(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 6000000 },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
