@@ -1519,6 +1519,7 @@ static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 	u32 cic, inc;
 	
 	switch (rate) {
+		/* 2^31 * freq*4*cic / 245.76Mhz */
 	case SYS_DVBT_6:
 		inc = 1917396114;
 		cic = 8;
@@ -1535,6 +1536,10 @@ static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 	case SYS_ISDBT_6:
 		inc = 1988410754;
 		cic = 7;
+		break;
+	case SYS_DVBS2_22:
+		inc = 1922389333;
+		cic = 5;
 		break;
 	default:
 		return -EINVAL;
