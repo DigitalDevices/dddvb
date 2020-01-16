@@ -357,19 +357,6 @@ static int update_by_mnemonic(struct mxl *state,
 	return stat;
 }
 
-#if 0
-static void extract_from_mnemonic(u32 regAddr, u8 lsbPos, u8 width,
-				  u32 *toAddr, u8 *toLsbPos, u8 *toWidth)
-{
-	if (toAddr)
-		*toAddr = regAddr;
-	if (toLsbPos)
-		*toLsbPos = lsbPos;
-	if (toWidth)
-		*toWidth = width;
-}
-#endif
-
 static int firmware_is_alive(struct mxl *state)
 {
 	u32 hb0, hb1;
@@ -379,10 +366,10 @@ static int firmware_is_alive(struct mxl *state)
 	msleep(20);
 	if (read_register(state, HYDRA_HEAR_BEAT, &hb1))
 		return 0;
-	if (hb1 == hb0)
+	if (hb1 == hb0) {
+		pr_warn("mxl5xx: Hydra FW not running!\n");
 		return 0;
-
-	pr_info("mxl5xx: Hydra FW alive. Hail!\n");
+	}
 	return 1;
 }
 
