@@ -32,10 +32,12 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
+#include <errno.h>
 
 #include "flash.h"
+#include "flash.c"
 
-void get_id(int ddb, struct ddb_id *ddbid) {
+void get_ddid(int ddb, struct ddb_id *ddbid) {
 	uint8_t id[4];
 
 	if (ioctl(ddb, IOCTL_DDB_ID, ddbid)>=0)
@@ -147,8 +149,8 @@ int main(int argc, char **argv)
 	}
 	Flash = flashdetect(ddb, &SectorSize, &FlashSize);
 
-	get_id(ddb, &ddbid);
-#if 1
+	get_ddid(ddb, &ddbid);
+#if 0
 	printf("%04x %04x %04x %04x %08x %08x\n",
 	       ddbid.vendor, ddbid.device,
 	       ddbid.subvendor, ddbid.subdevice,
@@ -202,85 +204,13 @@ int main(int argc, char **argv)
 	} else {
 		int fh, i;
 		int fsize;
+		char *name;
 
 		if (!fname) 
-		switch (ddbid.device) {
-		case 0x0002:
-			fname="DVBBridgeV1A_DVBBridgeV1A.bit";
-			printf("Octopus 35\n");
-			break;
-		case 0x0003:
-			fname="DVBBridgeV1B_DVBBridgeV1B.fpga";
-			printf("Octopus\n");
-			break;
-		case 0x0005:
-			fname="DVBBridgeV2A_DD01_0005_STD.fpga";
-			printf("Octopus Classic\n");
-			break;
-		case 0x0006:
-			fname="DVBBridgeV2A_DD01_0006_STD.fpga";
-			printf("CineS2 V7\n");
-			break;
-		case 0x0007:
-			fname="DVBBridgeV2A_DD01_0007_MXL.fpga";
-			printf("Octopus 4/8\n");
-			break;
-		case 0x0008:
-			fname="DVBBridgeV2A_DD01_0008_CXD.fpga";
-			printf("Octopus 4/8\n");
-			break;
-		case 0x0009:
-			fname="DVBBridgeV2A_DD01_0009_SX8.fpga";
-			printf("Octopus MAXSX8\n");
-			break;
-		case 0x000a:
-			fname="DVBBridgeV2A_DD01_000A_M4.fpga";
-			printf("Octopus MAXM4\n");
-			break;
-		case 0x0011:
-			fname="DVBBridgeV2B_DD01_0011.fpga";
-			printf("Octopus CI\n");
-			break;
-		case 0x0012:
-			fname="DVBBridgeV2B_DD01_0012_STD.fpga";
-			printf("Octopus CI\n");
-			break;
-		case 0x0013:
-			fname="DVBBridgeV2B_DD01_0013_PRO.fpga";
-			printf("Octopus PRO\n");
-			break;
-		case 0x0020:
-			fname="DVBBridgeV2C_DD01_0020.fpga";
-			printf("Octopus GT Mini\n");
-			break;
-		case 0x0201:
-			fname="DVBModulatorV1B_DVBModulatorV1B.bit";
-			printf("Modulator\n");
-			break;
-		case 0x0203:
-			fname="DVBModulatorV1B_DD01_0203.fpga";
-			printf("Modulator Test\n");
-			break;
-		case 0x0210:
-			fname="DVBModulatorV2A_DD01_0210.fpga";
-			printf("Modulator V2\n");
-			break;
-		case 0x0220:
-			fname="SDRModulatorV1A_DD01_0220.fpga";
-			printf("SDRModulator ATV\n");
-			break;
-		case 0x0221:
-			fname="SDRModulatorV1A_DD01_0221_IQ.fpga";
-			printf("SDRModulator IQ\n");
-			break;
-		case 0x0222:
-			fname="SDRModulatorV1A_DD01_0222_DVBT.fpga";
-			printf("SDRModulator DVBT\n");
-			break;
-		default:
-			printf("UNKNOWN\n");
-			break;
-		}
+			fname = devid2fname(ddbid.device, &name);
+		if (name)
+			printf("Card: %s\n", name);
+		
 		fh = open(fname, O_RDONLY);
 		if (fh < 0 ) {
 			printf("File %s not found \n", fname);

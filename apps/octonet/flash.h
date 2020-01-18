@@ -62,4 +62,33 @@ struct ddb_i2c_msg {
 #define IOCTL_DDB_READ_I2C   _IOWR(DDB_MAGIC, 0x0a, struct ddb_i2c_msg)
 #define IOCTL_DDB_WRITE_I2C  _IOR(DDB_MAGIC, 0x0b, struct ddb_i2c_msg)
 
-#include "flash.c"
+enum {
+	UNKNOWN_FLASH = 0,
+	ATMEL_AT45DB642D = 1,
+	SSTI_SST25VF016B = 2,
+	SSTI_SST25VF032B = 3,
+	SSTI_SST25VF064C = 4,
+	SPANSION_S25FL116K = 5,
+	SPANSION_S25FL132K = 6,
+	SPANSION_S25FL164K = 7,
+	WINBOND_W25Q16JV = 8,
+};
+
+struct ddflash {
+	int fd;
+	uint32_t link;
+	char *fname;
+	
+	struct ddb_id id;
+	uint32_t version;
+
+	uint32_t flash_type;
+	uint32_t sector_size;
+	uint32_t size;
+
+	uint32_t bufsize;
+	uint32_t block_erase;
+
+	uint8_t *buffer;
+};
+

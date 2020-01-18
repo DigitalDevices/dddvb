@@ -10,8 +10,10 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
+#include <errno.h>
 
 #include "flash.h"
+#include "flash.c"
 
 typedef int (*COMMAND_FUNCTION)(int dev, int argc, char* argv[], uint32_t Flags);
 
@@ -108,12 +110,12 @@ int FlashChipEraseAtmel(int dev)
 		Cmd[1] = ( (( i ) >> 16) & 0xFF );
 		Cmd[2] = ( (( i ) >>  8) & 0xFF );
 		Cmd[3] = 0x00;
-		err = flashio(dev,Cmd,4,NULL,0);
+		err = flashio(dev,linknr, Cmd,4,NULL,0);
 		if( err < 0 ) 
 			break;
 		while (1) {
 			Cmd[0] = 0xD7;  // Read Status register
-			err = flashio(dev,Cmd,1,&Cmd[0],1);
+			err = flashio(dev,linknr, Cmd,1,&Cmd[0],1);
 			if( err < 0 ) break;
 			if( (Cmd[0] & 0x80) == 0x80 ) break;
 		}
@@ -131,25 +133,25 @@ int FlashChipEraseSSTI(int dev)
 	
 	do {
 		Cmd[0] = 0x50;  // EWSR
-		err = flashio(dev,Cmd,1,NULL,0);
+		err = flashio(dev, linknr, Cmd,1,NULL,0);
 		if( err < 0 ) break;
 		
 		Cmd[0] = 0x01;  // WRSR
 		Cmd[1] = 0x00;  // BPx = 0, Unlock all blocks
-		err = flashio(dev,Cmd,2,NULL,0);
+		err = flashio(dev, linknr, Cmd,2,NULL,0);
 		if( err < 0 ) break;
 		
 		Cmd[0] = 0x06;  // WREN
-		err = flashio(dev,Cmd,1,NULL,0);
+		err = flashio(dev, linknr, Cmd,1,NULL,0);
 		if( err < 0 ) break;
 		
 		Cmd[0] = 0x60;  // CHIP Erase
-		err = flashio(dev,Cmd,1,NULL,0);
+		err = flashio(dev, linknr, Cmd,1,NULL,0);
 		if( err < 0 ) break;
 		
 		while(1) {
 			Cmd[0] = 0x05;  // RDRS
-			err = flashio(dev,Cmd,1,&Cmd[0],1);
+			err = flashio(dev, linknr, Cmd,1,&Cmd[0],1);
 			if( err < 0 ) break;
 			if( (Cmd[0] & 0x01) == 0 ) break;
 		}
@@ -157,12 +159,12 @@ int FlashChipEraseSSTI(int dev)
 			break;
 		
 		Cmd[0] = 0x50;  // EWSR
-		err = flashio(dev,Cmd,1,NULL,0);
+		err = flashio(dev, linknr, Cmd,1,NULL,0);
 		if( err < 0 ) break;
 		
 		Cmd[0] = 0x01;  // WRSR
 		Cmd[1] = 0x1C;  // BPx = 0, Lock all blocks
-		err = flashio(dev,Cmd,2,NULL,0);
+		err = flashio(dev, linknr, Cmd,2,NULL,0);
 	}
 	while(0);
 	
@@ -332,7 +334,7 @@ int flashioc(int dev,int argc, char* argv[],uint32_t Flags)
         Buffer[i] = (uint8_t) tmp;
     }
 
-    if( flashio(dev,Buffer,WriteLen,Buffer,ReadLen) < 0 )
+    if( flashio(dev, linknr, Buffer,WriteLen,Buffer,ReadLen) < 0 )
     {
         return 0;
     }
@@ -1289,7 +1291,7 @@ static int read_sfpd(int dev, uint8_t adr, uint8_t *val)
 	uint8_t cmd[5] = { 0x5a, 0, 0, adr, 0 };     
 	int r;
 	
-	r = flashio(dev, cmd, 5, val, 1);
+	r = flashio(dev, linknr,  cmd, 5, val, 1);
 	if (r < 0)
 		return r;
 	return 0;
@@ -1301,7 +1303,7 @@ static int read_sst_id(int dev, uint8_t *id)
 	uint8_t buf[9];
 	int r;
 	
-	r = flashio(dev, cmd, 2, buf, 9);
+	r = flashio(dev, linknr,  cmd, 2, buf, 9);
 	if (r < 0)
 		return r;
 	memcpy(id, buf + 1, 8);
@@ -1313,7 +1315,7 @@ static int read_winbd(int dev, uint8_t *val)
 	uint8_t cmd[5] = { 0x4b, 0, 0, 0, 0 };     
 	int r;
 	
-	r = flashio(dev, cmd, 5, val, 8);
+	r = flashio(dev, linknr,  cmd, 5, val, 8);
 	if (r < 0)
 		return r;
 	return 0;
