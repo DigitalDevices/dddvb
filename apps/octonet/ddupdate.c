@@ -183,7 +183,7 @@ out:
 int main(int argc, char **argv)
 {
 	int ddbnum = 0, all = 0, i, force = 0;
-	char *fname;
+	char *fname = 0;
 	
         while (1) {
                 int option_index = 0;
