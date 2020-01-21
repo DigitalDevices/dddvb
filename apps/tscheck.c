@@ -37,7 +37,7 @@ void proc_ts(int i, uint8_t *buf)
         if( cc[pid] != 0 )
         {
           // TODO: 1 repetition allowed
-          if( ((cc[pid] + 1) & 0x0F) != (ccin & 0x0F) )  
+          if( ( cc[pid] & 0x10 ) != 0 && (((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
             cc_errors += 1;
         }
         cc[pid] = ccin;
