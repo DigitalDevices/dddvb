@@ -63,7 +63,7 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 		write(fd, Buffer, Len);
 		close(fd);
 	} else
-		Dump(Buffer,Start,Len);
+		dump(Buffer,Start,Len);
 	
 	free(Buffer);
 	return 0;
@@ -192,7 +192,7 @@ int ReadDeviceMemory(int dev,int argc, char* argv[],uint32_t Flags)
 		struct ddb_mem mem = {.off=Start, .len=Len, .buf=Buffer };
 		ioctl(dev, IOCTL_DDB_READ_MEM, &mem);
 	}
-	Dump(Buffer,Start,Len);
+	dump(Buffer,Start,Len);
 	free(Buffer);
 	return 0;
 }
@@ -340,7 +340,7 @@ int flashioc(int dev,int argc, char* argv[],uint32_t Flags)
     }
 
     if( ReadLen > 0 )
-	    Dump(Buffer,0,ReadLen);
+	    dump(Buffer,0,ReadLen);
 
     return 0;
 
@@ -1248,7 +1248,7 @@ int lic_import(int dev, int argc, char* argv[], uint32_t Flags)
 		return -1;
 	}
 	
-	Dump(Buffer,0,24);
+	dump(Buffer,0,24);
 	Flash = FlashDetect(dev);
 	
 	switch(Flash) {
@@ -1410,7 +1410,7 @@ int i2cread(int dev, int argc, char* argv[], uint32_t Flags)
 		}
 		if (!Silent) {
 			printf("OK\n");
-			Dump(&Buffer[0],0,ReadLen);
+			dump(&Buffer[0],0,ReadLen);
 		}
 	} while (Repeat);
 	free(Buffer);

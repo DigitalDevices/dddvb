@@ -82,6 +82,7 @@ struct ddflash {
 	struct ddb_id id;
 	uint32_t version;
 
+	char    *flash_name;
 	uint32_t flash_type;
 	uint32_t sector_size;
 	uint32_t size;

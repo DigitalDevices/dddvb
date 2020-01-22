@@ -43,7 +43,7 @@ void get_ddid(int ddb, struct ddb_id *ddbid) {
 	if (ioctl(ddb, IOCTL_DDB_ID, ddbid)>=0)
 		return;
 	memset(ddbid, 0, sizeof(*ddbid));
-	flashread(ddb, id, 0, 4);
+	flashread(ddb, linknr, id, 0, 4);
 	printf("%02x %02x %02x %02x\n", 
 	       id[0], id[1], id[2], id[3]);
 	ddbid->subvendor=(id[0] << 8) | id[1];
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 #endif
 
 	if (dump) {
-		flashdump(ddb, dump, 128);
+		flashdump(ddb, linknr, dump, 128);
 		return 0;
 	}
 

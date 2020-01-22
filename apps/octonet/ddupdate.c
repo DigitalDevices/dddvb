@@ -100,7 +100,11 @@ static int update_flash(struct ddflash *ddf)
 		if (!fname)
 			fname = devid2fname(ddf->id.device, &name);
 		if (name)
-			printf("Card: %s\n", name);
+			printf("Card:   %s\n", name);
+		if (ddf->flash_name)
+			printf("Flash:  %s\n", ddf->flash_name);
+		printf("Version:%08x\n", ddf->id.hw);
+		//printf("REGMAPa: %08x\n", ddf->id.regmap);
 		if ((res = update_image(ddf, fname, 0x10000, 0x100000, 1, 0)) == 1)
 			stat |= 1;
 		return stat;
@@ -108,12 +112,10 @@ static int update_flash(struct ddflash *ddf)
 	return stat;
 }
 
-static int ddupdate(struct ddflash *ddf)
+static int update_link(struct ddflash *ddf)
 {
 	int ret;
 	
-	if (verbose >= 2)
-		printf("Detect flash type\n");
 	ret = flash_detect(ddf);
 	if (ret < 0)
 		return ret;
@@ -125,7 +127,7 @@ static int ddupdate(struct ddflash *ddf)
 	return ret;
 }
 
-static int proc_card(int ddbnum, char *fname)
+static int update_card(int ddbnum, char *fname)
 {
 	struct ddflash ddf;
 	char ddbname[80];
@@ -133,8 +135,6 @@ static int proc_card(int ddbnum, char *fname)
 	int ddb, ret, link, links;
 	
 	sprintf(ddbname, "/dev/ddbridge/card%d", ddbnum);
-	if (verbose >= 2)
-		printf("Update card %s\n", ddbname);
 	ddb = open(ddbname, O_RDWR);
 	if (ddb < 0)
 		return -3;
@@ -158,19 +158,19 @@ static int proc_card(int ddbnum, char *fname)
 			case 0x300:
 			case 0x301:
 			case 0x307:
-				links = 1;
+				links = 2;
 				break;
 			
 			default:
 				break;
 			}
 		}
-
 		//printf("%08x %08x\n", ddf.id.device, ddf.id.subdevice);
 		if (ddf.id.device) {
-			ret = ddupdate(&ddf);
-			if (ret < 0)
-				break;
+			printf("\n\nUpdate card %s link %u:\n", ddbname, link);
+			ret = update_link(&ddf);
+			//if (ret < 0)
+			//	break;
 		}
 	}
 	
@@ -179,10 +179,19 @@ out:
 	return ret;
 }
 
+usage()
+{
+	printf("ddupdate [OPTION]\n\n"
+	       "-n N\n  only update card N (default with N=0)\n\n"
+	       "-a \n   update all cards\n\n"
+	       "-b file\n  fpga image file override (ignored if -a is used)\n\n"
+	       "-v \n   more verbose (up to -v -v -v)\n\n"
+		);
+}
 
 int main(int argc, char **argv)
 {
-	int ddbnum = 0, all = 0, i, force = 0;
+	int ddbnum = -1, all = 0, i, force = 0;
 	char *fname = 0;
 	
         while (1) {
@@ -212,12 +221,7 @@ int main(int argc, char **argv)
 			verbose++;
 			break;
 		case 'h':
-			printf("ddupdate [OPTION]\n\n"
-			       "-n N\n  only update card N (default with N=0)\n\n"
-			       "-a \n   update all cards\n\n"
-			       "-b file\n  fpga image file override (not if -a is used)\n\n"
-			       "-v \n   more verbose (up to -v -v -v)\n\n"
-				);
+			usage();
 			break;
 		default:
 			break;
@@ -227,12 +231,17 @@ int main(int argc, char **argv)
 	if (optind < argc) {
 		printf("Warning: unused arguments\n");
 	}
-
+	if (!all && (ddbnum < 0)) {
+		printf("Select card number or all cards\n\n");
+		usage();
+		return -1;
+	}
+		
 	if (!all)
-		return proc_card(ddbnum, fname);
+		return update_card(ddbnum, fname);
 
-	for (i = 0; i < 20; i++) {
-		int ret = proc_card(i, 0);
+	for (i = 0; i < 100; i++) {
+		int ret = update_card(i, 0);
 		
 		if (ret == -3)     /* could not open, no more cards! */
 			break; 
