@@ -206,6 +206,26 @@ int writereg(int dev, uint32_t RegAddress, uint32_t RegValue)
 }
 
 
+void Dump(const uint8_t *b, uint32_t start, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) { 
+		printf("%08x: ", start + j);
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				printf("%02x ", b[i]);
+			else
+				printf("   ");
+		printf(" |");
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
+		printf("|\n");
+	}
+}
+
+
 
 void dump(const uint8_t *b, int l)
 {

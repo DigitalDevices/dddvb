@@ -53,7 +53,7 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 	}
 	
 	Buffer = malloc(Len);
-	if (flashread(ddb, Buffer, Start, Len) < 0) {
+	if (flashread(ddb, linknr, Buffer, Start, Len) < 0) {
 		printf("flashread error\n");
 		free(Buffer);
 		return 0;
@@ -63,7 +63,7 @@ int ReadFlash(int ddb, int argc, char *argv[], uint32_t Flags)
 		write(fd, Buffer, Len);
 		close(fd);
 	} else
-		dump(Buffer,Start,Len);
+		Dump(Buffer,Start,Len);
 	
 	free(Buffer);
 	return 0;
@@ -83,7 +83,7 @@ int ReadSave(int ddb, int argc, char *argv[], uint32_t Flags)
 	Len   = strtoul(argv[1],NULL,16);
 		
 	Buffer = malloc(Len);
-	if (flashread(ddb, Buffer, Start, Len) < 0) {
+	if (flashread(ddb, linknr, Buffer, Start, Len) < 0) {
 		printf("flashread error\n");
 		free(Buffer);
 		return 0;
@@ -192,7 +192,7 @@ int ReadDeviceMemory(int dev,int argc, char* argv[],uint32_t Flags)
 		struct ddb_mem mem = {.off=Start, .len=Len, .buf=Buffer };
 		ioctl(dev, IOCTL_DDB_READ_MEM, &mem);
 	}
-	dump(Buffer,Start,Len);
+	Dump(Buffer,Start,Len);
 	free(Buffer);
 	return 0;
 }
@@ -340,7 +340,7 @@ int flashioc(int dev,int argc, char* argv[],uint32_t Flags)
     }
 
     if( ReadLen > 0 )
-	    dump(Buffer,0,ReadLen);
+	    Dump(Buffer,0,ReadLen);
 
     return 0;
 
@@ -535,7 +535,7 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
 					printf("out of memory\n");
 					return 0;
 				}
-				if (flashread(dev, CmpBuffer, FlashOffset, 0x10000)<0) {
+				if (flashread(dev, linknr, CmpBuffer, FlashOffset, 0x10000)<0) {
 					printf("Ioctl returns error\n");
 					free(Buffer);
 					free(CmpBuffer);
@@ -662,7 +662,7 @@ int FlashVerify(int dev,int argc, char* argv[],uint32_t Flags)
         // Place our own header
     }
 #endif
-    if (flashread(dev, Buffer2, FlashOffset, BufferSize)<0) {
+    if (flashread(dev, linknr, Buffer2, FlashOffset, BufferSize)<0) {
 	    printf("Ioctl returns error\n");
 	    free(Buffer);
 	    free(Buffer2);
@@ -1114,7 +1114,7 @@ char *GetSerNbr(int dev)
 	int i;
 	
 	memset(Buffer,0,sizeof(Buffer));
-	if (flashread(dev, Buffer, Start, sizeof(Buffer) - 1))
+	if (flashread(dev, linknr, Buffer, Start, sizeof(Buffer) - 1))
 	{
 		printf("Ioctl returns error\n");
 		return NULL;
@@ -1248,7 +1248,7 @@ int lic_import(int dev, int argc, char* argv[], uint32_t Flags)
 		return -1;
 	}
 	
-	dump(Buffer,0,24);
+	Dump(Buffer,0,24);
 	Flash = FlashDetect(dev);
 	
 	switch(Flash) {
@@ -1410,7 +1410,7 @@ int i2cread(int dev, int argc, char* argv[], uint32_t Flags)
 		}
 		if (!Silent) {
 			printf("OK\n");
-			dump(&Buffer[0],0,ReadLen);
+			Dump(&Buffer[0],0,ReadLen);
 		}
 	} while (Repeat);
 	free(Buffer);
