@@ -11,6 +11,81 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+char line_start[16] = "";
+char line_end[16]   = "\r";
+
+
+uint32_t cc_errors = 0;
+uint32_t packets = 0;
+uint32_t payload_packets = 0;
+uint32_t packet_errors = 0;
+
+uint8_t cc[8192] = { 0 };
+
+void proc_ts(int i, uint8_t *buf)
+{
+  uint16_t pid=0x1fff&((buf[1]<<8)|buf[2]);
+  uint8_t ccin = buf[3] & 0x1F;
+  
+  if( buf[0] == 0x47 && (buf[1] & 0x80) == 0)
+  {
+    if( pid != 8191 )
+    {
+      if( ccin != 0 )
+      {
+        if( cc[pid] != 0 )
+        {
+          // TODO: 1 repetition allowed
+          if( ( ccin & 0x10 ) != 0 && (((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
+            cc_errors += 1;
+        }
+        cc[pid] = ccin;
+      }
+      payload_packets += 1;
+    }
+  }
+  else
+    packet_errors += 1;
+  
+  if( (packets & 0x3FFF ) == 0)
+  {
+    printf("%s  Packets: %12u non null %12u, errors: %12u, CC errors: %12u%s", line_start, packets, payload_packets, packet_errors, cc_errors, line_end);
+    fflush(stdout);
+  }
+  
+  packets += 1;  
+}
+
+#define TSBUFSIZE (100*188)
+
+void tscheck(int ts)
+{
+        uint8_t *buf;
+        uint8_t id;
+        int i, nts;
+        int len;
+
+	buf=(uint8_t *)malloc(TSBUFSIZE);
+
+        
+        while(1) {
+                len=read(ts, buf, TSBUFSIZE);
+                if (len<0) {
+                        continue;
+                }
+                if (buf[0]!=0x47) {
+                        read(ts, buf, 1);
+                        continue;
+                }
+                if (len%188) { /* should not happen */
+                        printf("blah\n");
+                        continue;
+                }
+                nts=len/188;
+                for (i=0; i<nts; i++)
+                        proc_ts(i, buf+i*188);
+        }
+}
 		    
 static uint32_t root2gold(uint32_t root)
 {
@@ -39,6 +114,7 @@ int main(int argc, char **argv)
 	int fd = 0;
 	int odvr = 0;
 	FILE *fout = stdout;
+	int line = -1;
 	
 	while (1) {
 		int cur_optind = optind ? optind : 1;
@@ -59,20 +135,37 @@ int main(int argc, char **argv)
 			{"mtype", required_argument, 0, 'm'},
 			{"verbosity", required_argument, 0, 'v'},
 			{"open_dvr", no_argument, 0, 'o'},
+			{"tscheck", no_argument, 0, 't'},
+			{"tscheck_l", required_argument, 0, 'a'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"c:i:f:s:d:p:hg:r:n:b:l:v:m:o",
+				"c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:",
 				long_options, &option_index);
 		if (c==-1)
  			break;
 		
 		switch (c) {
 		case 'o':
-		    fout = stderr;
+		        fout = stderr;
+		        if (odvr) {
+			    fprintf(fout,"Can't pipe dvr device when checking continuity\n");
+			    break;
+			}
 		        fprintf(fout,"Reading from dvr\n");
 		        odvr = 1;
+			break;
+		case 'a':
+		        line = strtoul(optarg, NULL, 0);
+		case 't':
+		        fout = stderr;
+		        if (odvr) {
+			    fprintf(fout,"Can't check continuity when piping dvr device\n");
+			    break;
+			}
+		        fprintf(fout,"performing continuity check\n");
+		        odvr = 2;
 			break;
 		case 'c':
 		        config = strdup(optarg);
@@ -157,6 +250,8 @@ int main(int argc, char **argv)
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
 			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
 			       "      [-o (write dvr to stdout)]\n"
+			       "      [-l (tuner source for unicable)]\n"
+			       "      [-t [display line](continuity check)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
 			       "      polarity        = h/H,v/V\n"
@@ -226,7 +321,7 @@ int main(int argc, char **argv)
 			cnr = dddvb_get_cnr(fe);
 			
 			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat, str/1000, abs(str%1000), cnr/1000, abs(cnr%1000));
+			       stat, (long long int)str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
 		sleep(1);
 		}
 	} else {
@@ -245,7 +340,7 @@ int main(int argc, char **argv)
 			cnr = dddvb_get_cnr(fe);
 			
 			fprintf(stderr,"stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat, str/1000, abs(str%1000), cnr/1000, abs(cnr%1000));
+			       stat,(long long int) str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
 			sleep(1);
 		}
 		fprintf(stderr,"got lock on %s\n", fe->name);
@@ -253,11 +348,19 @@ int main(int argc, char **argv)
 			 "/dev/dvb/adapter%d/dvr%d",fe->anum, fe->fnum);
 		fprintf(stderr,"opening %s\n", filename);
 		if ((fd = open(filename ,O_RDONLY)) < 0){
-		        fprintf(stderr,"Error opening input file:%s\n",filename);
+		    fprintf(stderr,"Error opening input file:%s\n",filename);
 		}
-		while(1){
-		    read(fd,buf,BUFFSIZE);
-		    write(fileno(stdout),buf,BUFFSIZE);
+		if (odvr == 1){
+		    while(1){
+			read(fd,buf,BUFFSIZE);
+			write(fileno(stdout),buf,BUFFSIZE);
+		    }
+		} else {
+		    if( line >= 0 && line < 64 ){
+			snprintf(line_start,sizeof(line_start)-1,"\0337\033[%d;0H",line);
+			strncpy(line_end,"\0338",sizeof(line_end)-1);
+		    }
+		    tscheck(fd);
 		}
 	}
 }
