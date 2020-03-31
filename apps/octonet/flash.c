@@ -1140,9 +1140,10 @@ static uint32_t crctab[] = {
 	0xafb010b1,0xab710d06,0xa6322bdf,0xa2f33668,0xbcb4666d,0xb8757bda,0xb5365d03,0xb1f740b4,
 };
 
-static uint32_t crc32(uint8_t *buf, uint32_t len)
+static uint32_t crc32(uint8_t *buf, uint32_t len, uint32_t crc)
 {
-	uint32_t crc = 0xFFFFFFFF, j;
+	//uint32_t crc = 0xFFFFFFFF;
+	uint32_t j;
 	
 	for (j = 0; j < len; j++)
 		crc = ((crc << 8) ^ crctab[(crc >> 24) ^ buf[j]]);
@@ -1257,7 +1258,6 @@ static int update_image(struct ddflash *ddf, char *fn,
 	printf("File:   %s\n", fn);
 	if (has_header) {
 		int ck;
-		
 		ck = check_fw(ddf, fn, &fw_off);
 		if (ck < 0)
 			return ck;
