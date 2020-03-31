@@ -357,6 +357,29 @@ static int max_set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 
 static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 {
+	struct ddb_input *input = fe->sec_priv;
+	struct ddb_port *port = input->port;
+	struct ddb *dev = port->dev;
+	u32 tag = DDB_LINK_TAG(port->lnr);
+	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
+	u32 fmode = dev->link[port->lnr].lnb.fmode;
+
+	mutex_lock(&dev->link[port->lnr].lnb.lock);
+	switch (fmode) {
+	default:
+	case 0:
+	case 3:
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(dvb->input));
+		break;
+	case 1:
+	case 2:
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(0));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(1));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(2));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(3));
+		break;
+	}
+	mutex_unlock(&dev->link[port->lnr].lnb.lock);
 	return 0;
 }
 
