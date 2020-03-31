@@ -65,6 +65,8 @@ u32 ddbreadl(struct ddb *dev, u32 adr)
 		u32 val, l = (adr >> DDB_LINK_SHIFT) & 3;
 		struct ddb_link *link = &dev->link[l];
 
+		if (!link->regs)
+			return 0;
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddblwritel0(link, adr & 0xfffc, link->regs + 0x14);
@@ -84,6 +86,8 @@ void ddbwritel(struct ddb *dev, u32 val, u32 adr)
 		u32 l = (adr >> DDB_LINK_SHIFT);
 		struct ddb_link *link = &dev->link[l];
 
+		if (!link->regs)
+			return;
 		spin_lock_irqsave(&link->lock, flags);
 		gtlw(link);
 		ddblwritel0(link, 0xf0000 | (adr & 0xfffc), link->regs + 0x14);
