@@ -532,6 +532,14 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 	if (input->dma) {
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 		input->dma->running = 0;
+		if (input->dma->stall_count)
+			dev_warn(input->port->dev->dev,
+				 "DMA stalled %u times!\n",
+				 input->dma->stall_count);
+		if (input->dma->packet_loss)
+			dev_warn(input->port->dev->dev,
+				 "%u packets lost due to low DMA performance!\n",
+				 input->dma->packet_loss);
 	}
 }
 
@@ -554,6 +562,8 @@ static void ddb_input_start_unlocked(struct ddb_input *input)
 		input->dma->cbuf = 0;
 		input->dma->coff = 0;
 		input->dma->stat = 0;
+		input->dma->stall_count = 0;
+		input->dma->packet_loss = 0;
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(input->dma));
 	}
 	ddbwritel(dev, 0, TS_CONTROL(input));
@@ -2424,10 +2434,19 @@ static void input_tasklet(unsigned long data)
 	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
 	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 
-#if 0
-	if (4 & dma->ctrl)
-		dev_err(dev->dev, "Overflow dma %d\n", dma->nr);
+#if 1
+	{
+		u32 packet_loss = dma->packet_loss;
+		u32 cur_counter = TS_STAT(input) & 0xFFFF;
+		
+		if ( cur_counter < (packet_loss & 0xFFFF)  )
+			packet_loss += 0x10000;
+		packet_loss = ((packet_loss & 0xFFFF0000) | cur_counter);
+		dma->packet_loss = packet_loss;
+	}
 #endif
+	if (4 & dma->ctrl)
+		dma->stall_count++;
 	if (input->redi)
 		input_write_dvb(input, input->redi);
 	if (input->redo)
@@ -4175,9 +4194,6 @@ static struct device_attribute ddb_attrs_fanspeed[] = {
 static struct class ddb_class = {
 	.name		= "ddbridge",
 	.owner          = THIS_MODULE,
-#if 0
-	.dev_attrs	= ddb_attrs,
-#endif
 	.devnode        = ddb_devnode,
 };
 

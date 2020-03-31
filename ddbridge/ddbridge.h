@@ -214,6 +214,9 @@ struct ddb_dma {
 	u32                    ctrl;
 	u32                    cbuf;
 	u32                    coff;
+
+	u32                    stall_count;
+	u32                    packet_loss;
 };
 
 struct ddb_dvb {
