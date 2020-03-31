@@ -17,6 +17,20 @@
 
 static int verbose = 0;
 
+static int yesno()
+{
+	char c;
+
+	printf("\n\nNew firmware available\nReally flash now? y/n\n");
+	fflush(0);
+	c = getchar();
+	if (c!='y') {
+		printf("\nFlashing aborted.\n\n");
+		return 0;
+	}
+	printf("\nStarting to flash\n\n");
+	return 1;
+}
 
 static int update_flash(struct ddflash *ddf)
 {
@@ -179,7 +193,7 @@ out:
 	return ret;
 }
 
-usage()
+static int usage()
 {
 	printf("ddupdate [OPTION]\n\n"
 	       "-n N\n  only update card N (default with N=0)\n\n"
