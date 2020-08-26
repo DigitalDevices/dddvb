@@ -231,6 +231,7 @@ static int set_en50607(struct dddvb_fe *fe, uint32_t freq, uint32_t sr,
 	uint32_t input = 3 & (sat >> 6);
 	int fd = fe->fd;
 	
+	//printf("input = %u, sat = %u\n", input, sat&0x3f);
 	hor &= 1;
 	cmd.msg[1] = slot << 3;
 	cmd.msg[1] |= ((t >> 8) & 0x07);
@@ -317,9 +318,13 @@ static int tune_sat(struct dddvb_fe *fe)
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->dd->uni_lock);
 	} else {
+		uint32_t input = lnb;
+
+		if (input != DDDVB_UNDEF)
+			input = 3 & (input >> 6);
 		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
 	}
 }
 
