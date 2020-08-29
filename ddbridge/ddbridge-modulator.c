@@ -435,7 +435,7 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 
 			if (j == 4)
 				val &= 0xFFFFFEDF;
-			status = mod_write_max2871(dev, reg[j]);
+			status = mod_write_max2871(dev, val);
 			if (status)
 				break;
 			msleep(30);
@@ -1875,7 +1875,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, RFDAC_CMD_RESET, RFDAC_CONTROL);
 	for (i = 0; i < 10; i++) {
 		msleep(20);
@@ -1885,7 +1885,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, RFDAC_CMD_SETUP, RFDAC_CONTROL);
 	for (i = 0; i < 10; i++) {
 		msleep(20);
@@ -1895,7 +1895,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, 0x01, JESD204B_BASE);
 	for (i = 0; i < 400; i++) {
 		msleep(20);
@@ -1903,7 +1903,7 @@ static int rfdac_init(struct ddb *dev)
 		if ((tmp & 0xc0000000) == 0xc0000000)
 			break;
 	}
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	if ((tmp & 0xc0000000) != 0xc0000000)
 		return -1;
 	return 0;
