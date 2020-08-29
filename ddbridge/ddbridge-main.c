@@ -360,17 +360,17 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (dev->link[0].info->type == DDB_MOD
 	    && dev->link[0].info->version == 2) {
 		u32 lic = ddbreadl(dev, 0x1c) & 7;
-		
+
 		switch (lic) {
-		case 0: 
+		case 0:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0000);
 			break;
-		case 1: 
+		case 1:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0003);
 			break;
-		case 3: 
+		case 3:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0002);
 			break;
@@ -458,11 +458,9 @@ static pci_ers_result_t ddb_pci_error_detected(struct pci_dev *pdev,
 {
 	switch (state) {
 	case pci_channel_io_frozen:
-		
 		return PCI_ERS_RESULT_CAN_RECOVER;
 	case pci_channel_io_perm_failure:
 		return PCI_ERS_RESULT_DISCONNECT;
-		break;
 	case pci_channel_io_normal:
 	default:
 		break;

@@ -801,7 +801,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
 
-        /* Modulators */
+	/* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),
 	DDB_DEVID(0x0201, 0x0002, ddb_mod),
 	DDB_DEVID(0x0201, 0x0004, ddb_mod_4),  /* dummy entry ! */
@@ -827,10 +827,10 @@ const struct ddb_info *get_ddb_info(u16 vendor, u16 device,
 				    u16 subvendor, u16 subdevice)
 {
 	int i;
-	
+
 	for (i = 0; i < ARRAY_SIZE(ddb_device_ids); i++) {
 		const struct ddb_device_id *id = &ddb_device_ids[i];
-		
+
 		if (vendor == id->vendor &&
 		    device == id->device &&
 		    subvendor == id->subvendor &&

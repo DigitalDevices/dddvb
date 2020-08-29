@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * ddbridge-io.h: Digital Devices bridge I/O functions
  *
@@ -64,7 +65,7 @@ static inline u32 ddblreadl0(struct ddb_link *link, u32 adr)
 	return readl(link->dev->regs + adr);
 }
 
-#if 0
+#ifdef DEBUG_GTLW
 static inline void gtlw(struct ddb_link *link)
 {
 	u32 count = 0;

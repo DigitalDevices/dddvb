@@ -38,7 +38,7 @@
 #include <asm/uaccess.h>
 #include <linux/dvb/ns.h>
 
-#include "dvbdev.h"
+#include <media/dvbdev.h>
 
 #define DVBNS_MAXPIDS 32
 

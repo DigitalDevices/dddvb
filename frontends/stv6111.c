@@ -31,7 +31,7 @@
 #include <linux/version.h>
 #include <asm/div64.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 
 static inline u32 MulDiv32(u32 a, u32 b, u32 c)
 {
@@ -706,9 +706,9 @@ static int get_bandwidth(struct dvb_frontend *fe, u32 *bandwidth)
 static struct dvb_tuner_ops tuner_ops = {
 	.info = {
 		.name = "STV6111",
-		.frequency_min  =  950000,
-		.frequency_max  = 2150000,
-		.frequency_step =       0
+		.frequency_min_hz  =  950000000,
+		.frequency_max_hz  = 2150000000,
+		.frequency_step_hz =       0
 	},
 	.init              = init,
 	.sleep             = sleep,

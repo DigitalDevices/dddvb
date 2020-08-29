@@ -24,7 +24,7 @@
 #include "ddbridge.h"
 #include "ddbridge-i2c.h"
 #include "ddbridge-io.h"
-#include "dvb_net.h"
+#include <media/dvb_net.h>
 
 struct workqueue_struct *ddb_wq;
 
@@ -103,6 +103,7 @@ struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 	irq->data = data;
 	return irq;
 }
+EXPORT_SYMBOL(ddb_irq_set);
 
 static void ddb_set_dma_table(struct ddb_io *io)
 {
@@ -486,9 +487,8 @@ static void ddb_output_start_unlocked(struct ddb_output *output)
 	}
 	if (output->port->class != DDB_PORT_MOD)
 		ddbwritel(dev, con | 1, TS_CONTROL(output));
-	if (output->dma) {
+	if (output->dma)
 		output->dma->running = 1;
-	}
 }
 
 static void ddb_output_start(struct ddb_output *output)
@@ -669,7 +669,7 @@ static u32 ddb_output_free(struct ddb_output *output)
 
 	if (output->dma->cbuf != idx) {
 		if ((((output->dma->cbuf + 1) % output->dma->num) == idx) &&
-		    (output->dma->size - output->dma->coff <= 2*188))
+		    (output->dma->size - output->dma->coff <= 2 * 188))
 			return 0;
 		return 188;
 	}
@@ -678,25 +678,6 @@ static u32 ddb_output_free(struct ddb_output *output)
 		return 188;
 	return 0;
 }
-
-#if 0
-static u32 ddb_dma_free(struct ddb_dma *dma)
-{
-	u32 idx, off, stat = dma->stat;
-	s32 p1, p2, diff;
-
-	idx = (stat >> 11) & 0x1f;
-	off = (stat & 0x7ff) << 7;
-
-	p1 = idx * dma->size + off;
-	p2 = dma->cbuf * dma->size + dma->coff;
-
-	diff = p1 - p2;
-	if (diff <= 0)
-		diff += dma->num * dma->size;
-	return diff;
-}
-#endif
 
 static ssize_t ddb_output_write(struct ddb_output *output,
 				const __user u8 *buf, size_t count)
@@ -752,79 +733,6 @@ static ssize_t ddb_output_write(struct ddb_output *output,
 	}
 	return count - left;
 }
-
-#if 0
-static u32 ddb_input_free_bytes(struct ddb_input *input)
-{
-	struct ddb *dev = input->port->dev;
-	u32 idx, off, stat = input->dma->stat;
-	u32 ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(input->dma));
-
-	idx = (stat >> 11) & 0x1f;
-	off = (stat & 0x7ff) << 7;
-
-	if (ctrl & 4)
-		return 0;
-	if (input->dma->cbuf != idx)
-		return 1;
-	return 0;
-}
-
-static s32 ddb_output_used_bufs(struct ddb_output *output)
-{
-	u32 idx, off, stat, ctrl;
-	s32 diff;
-
-	spin_lock_irq(&output->dma->lock);
-	stat = output->dma->stat;
-	ctrl = output->dma->ctrl;
-	spin_unlock_irq(&output->dma->lock);
-
-	idx = (stat >> 11) & 0x1f;
-	off = (stat & 0x7ff) << 7;
-
-	if (ctrl & 4)
-		return 0;
-	diff = output->dma->cbuf - idx;
-	if (diff == 0 && off < output->dma->coff)
-		return 0;
-	if (diff <= 0)
-		diff += output->dma->num;
-	return diff;
-}
-
-static s32 ddb_input_free_bufs(struct ddb_input *input)
-{
-	u32 idx, off, stat, ctrl;
-	s32 free;
-
-	spin_lock_irq(&input->dma->lock);
-	ctrl = input->dma->ctrl;
-	stat = input->dma->stat;
-	spin_unlock_irq(&input->dma->lock);
-	if (ctrl & 4)
-		return 0;
-	idx = (stat >> 11) & 0x1f;
-	off = (stat & 0x7ff) << 7;
-	free = input->dma->cbuf - idx;
-	if (free == 0 && off < input->dma->coff)
-		return 0;
-	if (free <= 0)
-		free += input->dma->num;
-	return free - 1;
-}
-
-static u32 ddb_output_ok(struct ddb_output *output)
-{
-	struct ddb_input *input = output->port->input[0];
-	s32 diff;
-
-	diff = ddb_input_free_bufs(input) - ddb_output_used_bufs(output);
-	if (diff > 0)
-		return 1;
-	return 0;
-}
-#endif
 
 static u32 ddb_input_avail(struct ddb_input *input)
 {
@@ -1125,20 +1033,20 @@ static struct dvb_frontend_ops dummy_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2 },
 	.info = {
 		.name = "DUMMY DVB-C/C2 DVB-T/T2",
-		.frequency_stepsize = 166667,	/* DVB-T only */
-		.frequency_min = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_stepsize_hz = 166667,	/* DVB-T only */
+		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
-		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
-		        FE_CAN_QAM_AUTO | 
-			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
-			FE_CAN_FEC_4_5 |
-			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
-			FE_CAN_TRANSMISSION_MODE_AUTO |
-			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+		FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		FE_CAN_QAM_AUTO |
+		FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+		FE_CAN_FEC_4_5 |
+		FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+		FE_CAN_TRANSMISSION_MODE_AUTO |
+		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
 	},
 	.release = dummy_release,
 	.read_status = dummy_read_status,
@@ -1484,29 +1392,6 @@ static int tuner_attach_stv6111(struct ddb_input *input, int type)
 	return 0;
 }
 
-#if 0
-static int start_input(struct ddb_input *input)
-{
-	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-
-	if (!dvb->users)
-		ddb_input_start_all(input);
-
-	return ++dvb->users;
-}
-
-static int stop_input(struct ddb_input *input)
-{
-	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
-
-	if (--dvb->users)
-		return dvb->users;
-
-	ddb_input_stop_all(input);
-	return 0;
-}
-#endif
-
 static int start_feed(struct dvb_demux_feed *dvbdmxfeed)
 {
 	struct dvb_demux *dvbdmx = dvbdmxfeed->demux;
@@ -1603,7 +1488,7 @@ static int dvb_register_adapters(struct ddb *dev)
 
 	if (adapter_alloc >= 3 || dev->link[0].info->type == DDB_MOD ||
 	    dev->link[0].info->type == DDB_OCTONET ||
-	    dev->link[0].info->type == DDB_OCTOPRO ) {
+	    dev->link[0].info->type == DDB_OCTOPRO) {
 		port = &dev->port[0];
 		adap = port->dvb[0].adap;
 		ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
@@ -2118,16 +2003,6 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->class = DDB_PORT_MOD;
 		return;
 	}
-#if 0
-	if (link->info->type == DDB_OCTOPRO_HDIN) {
-		if (port->nr == 0) {
-			dev->link[l].info->type = DDB_OCTOPUS;
-			port->name = "HDIN";
-			port->class = DDB_PORT_LOOP;
-		}
-		return;
-	}
-#endif
 	if (link->info->type == DDB_OCTOPUS_MAX) {
 		port->name = "DUAL DVB-S2 MAX";
 		port->type_name = "MXL5XX";
@@ -2286,7 +2161,7 @@ static int ddb_port_attach(struct ddb_port *port)
 		if (ret < 0)
 			break;
 		/* fallthrough */
-	case DDB_PORT_LOOP: 
+	case DDB_PORT_LOOP:
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
 					  &dvbdev_ci, (void *)port->output,
@@ -2447,17 +2322,15 @@ static void input_tasklet(unsigned long data)
 	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
 	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 
-#if 1
 	{
 		u32 packet_loss = dma->packet_loss;
-		u32 cur_counter = TS_STAT(input) & 0xFFFF;
-		
-		if ( cur_counter < (packet_loss & 0xFFFF)  )
+		u32 cur_counter = ddbreadl(dev, TS_STAT(input)) & 0xffff;
+
+		if (cur_counter < (packet_loss & 0xffff))
 			packet_loss += 0x10000;
-		packet_loss = ((packet_loss & 0xFFFF0000) | cur_counter);
+		packet_loss = ((packet_loss & 0xffff0000) | cur_counter);
 		dma->packet_loss = packet_loss;
 	}
-#endif
 	if (4 & dma->ctrl)
 		dma->stall_count++;
 	if (input->redi)
@@ -2468,7 +2341,7 @@ static void input_tasklet(unsigned long data)
 	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
-#if 0
+#ifdef OPTIMIZE_TASKLETS
 static void input_handler(unsigned long data)
 {
 	struct ddb_input *input = (struct ddb_input *)data;
@@ -2530,7 +2403,7 @@ unlock_exit:
 	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
-#if 0
+#ifdef OPTIMIZE_TASKLETS
 static void output_handler(void *data)
 {
 	struct ddb_output *output = (struct ddb_output *)data;
@@ -2620,10 +2493,6 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 		dma->div = 1;
 	}
 	ddbwritel(io->port->dev, 0, DMA_BUFFER_ACK(dma));
-#if 0
-	dev_info(io->port->dev->dev, "init link %u, io %u, dma %u, dmaregs %08x bufregs %08x\n",
-		 io->port->lnr, io->nr, nr, dma->regs, dma->bufregs);
-#endif
 }
 
 static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
@@ -2648,10 +2517,6 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 		if (port->lnr)
 			dma_nr += 32 + (port->lnr - 1) * 8;
 
-#if 0
-		dev_info(dev->dev, "init link %u, input %u, handler %u\n",
-			 port->lnr, nr, dma_nr + base);
-#endif
 		ddb_irq_set(dev, 0, dma_nr + base, &input_handler, input);
 		ddb_dma_init(input, dma_nr, 0, dma_nr + base);
 	}
@@ -2669,10 +2534,6 @@ static void ddb_output_init(struct ddb_port *port, int nr)
 	rm = io_regmap(output, 1);
 	output->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->output->base + rm->output->size * nr);
-#if 0
-	dev_info(dev->dev, "init link %u, output %u, regs %08x\n",
-		 port->lnr, nr, output->regs);
-#endif
 	if (dev->has_dma) {
 		const struct ddb_regmap *rm0 = io_regmap(output, 0);
 		u32 base = rm0->irq_base_odma;
@@ -3683,7 +3544,7 @@ static ssize_t temp_show(struct device *device,
 		l = attr->attr.name[5] - 0x30;
 	link = &dev->link[l];
 
-	if (link->info->type == DDB_MOD ) {
+	if (link->info->type == DDB_MOD) {
 		if (link->info->version >= 2) {
 			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
 			temp = (temp * 1000) >> 8;
@@ -3754,25 +3615,6 @@ static ssize_t ctemp_show(struct device *device,
 	temp = tmp[0] * 1000;
 	return sprintf(buf, "%d\n", temp);
 }
-
-#if 0
-static ssize_t qam_show(struct device *device,
-			struct device_attribute *attr, char *buf)
-{
-	struct ddb *dev = dev_get_drvdata(device);
-	struct i2c_adapter *adap;
-	u8 tmp[4];
-	s16 i, q;
-
-	adap = &dev->i2c[1].adap;
-	if (i2c_read_regs16(adap, 0x1f, 0xf480, tmp, 4) < 0)
-		return sprintf(buf, "read_error\n");
-	i = (s16)(((u16)tmp[1]) << 14) | (((u16)tmp[0]) << 6);
-	q = (s16)(((u16)tmp[3]) << 14) | (((u16)tmp[2]) << 6);
-
-	return sprintf(buf, "%d %d\n", i, q);
-}
-#endif
 
 static ssize_t mod_show(struct device *device,
 			struct device_attribute *attr, char *buf)
@@ -3954,32 +3796,6 @@ static ssize_t redirect_store(struct device *device,
 	return count;
 }
 
-#if 0
-/* A L P I  AAAAAALLPPPPPPII */
-/* AAAAAAAA LLLLLLLL PPPPPPII */
-static ssize_t redirect2_show(struct device *device,
-			      struct device_attribute *attr, char *buf)
-{
-	return 0;
-}
-
-static ssize_t redirect2_store(struct device *device,
-			       struct device_attribute *attr,
-			       const char *buf, size_t count)
-{
-	unsigned int i, p;
-	int res;
-
-	if (sscanf(buf, "%x %x\n", &i, &p) != 2)
-		return -EINVAL;
-	res = ddb_redirect(i, p);
-	if (res < 0)
-		return res;
-	dev_info(device, "redirect: %02x, %02x\n", i, p);
-	return count;
-}
-#endif
-
 static ssize_t gap_show(struct device *device,
 			struct device_attribute *attr, char *buf)
 {
@@ -4137,9 +3953,6 @@ static struct device_attribute ddb_attrs[] = {
 	__ATTR_MRO(devid3, devid_show),
 	__ATTR_RO(hwid),
 	__ATTR_RO(regmap),
-#if 0
-	__ATTR_RO(qam),
-#endif
 	__ATTR(redirect, 0664, redirect_show, redirect_store),
 	__ATTR_MRO(snr,  bsnr_show),
 	__ATTR_RO(bpsnr),
@@ -4239,7 +4052,6 @@ static void ddb_device_attrs_del(struct ddb *dev)
 		if (dev->link[i].info &&
 		    dev->link[i].info->temp_num)
 			device_remove_file(dev->ddb_dev, &ddb_attrs_temp[i]);
-	for (i = 0; i < dev->link[0].info->temp_num; i++)
 	for (i = 0; i < dev->link[0].info->port_num; i++)
 		device_remove_file(dev->ddb_dev, &ddb_attrs_mod[i]);
 	for (i = 0; i < dev->link[0].info->fan_num; i++)
@@ -4377,7 +4189,9 @@ static void link_tasklet(unsigned long data)
 static void gtl_irq_handler(void *priv)
 {
 	struct ddb_link *link = (struct ddb_link *)priv;
-#if 1
+#ifdef USE_LINK_TASKLET
+	tasklet_schedule(&link->tasklet);
+#else
 	struct ddb *dev = link->dev;
 	u32 s, l = link->nr, tag = DDB_LINK_TAG(link->nr);
 
@@ -4389,8 +4203,6 @@ static void gtl_irq_handler(void *priv)
 		LINK_IRQ_HANDLE(l, 3);
 		LINK_IRQ_HANDLE(l, 24);
 	}
-#else
-	tasklet_schedule(&link->tasklet);
 #endif
 }
 
@@ -4434,7 +4246,7 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 				  subid & 0xffff, subid >> 16);
 	if (link->info->type != DDB_OCTOPUS_MAX_CT &&
 	    link->info->type != DDB_OCTOPUS_MAX  &&
-	    link->info->type != DDB_OCTOPUS_MCI ) {
+	    link->info->type != DDB_OCTOPUS_MCI) {
 		dev_info(dev->dev,
 			 "Detected GT link but found invalid ID %08x. You might have to update (flash) the add-on card first.",
 			 id);

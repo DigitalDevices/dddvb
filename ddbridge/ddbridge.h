@@ -60,22 +60,20 @@
 #include <linux/mutex.h>
 #include <asm/dma.h>
 #include <asm/irq.h>
-#include <linux/io.h>
 #include <linux/uaccess.h>
 
 #include <linux/dvb/ca.h>
 #include <linux/socket.h>
 #include <linux/device.h>
-#include <linux/io.h>
 
 #include "dvb_netstream.h"
-#include "dmxdev.h"
-#include "dvbdev.h"
-#include "dvb_demux.h"
-#include "dvb_frontend.h"
-#include "dvb_ringbuffer.h"
-#include "dvb_ca_en50221.h"
-#include "dvb_net.h"
+#include <media/dmxdev.h>
+#include <media/dvbdev.h>
+#include <media/dvb_demux.h>
+#include <media/dvb_frontend.h>
+#include <media/dvb_ringbuffer.h>
+#include <media/dvb_ca_en50221.h>
+#include <media/dvb_net.h>
 
 #include "tda18271c2dd.h"
 #include "stv6110x.h"
@@ -238,7 +236,7 @@ struct ddb_dvb {
 	enum fe_sec_tone_mode  tone;
 	enum fe_sec_voltage    voltage;
 
-	int (*i2c_gate_ctrl)(struct dvb_frontend *, int);
+	int (*i2c_gate_ctrl)(struct dvb_frontend *fe, int val);
 	int (*set_voltage)(struct dvb_frontend *fe,
 			   enum fe_sec_voltage voltage);
 	int (*set_input)(struct dvb_frontend *fe, int input);
@@ -408,7 +406,7 @@ struct ddb_lnb {
 };
 
 struct ddb_irq {
-	void                   (*handler)(void *);
+	void                   (*handler)(void *data);
 	void                   *data;
 };
 
@@ -542,7 +540,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
 int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
-void ddbridge_mod_rate_handler(void *);
+void ddbridge_mod_rate_handler(void *data);
 
 void ddb_device_destroy(struct ddb *dev);
 void ddb_nsd_detach(struct ddb *dev);

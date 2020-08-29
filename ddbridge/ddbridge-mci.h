@@ -644,14 +644,13 @@ struct mci_result {
 			u8  min_input_stream_id;
 			u8  max_input_stream_id;
 		} BBHeader;
-		
+
 		struct {
 			u8  Mode;          // FFT Mode   1,2,3
-			u8  GuardInterval; // 1/32, 1/16, 1/8, /14   
-			
-			u8  TMCCInfo[13];      // TMCC B20 - B121,  byte 0 bit 7: B20,  byte 12 bit 2: B121 
+			u8  GuardInterval; // 1/32, 1/16, 1/8, /14
+			u8  TMCCInfo[13];  // TMCC B20 - B121,  byte 0 bit 7: B20,  byte 12 bit 2: B121
 		} ISDBT_TMCCInfo;
-		
+
 		struct {
 			u8   Change;  // 5 bits, increments with every change
 			struct {
@@ -710,7 +709,7 @@ struct mci_result {
 
 /* DVB-T2 L1-Post Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.3 ) */
 
-#define L1POST_SUB_SLICES_PER_FRAME(p)     (((u16)(p)[ 0] & 0x7F) | (p)[ 1])
+#define L1POST_SUB_SLICES_PER_FRAME(p)     (((u16)(p)[0] & 0x7F) | (p)[1])
 #define L1POST_NUM_PLP(p)                  ((p)[2] & 0xFF)
 #define L1POST_NUM_AUX(p)                  ((p)[3] & 0x0F)
 #define L1POST_AUX_CONFIG_RFU(p)           ((p)[4] & 0xFF)
@@ -750,8 +749,6 @@ struct mci_base {
 	void                *key;
 	struct ddb_link     *link;
 	struct completion    completion;
-	struct i2c_adapter  *i2c;
-	struct mutex         i2c_lock;
 	struct mutex         tuner_lock;
 	struct mutex         mci_lock;
 	int                  count;
@@ -787,5 +784,8 @@ int ddb_mci_get_snr(struct dvb_frontend *fe);
 int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
 void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
+
+extern struct mci_cfg ddb_max_sx8_cfg;
+extern struct mci_cfg ddb_max_m4_cfg;
 
 #endif

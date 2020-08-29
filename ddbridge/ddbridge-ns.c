@@ -441,11 +441,11 @@ static int ns_start(struct dvbnss *nss)
 		reg |= 0x40;
 	if (nss->params.flags & DVB_NS_IPV6)
 		reg |= 0x80;
+	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
+		  STREAM_CONTROL(dns->nr));
 	if (dns->fe != input)
 		ddb_dvb_ns_input_start(dns->fe);
 	ddb_dvb_ns_input_start(input);
-	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
-		  STREAM_CONTROL(dns->nr));
 	return 0;
 }
 
