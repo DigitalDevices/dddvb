@@ -27,33 +27,28 @@ void proc_ts(int i, uint8_t *buf)
   uint16_t pid=0x1fff&((buf[1]<<8)|buf[2]);
   uint8_t ccin = buf[3] & 0x1F;
   
-  if( buf[0] == 0x47 && (buf[1] & 0x80) == 0)
-  {
-    if( pid != 8191 )
-    {
-      if( ccin != 0 )
-      {
-        if( cc[pid] != 0 )
-        {
-          // TODO: 1 repetition allowed
-          if( ( ccin & 0x10 ) != 0 && (((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
-            cc_errors += 1;
-        }
-        cc[pid] = ccin;
-      }
-      payload_packets += 1;
-    }
-  }
-  else
-    packet_errors += 1;
-  
-  if( (packets & 0x3FFF ) == 0)
-  {
-    printf("%s  Packets: %12u non null %12u, errors: %12u, CC errors: %12u%s", line_start, packets, payload_packets, packet_errors, cc_errors, line_end);
-    fflush(stdout);
-  }
-  
-  packets += 1;  
+	if (buf[0] == 0x47 && (buf[1] & 0x80) == 0) {
+		if( pid != 8191 ) {
+			if (ccin & 0x10) {
+				if ( cc[pid]) {
+					// TODO: 1 repetition allowed
+					if( ( ccin & 0x10 ) != 0 && (((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
+						cc_errors += 1;
+				}
+				cc[pid] = ccin;
+			}
+			payload_packets += 1;
+		}
+	} else
+		packet_errors += 1;
+	
+	if( (packets & 0x3FFF ) == 0)
+	{
+		printf("%s  Packets: %12u non null %12u, errors: %12u, CC errors: %12u%s", line_start, packets, payload_packets, packet_errors, cc_errors, line_end);
+		fflush(stdout);
+	}
+	
+	packets += 1;  
 }
 
 #define TSBUFSIZE (100*188)
@@ -108,6 +103,7 @@ int main(int argc, char **argv)
 	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
 	uint32_t mtype= DDDVB_UNDEF;
 	uint32_t verbosity = 0;
+	uint32_t get_ts = 1;
 	enum fe_code_rate fec = FEC_AUTO;
 	enum fe_delivery_system delsys = ~0;
 	char *config = "config/";
@@ -137,11 +133,12 @@ int main(int argc, char **argv)
 			{"open_dvr", no_argument, 0, 'o'},
 			{"tscheck", no_argument, 0, 't'},
 			{"tscheck_l", required_argument, 0, 'a'},
+			{"nodvr", no_argument , 0, 'q'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:",
+				"c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:q",
 				long_options, &option_index);
 		if (c==-1)
  			break;
@@ -245,6 +242,9 @@ int main(int argc, char **argv)
 			if (!strcmp(optarg, "v") || !strcmp(optarg, "V"))
 				pol = 0;
 			break;
+		case 'q':
+			get_ts = 0;
+			break;
 		case 'h':
 		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
@@ -283,6 +283,7 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 	fprintf(fout,"dvbnum = %u\n", dd->dvbfe_num);
+	dddvb_get_ts(dd, get_ts);
 
 	if (num != DDDVB_UNDEF)
 		fe = dddvb_fe_alloc_num(dd, delsys, num);
@@ -303,6 +304,7 @@ int main(int argc, char **argv)
 	dddvb_set_id(&p, id);
 	dddvb_set_ssi(&p, ssi);
 	dddvb_dvb_tune(fe, &p);
+
 #if 0
 	{
 		uint8_t ts[188];

@@ -89,6 +89,7 @@ LIBDDDVB_EXPORTED struct dddvb *dddvb_init(char *config, uint32_t flags)
 	
 	dddvb_dvb_init(dd);
 	global_dd = dd;
+	dd->get_ts = 1;
 fail:
 	pthread_mutex_unlock(&dddvb_mutex);
 	return dd;

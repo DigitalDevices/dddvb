@@ -531,7 +531,7 @@ static int tune(struct dddvb_fe *fe)
 	return ret;
 }
 
-static int open_dmx(struct dddvb_fe *fe)
+int open_dmx(struct dddvb_fe *fe)
 {
 	char fname[80];
 	struct dmx_pes_filter_params pesFilterParams; 
@@ -623,10 +623,9 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 	uint32_t newtune, count = 0, max, nolock = 0;
 	int ret;
 
-	printf("fe_handle\n");
 	
-	open_dmx(fe);
-	printf("fe_handle 2\n");
+	if (fe->dd->get_ts)
+		open_dmx(fe);
 	while (fe->state == 1) {
 		pthread_mutex_lock(&fe->mutex);
 		newtune = fe->n_tune;
