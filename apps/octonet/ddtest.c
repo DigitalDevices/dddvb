@@ -386,8 +386,8 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
 	int BufferSize = 0;
 	int BlockErase = 0;
 	uint32_t FlashOffset = 0x10000;
-	int SectorSize = 0;
-	int FlashSize = 0;
+	uint32_t SectorSize = 0;
+	uint32_t FlashSize = 0;
 	int ValidateFPGAType = 1;
 	int Flash;
 	uint32_t Id1, Id2;
