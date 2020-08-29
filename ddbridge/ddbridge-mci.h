@@ -759,6 +759,7 @@ struct mci_base {
 };
 
 struct mci {
+	struct ddb_io       *input;
 	struct mci_base     *base;
 	struct dvb_frontend  fe;
 	int                  nr;

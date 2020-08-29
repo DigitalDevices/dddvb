@@ -388,6 +388,7 @@ struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg
 	state->nr = nr;
 	state->demod = nr;
 	state->tuner = tuner;
+	state->input = input;
 	if (cfg->init)
 		cfg->init(state);
 	return &state->fe;

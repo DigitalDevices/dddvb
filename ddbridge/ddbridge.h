@@ -256,6 +256,7 @@ struct ddb_io {
 	struct ddb_port       *port;
 	u32                    nr;
 	u32                    regs;
+	u32                    con;
 	struct ddb_dma        *dma;
 	struct ddb_io         *redo;
 	struct ddb_io         *redi;

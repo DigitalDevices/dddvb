@@ -354,7 +354,8 @@ unlock:
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
-	if (p->stream_id == 0x80000000)
+	if ((p->stream_id != NO_STREAM_ID_FILTER)  &&
+	    (p->stream_id & 0x80000000))
 		cmd.output |= 0x80;
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
 	if (stat)
@@ -426,13 +427,15 @@ static int set_parameters(struct dvb_frontend *fe)
 	int stat = 0;
 	struct sx8 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
-	u32 ts_config = SX8_TSCONFIG_MODE_NORMAL, iq_mode = 0, isi;
+	u32 ts_config = SX8_TSCONFIG_MODE_NORMAL, iq_mode = 0, isi, ts_mode = 0;
 
-	
 	isi = p->stream_id;
 	if (isi != NO_STREAM_ID_FILTER) {
 		iq_mode = (isi & 0x30000000) >> 28;
+		ts_mode = (isi & 0x03000000) >> 24;
 	}
+	state->mci.input->con = ts_mode << 8;
+	printk("ts_mode = %02x\n", ts_mode);
 	if (iq_mode)
 		ts_config = (SX8_TSCONFIG_TSHEADER | SX8_TSCONFIG_MODE_IQ);
 	stop(fe);

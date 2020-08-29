@@ -56,6 +56,10 @@ static int xo2_speed = 2;
 module_param(xo2_speed, int, 0444);
 MODULE_PARM_DESC(xo2_speed, "default transfer speed for xo2 based duoflex, 0=55,1=75,2=90,3=104 MBit/s, default=2, use attribute to change for individual cards");
 
+static int raw_stream;
+module_param(raw_stream, int, 0444);
+MODULE_PARM_DESC(raw_stream, "send data as raw stream to DVB layer");
+
 #ifdef __arm__
 static int alt_dma = 1;
 #else
@@ -2401,9 +2405,15 @@ static void input_write_dvb(struct ddb_input *input,
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
-		dvb_dmx_swfilter_packets(&dvb->demux,
-					 dma2->vbuf[dma->cbuf],
-					 dma2->size / 188);
+		if (raw_stream || input->con)
+			dvb_dmx_swfilter_raw(&dvb->demux,
+					     dma2->vbuf[dma->cbuf],
+					     dma2->size);
+		else
+			dvb_dmx_swfilter_packets(&dvb->demux,
+						 dma2->vbuf[dma->cbuf],
+						 dma2->size / 188);
+
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
