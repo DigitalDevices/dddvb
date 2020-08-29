@@ -583,13 +583,16 @@ static void ddb_input_start_unlocked(struct ddb_input *input)
 	}
 	if (dev->link[0].info->type == DDB_OCTONET)
 		ddbwritel(dev, 0x01, TS_CONTROL(input));
-	else
-		ddbwritel(dev, 0x09, TS_CONTROL(input));
+	else {
+		if (raw_stream)
+			ddbwritel(dev, 0x01 | ((raw_stream & 3) << 8), TS_CONTROL(input));
+		else
+			ddbwritel(dev, 0x01 | input->con, TS_CONTROL(input));
+	}
 	if (input->port->type == DDB_TUNER_DUMMY)
 		ddbwritel(dev, 0x000fff01, TS_CONTROL2(input));
-	if (input->dma) {
+	if (input->dma)
 		input->dma->running = 1;
-	}
 }
 
 static void ddb_input_start(struct ddb_input *input)
