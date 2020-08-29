@@ -14,124 +14,101 @@ int flashio(int ddb, int link,
 	return ioctl(ddb, IOCTL_DDB_FLASHIO, &fio);
 }
 
-int FlashDetect(int dev)
+static int flash_id(int fd, int link, uint8_t *id)
 {
-	uint8_t Cmd = 0x9F;
-	uint8_t Id[3];
+	uint8_t cmd = 0x9F;
 	
-	int r = flashio(dev, linknr, &Cmd, 1, Id, 3);
-	if (r < 0) 
-		return r;
-	
-	if (Id[0] == 0xBF && Id[1] == 0x25 && Id[2] == 0x41)
-		r = SSTI_SST25VF016B; 
-	else if (Id[0] == 0xBF && Id[1] == 0x25 && Id[2] == 0x4A)
-		r = SSTI_SST25VF032B; 
-	else if ( Id[0] == 0xBF && Id[1] == 0x25 && Id[2] == 0x4B )
-		r = SSTI_SST25VF064C; 
-	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x15 )
-		r = SPANSION_S25FL116K; 
-	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x16 )
-		r = SPANSION_S25FL132K; 
-	else if ( Id[0] == 0x01 && Id[1] == 0x40 && Id[2] == 0x17 )
-		r = SPANSION_S25FL164K; 
-	else if ( Id[0] == 0x1F && Id[1] == 0x28)
-		r = ATMEL_AT45DB642D; 
-	else if ( Id[0] == 0xef && Id[1] == 0x40 && Id[2] == 0x15 )
-		r = WINBOND_W25Q16JV; 
-	else 
-		r = UNKNOWN_FLASH;
-	
-	switch(r) {
-        case UNKNOWN_FLASH : 
-		printf("Unknown Flash Flash ID = %02x %02x %02x\n",Id[0],Id[1],Id[2]); 
-		break;
-        case ATMEL_AT45DB642D : 
-		printf("Flash: Atmel AT45DB642D  64 MBit\n"); 
-		break;
-        case SSTI_SST25VF016B : 
-		printf("Flash: SSTI  SST25VF016B 16 MBit\n"); 
-		break;
-        case SSTI_SST25VF032B : 
-		printf("Flash: SSTI  SST25VF032B 32 MBit\n"); 
-		break;
-        case SSTI_SST25VF064C :
-		printf("Flash: SSTI  SST25VF064C 64 MBit\n");
-		break;
-        case SPANSION_S25FL116K : 
-		printf("Flash: SPANSION S25FL116K 16 MBit\n"); 
-		break;
-        case SPANSION_S25FL132K : 
-		printf("Flash: SPANSION S25FL132K 32 MBit\n"); 
-		break;
-        case SPANSION_S25FL164K : 
-		printf("Flash: SPANSION S25FL164K 64 MBit\n"); 
-		break;
-        case WINBOND_W25Q16JV : 
-		printf("Flash: Winbond W25Q16JV 16 MBit\n"); 
-		break;
-	}
-	return r;
+	return flashio(fd, link, &cmd, 1, id, 3);
 }
 
 
-static int flashdetect(int fd, uint32_t *sector_size, uint32_t *flash_size)
+struct flash_info flashs[] = {
+	{ { 0xbf, 0x25, 0x41 }, SSTI_SST25VF016B, 4096, 0x200000, "SSTI  SST25VF016B 16 MBit" },
+	{ { 0xbf, 0x25, 0x4a }, SSTI_SST25VF032B, 4096, 0x400000, "SSTI  SST25VF032B 32 MBit" },
+	{ { 0xbf, 0x25, 0x4b }, SSTI_SST25VF064C, 4096, 0x400000, "SSTI  SST25VF064C 64 MBit" },
+	{ { 0x01, 0x40, 0x15 }, SPANSION_S25FL116K, 4096, 0x200000, "SPANSION S25FL116K 16 MBit" },
+	{ { 0x01, 0x40, 0x16 }, SPANSION_S25FL132K, 4096, 0x400000, "SPANSION S25FL132K 32 MBit" },
+	{ { 0x01, 0x40, 0x17 }, SPANSION_S25FL164K, 4096, 0x800000, "SPANSION S25FL164K 64 MBit" },
+	{ { 0xef, 0x40, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
+	{ { 0xef, 0x40, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
+	{ { 0xef, 0x40, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
+	{ { 0xef, 0x40, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
+	{ { 0xef, 0x70, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
+	{ { 0xef, 0x70, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
+	{ { 0xef, 0x70, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
+	{ { 0xef, 0x70, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
+	{ { 0x1f, 0x28, 0xff }, ATMEL_AT45DB642D, 1024, 0x800000, "Atmel AT45DB642D  64 MBit" },
+	{ { 0x00, 0x00, 0x00 }, UNKNOWN_FLASH, 0, 0, "Unknown" },
+};
+
+static struct flash_info *flash_getinfo(uint8_t *id)
+{
+	struct flash_info *f= flashs;
+
+	while (f->id[0]) {
+		if ((f->id[0] == id[0]) && (f->id[1] == id[1]) &&
+		    ((id[0] == 0xff) || (f->id[0] == id[0])))
+			break;
+		f++;
+	}
+	return f;
+}
+
+static int flashdetect(int fd, uint32_t *sector_size, uint32_t *flash_size, char **name)
+{
+	uint8_t id[3];
+	int flash_type, r;
+	struct flash_info *f;
+
+	r = flash_id(fd, linknr, id);
+	if (r < 0)
+		return r;
+	f = flash_getinfo(id);
+	printf("Flash: %s\n", f->name);
+	*sector_size = f->ssize; 
+	*flash_size = f->fsize; 
+
+	if (!f->id[0])
+		printf("Unknown Flash Flash ID = %02x %02x %02x\n", id[0], id[1], id[2]);
+	return f->type;
+}
+
+static int flash_detect(struct ddflash *ddf)
 {
 	uint8_t cmd = 0x9F;
 	uint8_t id[3];
-	int flash_type;
+	int r;
+	struct flash_info *f;
 	
-	int r = flashio(fd, linknr, &cmd, 1, id, 3);
+	r = flash_id(ddf->fd, ddf->link, id);
 	if (r < 0)
 		return r;
+	f = flash_getinfo(id);
+	ddf->flash_type = f->type; 
+	ddf->flash_name = f->name;
+	ddf->sector_size = f->ssize; 
+	ddf->size = f->fsize; 
 	
-	if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x41) {
-		flash_type = SSTI_SST25VF016B; 
-		printf("Flash: SSTI  SST25VF016B 16 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x200000; 
-	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4A) {
-		flash_type = SSTI_SST25VF032B; 
-		printf("Flash: SSTI  SST25VF032B 32 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x400000; 
-	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4B) {
-		flash_type = SSTI_SST25VF064C; 
-		printf("Flash: SSTI  SST25VF064C 64 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x800000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x15) {
-		flash_type = SPANSION_S25FL116K;
-		printf("Flash: SPANSION S25FL116K 16 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x200000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x16) {
-		flash_type = SPANSION_S25FL132K;
-		printf("Flash: SPANSION S25FL132K 32 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x400000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x17) {
-		flash_type = SPANSION_S25FL164K;
-		printf("Flash: SPANSION S25FL164K 64 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x800000; 
-	} else if (id[0] == 0xef && id[1] == 0x40 && id[2] == 0x15) {
-		flash_type = WINBOND_W25Q16JV;
-		printf("Flash: Winbond 16 MBit\n");
-		*sector_size = 4096; 
-		*flash_size = 0x200000; 
-	} else if (id[0] == 0x1F && id[1] == 0x28) {
-		flash_type = ATMEL_AT45DB642D; 
-		printf("Flash: Atmel AT45DB642D  64 MBit\n");
-		*sector_size = 1024; 
-		*flash_size = 0x800000; 
-	} else {
-		printf("Unknown Flash Flash ID = %02x %02x %02x\n", id[0], id[1], id[2]);
+	if (!f->id[0]) {
+		printf("Unknown Flash Flash ID = %02x %02x %02x !!!\n", id[0], id[1], id[2]);
 		return -1;
 	}
-	return flash_type;
+	if (ddf->sector_size) {
+		ddf->buffer = malloc(ddf->sector_size);
+		if (!ddf->buffer)
+			return -1;
+	}
+	return 0;
 }
 
+int FlashDetect(int dev)
+{
+	uint32_t sector_size;
+	uint32_t flash_size;
+	char *name;
+	
+	return flashdetect(dev, &sector_size, &flash_size, &name);
+}
 
 #if 1
 int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t len)
@@ -873,71 +850,12 @@ static int flashwrite(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxle
 	case SPANSION_S25FL132K: 
 	case SPANSION_S25FL164K: 
 	case WINBOND_W25Q16JV:
+	case WINBOND_W25Q32JV:
+	case WINBOND_W25Q64JV:
+	case WINBOND_W25Q128JV:
 		return flashwrite_pagemode(ddf, fs, addr, 0x1c, fw_off);
 	}
 	return -1;
-}
-
-
-static int flash_detect(struct ddflash *ddf)
-{
-	uint8_t cmd = 0x9F;
-	uint8_t id[3];
-	
-	int r = flashio(ddf->fd, ddf->link, &cmd, 1, id, 3);
-	if (r < 0)
-		return r;
-	
-	if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x41) {
-		ddf->flash_type = SSTI_SST25VF016B; 
-		ddf->flash_name = "SSTI  SST25VF016B 16 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x200000; 
-	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4A) {
-		ddf->flash_type = SSTI_SST25VF032B; 
-		ddf->flash_name = "SSTI  SST25VF032B 32 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x400000; 
-	} else if (id[0] == 0xBF && id[1] == 0x25 && id[2] == 0x4B) {
-		ddf->flash_type = SSTI_SST25VF064C; 
-		ddf->flash_name = "SSTI  SST25VF064C 64 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x800000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x15) {
-		ddf->flash_type = SPANSION_S25FL116K;
-		ddf->flash_name = "SPANSION S25FL116K 16 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x200000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x16) {
-		ddf->flash_type = SPANSION_S25FL132K;
-		ddf->flash_name = "SPANSION S25FL132K 32 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x400000; 
-	} else if (id[0] == 0x01 && id[1] == 0x40 && id[2] == 0x17) {
-		ddf->flash_type = SPANSION_S25FL164K;
-		ddf->flash_name = "SPANSION S25FL164K 64 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x800000; 
-	} else if (id[0] == 0x1F && id[1] == 0x28) {
-		ddf->flash_type = ATMEL_AT45DB642D; 
-		ddf->flash_name = "Atmel AT45DB642D  64 MBit";
-		ddf->sector_size = 1024; 
-		ddf->size = 0x800000; 
-	} else if (id[0] == 0xef && id[1] == 0x40 && id[2] == 0x15) {
-		ddf->flash_type = WINBOND_W25Q16JV;
-		ddf->flash_name = "Winbond W25Q16JV 16 MBit";
-		ddf->sector_size = 4096; 
-		ddf->size = 0x200000; 
-	} else {
-		printf("Unknown Flash Flash ID = %02x %02x %02x !!!\n", id[0], id[1], id[2]);
-		return -1;
-	}
-	if (ddf->sector_size) {
-		ddf->buffer = malloc(ddf->sector_size);
-		if (!ddf->buffer)
-			return -1;
-	}
-	return 0;
 }
 
 static int get_id(struct ddflash *ddf)

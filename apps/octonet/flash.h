@@ -72,6 +72,17 @@ enum {
 	SPANSION_S25FL132K = 6,
 	SPANSION_S25FL164K = 7,
 	WINBOND_W25Q16JV = 8,
+	WINBOND_W25Q32JV = 9,
+	WINBOND_W25Q64JV = 10,
+	WINBOND_W25Q128JV = 11,
+};
+
+struct flash_info {
+	uint8_t id[3];
+	uint32_t type;
+	uint32_t ssize;
+	uint32_t fsize;
+	char *name;
 };
 
 struct ddflash {
