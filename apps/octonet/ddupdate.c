@@ -34,9 +34,9 @@ static int yesno()
 
 static int update_flash(struct ddflash *ddf)
 {
-	char *fname;
+	char *fname, *default_fname;
 	int res, stat = 0;
-	char *name;
+	char *name = 0, *dname;
 	
 	switch (ddf->id.device) {
 	case 0x300:
@@ -111,8 +111,9 @@ static int update_flash(struct ddflash *ddf)
 		break;
 	default:
 		fname = ddf->fname;
+		default_fname = devid2fname(ddf->id.device, &name);
 		if (!fname)
-			fname = devid2fname(ddf->id.device, &name);
+			fname = default_fname;
 		if (name)
 			printf("Card:   %s\n", name);
 		if (ddf->flash_name)
