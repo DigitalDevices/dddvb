@@ -72,6 +72,7 @@ int sure()
 int main(int argc, char **argv)
 {
 	char ddbname[80];
+	char *flashname;
 	int type = 0;
 	struct ddb_id ddbid;
 	uint8_t *buffer;
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
 		printf("Could not open device\n");
 		return -1;
 	}
-	Flash = flashdetect(ddb, &SectorSize, &FlashSize);
+	Flash = flashdetect(ddb, &SectorSize, &FlashSize, &flashname);
 
 	get_ddid(ddb, &ddbid);
 #if 0
