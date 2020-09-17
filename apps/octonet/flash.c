@@ -996,10 +996,12 @@ static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen,
 		return -1;
 	len = off - fw_off;
 	lseek(fs, fw_off, SEEK_SET);
+#if 0
 	if (len > maxlen) {
 		printf("file too big\n");
 		return -1;
 	}
+#endif
 	//printf("flash file len %u, compare to %08x in flash: ", len, addr);
 	for (j = 0; j < len; j += bl, addr += bl) {
 		if (len - j < bl)
