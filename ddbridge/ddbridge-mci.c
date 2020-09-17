@@ -267,15 +267,25 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
 		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
-			u32 modcod = (0x7c & pls_code) >> 2;
+			u32 modcod;
 
 			p->delivery_system = SYS_DVBS2;
+			p->transmission_mode = pls_code;
 			p->rolloff =
 				ro_lut[mci->signal_info.dvbs2_signal_info.roll_off & 7];
 			p->pilot = (pls_code & 1) ? PILOT_ON : PILOT_OFF;
-			p->fec_inner = modcod2fec[modcod];
-			p->modulation = modcod2mod[modcod];
-			p->transmission_mode = pls_code;
+			if (pls_code & 0x80) {
+				/* no suitable values defined in Linux DVB API yet */
+				/* modcod = (0x7f & pls_code) >> 1; */
+				p->fec_inner = FEC_NONE;
+				p->modulation = 0;
+				if (pls_code >= 250)
+					p->pilot = PILOT_ON;
+			} else {
+				modcod = (0x7c & pls_code) >> 2;
+				p->fec_inner = modcod2fec[modcod];
+				p->modulation = modcod2mod[modcod];
+			}
 		} else {
 			p->delivery_system = SYS_DVBS;
 			p->rolloff = ROLLOFF_35;
