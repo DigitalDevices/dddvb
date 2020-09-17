@@ -980,7 +980,7 @@ out:
 EXPORT_SYMBOL(dvb_usercopy);
 
 #if IS_ENABLED(CONFIG_I2C)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,3,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,3,0))
 struct i2c_client *dvb_module_probe(const char *module_name,
 				    const char *name,
 				    struct i2c_adapter *adap,
