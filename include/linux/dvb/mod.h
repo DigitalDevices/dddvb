@@ -38,10 +38,14 @@ struct dvb_mod_channel_params {
 
 enum mod_output_rate {
 	SYS_DVBT_6 = 0,
-	SYS_DVBT_7,
-	SYS_DVBT_8,
+	SYS_DVBT_7 = 1,
+	SYS_DVBT_8 = 2,
+	SYS_DVBC_6900 = 8,
 	SYS_ISDBT_6 = 16,
+	SYS_J83B_64_6 = 24,
+	SYS_J83B_256_6 = 25,
 	SYS_DVBS2_22 = 32,
+	SYS_DVBS2_24 = 33,
 };
 
 
