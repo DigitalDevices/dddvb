@@ -24,7 +24,6 @@
 
 #include "ddbridge.h"
 #include "ddbridge-io.h"
-#include "ddbridge-i2c.h"
 #include "ddbridge-mci.h"
 
 struct m4_base {
