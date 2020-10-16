@@ -435,7 +435,6 @@ static int set_parameters(struct dvb_frontend *fe)
 		ts_mode = (isi & 0x03000000) >> 24;
 	}
 	state->mci.input->con = ts_mode << 8;
-	printk("ts_mode = %02x\n", ts_mode);
 	if (iq_mode)
 		ts_config = (SX8_TSCONFIG_TSHEADER | SX8_TSCONFIG_MODE_IQ);
 	stop(fe);
