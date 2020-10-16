@@ -821,6 +821,8 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0323, 0xffff, ddb_none),
 	DDB_DEVID(0x0328, 0xffff, ddb_none),
 	DDB_DEVID(0x0329, 0xffff, ddb_octopro_hdin),
+
+	DDB_DEVID(0xffff, 0xffff, ddb_none),
 };
 
 const struct ddb_info *get_ddb_info(u16 vendor, u16 device,
@@ -833,7 +835,8 @@ const struct ddb_info *get_ddb_info(u16 vendor, u16 device,
 
 		if (vendor == id->vendor &&
 		    device == id->device &&
-		    subvendor == id->subvendor &&
+		    (subvendor == id->subvendor ||
+		     id->subvendor == 0xffff) &&
 		    (subdevice == id->subdevice ||
 		     id->subdevice == 0xffff))
 			return id->info;
