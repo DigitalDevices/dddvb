@@ -332,7 +332,7 @@ static int tune_c(struct dddvb_fe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
-		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000},
 		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
 		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_SYMBOL_RATE, .u.data = fe->param.param[PARAM_SR] },
@@ -359,19 +359,28 @@ static int tune_c(struct dddvb_fe *fe)
 	return 0;
 }
 
-static int tune_cable(struct dddvb_fe *fe)
+static int tune_j83b(struct dddvb_fe *fe)
 {
-	uint32_t freq;
-	struct dvb_frontend_parameters p = {
-		.frequency = fe->param.param[PARAM_FREQ] * 1000,
-		.u.qam.symbol_rate = fe->param.param[PARAM_SR],
-		.u.qam.fec_inner = (fe->param.param[PARAM_FEC] != DDDVB_UNDEF) ?
-		(fe->param.param[PARAM_FEC]) : FEC_AUTO,
-		.u.qam.modulation = fe->param.param[PARAM_MTYPE],
-	};
-	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
-	if (ioctl(fe->fd, FE_SET_FRONTEND, &p) == -1) {
-		perror("FE_SET_FRONTEND error");
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000},
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 6000000 },
+		{ .cmd = DTV_SYMBOL_RATE, .u.data = (fe->param.param[PARAM_SR] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_SR] : 5056941},
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	printf("tune_j83b()\n");
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_B);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
 	return 0;
@@ -512,6 +521,9 @@ static int tune(struct dddvb_fe *fe)
 		break;
 	case SYS_DVBC_ANNEX_A:
 		ret = tune_c(fe);
+		break;
+	case SYS_DVBC_ANNEX_B:
+		ret = tune_j83b(fe);
 		break;
 	case SYS_DVBT:
 		ret = tune_terr(fe);
