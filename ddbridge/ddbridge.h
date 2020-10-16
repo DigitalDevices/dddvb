@@ -425,6 +425,8 @@ struct ddb_link {
 	int                    over_temperature_error;
 	u8                     temp_tab[11];
 	struct ddb_irq         irq[256];
+
+	struct mci_base        *mci_base;
 };
 
 struct ddb {
