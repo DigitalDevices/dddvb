@@ -148,10 +148,11 @@
 #define M4_CMD_GET_IDS            (0x51)
 #define M4_CMD_GET_DVBT_TPS       (0x52)
 #define MCI_CMD_GET_BBHEADER      (0x53)
-#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 #define M4_CMD_GET_ISDBT_TMCC     (0x54)
 #define M4_CMD_GET_ISDBS_TMCC     (0x55)
 #define M4_CMD_GET_ISDBC_TSMF     (0x56)
+
+#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 
 #define M4_L1INFO_SEL_PRE         (0)
 #define M4_L1INFO_SEL_DSINFO      (1)
@@ -180,6 +181,7 @@
 #define M4_SIGNALINFO_FLAG_CHANGE (0x01)
 #define M4_SIGNALINFO_FLAG_EWS    (0x02)
 
+#define SX8_ROLLOFF_35  0
 #define SX8_ROLLOFF_25  1
 #define SX8_ROLLOFF_20  2
 #define SX8_ROLLOFF_15  5
@@ -205,7 +207,7 @@ struct mci_command {
 		u32 params[31];
 		struct {
 			u8  flags; /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled,
-				      6: FrequencyRange, 7: InputStreamID */
+				      5: ChannelBonding, 6: FrequencyRange, 7: InputStreamID */
 			u8  s2_modulation_mask; /* Bit 0 : QPSK, 1: 8PSK/8APSK,
 						   2 : 16APSK, 3: 32APSK, 4: 64APSK,
 						   5: 128APSK, 6: 256APSK */
@@ -217,6 +219,9 @@ struct mci_command {
 			u8  rsvd2[3];
 			u32 scrambling_sequence_index;
 			u32 frequency_range;
+			u8  channel_bonding_config; /* Bit 7: IsSlave,  Bit 5..4: MasterDemod,
+						       bit 0:  Num channels - 2. 
+						       (must be set on all channels to same value) */
 		} dvbs2_search;
 
 		struct {
@@ -306,7 +311,6 @@ struct mci_command {
 			u16  point;
 		} get_iq_symbol;
 
-
 		struct {
 			uint8_t   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
 					     Bit 1: 1 = Disable AGC,
@@ -319,7 +323,7 @@ struct mci_command {
 			uint8_t   gain;         /* Gain in 0.25 dB Steps */
 			/* Frequency, symbolrate and gain can be schanged while running */
 		} sx8_start_iq;
-		
+	
 		struct {
 			uint8_t   flags;
                         /*   Bit 0:1 Preamp Mode;  0 = Preamp AGC, 1 == Minimum (~ -17dB) ,
@@ -392,6 +396,21 @@ struct mci_result {
 			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
+
+		struct {
+			u8  modcod;
+			u8  rsvd0[2];
+			u8  flags;             /* Bit 0: TMCC changed, Bit 1: EWS */
+			u32 frequency;         /* actual frequency in Hz */
+			u32 symbol_rate;       /* actual symbolrate in Hz */
+			s16 channel_power;     /* channel power in dBm x 100 */
+			s16 band_power;        /*/ band power in dBm x 100 */
+			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
+			s16 rsvd2;
+			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
+			u32 ber_denominator;		
+		} isdbs_signal_info;
 
 		struct {
 			u8  constellation;
