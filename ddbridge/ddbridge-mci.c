@@ -91,11 +91,9 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 			printk("Lost PCIe link!\n");
 			return -EIO;
 		} else {
-			printk("DDBridge IRS %08x link %u\n", istat, link->nr);
+            printk("DDBridge IRS %08x\n", istat)
 			if (istat & 1) 
-				ddblwritel(link, istat, INTERRUPT_ACK);
-			if (link->nr)
-				ddbwritel(link->dev, 0xffffff, INTERRUPT_ACK);
+				ddblwritel(link, istat & 1, INTERRUPT_ACK);
 		}
 	}
 	if (res && res_len)
