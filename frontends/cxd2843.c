@@ -35,8 +35,8 @@
 #include <linux/mutex.h>
 #include <asm/div64.h>
 
-#include "dvb_frontend.h"
-#include "dvb_math.h"
+#include <media/dvb_frontend.h>
+#include <media/dvb_math.h>
 #include "cxd2843.h"
 
 #define Log10x100(x) ((s32)(((((u64) intlog2(x) * 0x1e1a5e2e) >> 47 ) + 1) >> 1))
@@ -105,8 +105,12 @@ static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
 static int writeregs(struct cxd_state *state, u8 adr, u8 reg,
 		     u8 *regd, u16 len)
 {
-	u8 data[len + 1];
+	u8 data[16];
 
+	if (len >= 15) {
+		pr_err("cxd2843: writeregs length %u too large\n", len);
+		return -1;
+	}
 	data[0] = reg;
 	memcpy(data + 1, regd, len);
 	return i2c_write(state->i2c, adr, data, len + 1);
@@ -2240,7 +2244,7 @@ static enum dvbfe_search search(struct dvb_frontend *fe)
 		return DVBFE_ALGO_SEARCH_AGAIN;
 }
 
-static int get_algo(struct dvb_frontend *fe)
+static enum dvbfe_algo get_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_HW;
 }
@@ -2489,9 +2493,9 @@ static struct dvb_frontend_ops common_ops_2854 = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2, SYS_ISDBT },
 	.info = {
 		.name = "CXD2854 DVB-C/C2 DVB-T/T2 ISDB-T",
-		.frequency_stepsize = 166667,	/* DVB-T only */
-		.frequency_min = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_stepsize_hz = 166667,	/* DVB-T only */
+		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
@@ -2502,7 +2506,8 @@ static struct dvb_frontend_ops common_ops_2854 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
@@ -2522,9 +2527,9 @@ static struct dvb_frontend_ops common_ops_2843 = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2, SYS_DVBC2 },
 	.info = {
 		.name = "CXD2843 DVB-C/C2 DVB-T/T2",
-		.frequency_stepsize = 166667,	/* DVB-T only */
-		.frequency_min = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_stepsize_hz = 166667,	/* DVB-T only */
+		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
@@ -2535,7 +2540,8 @@ static struct dvb_frontend_ops common_ops_2843 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
@@ -2560,9 +2566,9 @@ static struct dvb_frontend_ops common_ops_2837 = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT, SYS_DVBT2 },
 	.info = {
 		.name = "CXD2837 DVB-C DVB-T/T2",
-		.frequency_stepsize = 166667,	/* DVB-T only */
-		.frequency_min = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_stepsize_hz = 166667,	/* DVB-T only */
+		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
@@ -2573,7 +2579,8 @@ static struct dvb_frontend_ops common_ops_2837 = {
 			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
 			FE_CAN_TRANSMISSION_MODE_AUTO |
 			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION |
+		        FE_CAN_MULTISTREAM
 	},
 	.release = release,
 	.sleep = sleep,
@@ -2598,9 +2605,9 @@ static struct dvb_frontend_ops common_ops_2838 = {
 	.delsys = { SYS_ISDBT },
 	.info = {
 		.name = "CXD2838 ISDB-T",
-		.frequency_stepsize = 166667,
-		.frequency_min = 47000000,
-		.frequency_max = 865000000,
+		.frequency_stepsize_hz = 166667,
+		.frequency_min_hz = 47000000,
+		.frequency_max_hz = 865000000,
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_64 | FE_CAN_QAM_AUTO |

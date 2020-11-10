@@ -75,6 +75,7 @@ struct dddvb_fe {
 	uint32_t level;
 	uint32_t lock;
 	uint32_t quality;
+	uint32_t pls_code;
 	int64_t strength;
 	int64_t cnr;
 	int64_t ber;
@@ -150,6 +151,9 @@ struct dddvb {
 	
 	struct dddvb_fe dvbfe[DDDVB_MAX_DVB_FE];
 	struct dddvb_ca dvbca[DDDVB_MAX_DVB_CA];
+
+
+	unsigned int get_ts:1;
 };
 
 int dddvb_dvb_init(struct dddvb *dd);

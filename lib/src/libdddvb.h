@@ -64,6 +64,9 @@ LIBDDDVB_EXPORTED int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf
 LIBDDDVB_EXPORTED int dddvb_ca_read(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len);
 LIBDDDVB_EXPORTED int dddvb_ca_set_pmts(struct dddvb *dd, uint32_t nr, uint8_t **pmts);
 
+static inline void dddvb_get_ts(struct dddvb *dd, uint32_t val) {
+	dd->get_ts = val;
+};
 
 static inline void dddvb_set_frequency(struct dddvb_params *p, uint32_t freq) {
 	p->param[PARAM_FREQ] = freq;

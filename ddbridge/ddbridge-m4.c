@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * ddbridge-m4.c: Digital Devices MAX M4 driver
  *
@@ -23,7 +24,6 @@
 
 #include "ddbridge.h"
 #include "ddbridge-io.h"
-#include "ddbridge-i2c.h"
 #include "ddbridge-mci.h"
 
 struct m4_base {
@@ -335,6 +335,7 @@ static int set_parameters(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
 	int res;
+	//struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
 	stop(fe);
 
@@ -343,6 +344,7 @@ static int set_parameters(struct dvb_frontend *fe)
 	state->iq_constellation_point_max = 0;
 
 	state->iq_constellation_tap = 0;
+	//printk("bw = %u\n", p->bandwidth_hz);
 	switch (fe->dtv_property_cache.delivery_system) {
 	case SYS_DVBS:
 	case SYS_DVBS2:
@@ -450,7 +452,7 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
-static int get_algo(struct dvb_frontend *fe)
+static enum dvbfe_algo get_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_HW;
 }
@@ -470,21 +472,21 @@ static struct dvb_frontend_ops m4_ops = {
 		    SYS_DVBS, SYS_DVBS2, SYS_ISDBS, },
 	.info = {
 		.name = "M4",
-		.frequency_min = 950000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 2150000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 100000,
 		.symbol_rate_max = 100000000,
-		.frequency_stepsize	= 0,
-		.frequency_tolerance	= 0,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
-		        FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
-		        FE_CAN_QAM_AUTO | 
-			FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
-			FE_CAN_FEC_4_5 |
-			FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
-			FE_CAN_TRANSMISSION_MODE_AUTO |
-			FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
-			FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+		FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		FE_CAN_QAM_AUTO |
+		FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+		FE_CAN_FEC_4_5 |
+		FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+		FE_CAN_TRANSMISSION_MODE_AUTO |
+		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
 	},
 	.release                        = release,
 	.get_frontend_algo              = get_algo,

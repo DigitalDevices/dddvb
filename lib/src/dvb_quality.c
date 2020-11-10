@@ -331,6 +331,9 @@ static void calc_lq(struct dddvb_fe *fe)
 	int64_t str, snr;
 	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0, quality = 0;
 	
+	get_property(fe->fd, DTV_TRANSMISSION_MODE, &fe->pls_code);
+	dbgprintf(DEBUG_DVB, "fe%d: pls=0x%02x\n", fe->nr, fe->pls_code);
+	
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 	str = st.stat[0].svalue;
 	dbgprintf(DEBUG_DVB, "fe%d: str=%lld\n", fe->nr, str);

@@ -35,33 +35,30 @@ static int ddb_i2c_cmd(struct ddb_i2c *i2c, u32 adr, u32 cmd)
 	stat = wait_for_completion_timeout(&i2c->completion, HZ);
 	val = ddbreadl(dev, i2c->regs + I2C_COMMAND);
 	if (stat == 0) {
+		u32 istat = ddbreadl(dev, INTERRUPT_STATUS);
+
 		dev_err(dev->dev, "I2C timeout, card %d, port %d, link %u\n",
 			dev->nr, i2c->nr, i2c->link);
-#if 1
-		{
-			u32 istat = ddbreadl(dev, INTERRUPT_STATUS);
+		dev_err(dev->dev, "DDBridge IRS %08x\n", istat);
 
-			dev_err(dev->dev, "DDBridge IRS %08x\n", istat);
-			if (i2c->link) {
-				u32 listat =
-					ddbreadl(dev,
-						 DDB_LINK_TAG(i2c->link) |
-						 INTERRUPT_STATUS);
-				dev_err(dev->dev,
-					"DDBridge link %u IRS %08x\n",
-					i2c->link, listat);
-			}
-			if (istat & 1) {
-				ddbwritel(dev, istat & 1, INTERRUPT_ACK);
-			} else {
-				u32 mon = ddbreadl(dev,
-						   i2c->regs + I2C_MONITOR);
-
-				dev_err(dev->dev, "I2C cmd=%08x mon=%08x\n",
-					val, mon);
-			}
+		if (i2c->link) {
+			u32 listat =
+				ddbreadl(dev,
+					 DDB_LINK_TAG(i2c->link) |
+					 INTERRUPT_STATUS);
+			dev_err(dev->dev,
+				"DDBridge link %u IRS %08x\n",
+				i2c->link, listat);
 		}
-#endif
+		if (istat & 1) {
+			ddbwritel(dev, istat & 1, INTERRUPT_ACK);
+		} else {
+			u32 mon = ddbreadl(dev,
+					   i2c->regs + I2C_MONITOR);
+
+			dev_err(dev->dev, "I2C cmd=%08x mon=%08x\n",
+				val, mon);
+		}
 		return -EIO;
 	}
 	val &= 0x70000;

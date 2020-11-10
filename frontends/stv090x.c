@@ -28,7 +28,7 @@
 #include <linux/mutex.h>
 
 #include <linux/dvb/frontend.h>
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 
 #include "stv6110x.h" /* for demodulator internal modes */
 
@@ -5142,10 +5142,10 @@ static struct dvb_frontend_ops stv090x_ops = {
 #ifdef USE_API3
 		.type			= FE_QPSK,
 #endif
-		.frequency_min		= 950000,
-		.frequency_max 		= 2150000,
-		.frequency_stepsize	= 0,
-		.frequency_tolerance	= 0,
+		.frequency_min_hz	= 950000000,
+		.frequency_max_hz	= 2150000000,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
 		.symbol_rate_min 	= 1000000,
 		.symbol_rate_max 	= 45000000,
 		.caps			= FE_CAN_INVERSION_AUTO |

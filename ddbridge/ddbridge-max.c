@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * ddbridge-max.c: Digital Devices MAX card line support functions
  *
@@ -67,7 +68,7 @@ static int max_emulate_switch(struct dvb_frontend *fe,
 {
 	int input;
 
-	if (len !=4)
+	if (len != 4)
 		return -1;
 
 	if ((cmd[0] != 0xe0) || (cmd[1] != 0x10) || (cmd[2] != 0x39))
@@ -357,6 +358,29 @@ static int max_set_voltage(struct dvb_frontend *fe, enum fe_sec_voltage voltage)
 
 static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 {
+	struct ddb_input *input = fe->sec_priv;
+	struct ddb_port *port = input->port;
+	struct ddb *dev = port->dev;
+	u32 tag = DDB_LINK_TAG(port->lnr);
+	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
+	u32 fmode = dev->link[port->lnr].lnb.fmode;
+
+	mutex_lock(&dev->link[port->lnr].lnb.lock);
+	switch (fmode) {
+	default:
+	case 0:
+	case 3:
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(dvb->input));
+		break;
+	case 1:
+	case 2:
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(0));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(1));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(2));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(3));
+		break;
+	}
+	mutex_unlock(&dev->link[port->lnr].lnb.lock);
 	return 0;
 }
 
@@ -467,9 +491,6 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 
 /* MAX MCI related functions */
 
-extern struct mci_cfg ddb_max_sx8_cfg;
-extern struct mci_cfg ddb_max_m4_cfg;
-
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
 	struct ddb *dev = input->port->dev;
@@ -479,7 +500,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	int demod, tuner;
 	struct mci_cfg cfg;
 	int fm = fmode;
-	
+
 	demod = input->nr;
 	tuner = demod & 3;
 	switch (type) {

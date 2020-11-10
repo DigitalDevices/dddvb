@@ -31,7 +31,7 @@
 #include <linux/version.h>
 #include <asm/div64.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 #include "stv0367dd.h"
 #include "stv0367dd_regs.h"
 
@@ -2074,9 +2074,9 @@ static struct dvb_frontend_ops common_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBT },
 	.info = {
 		.name = "STV0367 DVB-C DVB-T",
-		.frequency_stepsize = 166667,	/* DVB-T only */
-		.frequency_min = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max = 865000000,	/* DVB-C: 862000000 */
+		.frequency_stepsize_hz = 166667,	/* DVB-T only */
+		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = /* DVB-C */

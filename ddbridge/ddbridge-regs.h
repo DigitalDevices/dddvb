@@ -232,6 +232,7 @@
 
 #define TS_CONTROL(_io)         ((_io)->regs + 0x00)
 #define TS_CONTROL2(_io)        ((_io)->regs + 0x04)
+#define TS_STAT(_io)            ((_io)->regs + 0x08)
 
 #define TS_INPUT_CONTROL_ENABLE     (0x00000001)
 #define TS_INPUT_CONTROL_RESET      (0x00000002)
