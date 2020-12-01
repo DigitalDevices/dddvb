@@ -290,9 +290,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	pci_set_master(pdev);
 
-	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)))
-		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
-			return -ENODEV;
+	if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(64))) {
+		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+	} else if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+	} else return -ENODEV;
 
 	dev = vzalloc(sizeof(*dev));
 	if (!dev)
