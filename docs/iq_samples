@@ -1,0 +1,13 @@
+~The Max SX8 can provide IQ samples in real time.
+
+They are 8 bit signed values embedded in TS packets with PID 0x200.
+
+API:
+
+Currently DTV_STREAM_ID is misused.
+
+0x10000000 - symbols (locked and tracked) at symbol rate
+0x20000000 - samples at ADC rate (1550/24=64.583... MHz)
+0x30000000 - samples at symbol rate
+
+Max. sample rate is 64.583333 MHz.

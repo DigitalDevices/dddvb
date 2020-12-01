@@ -414,6 +414,8 @@ int main(int argc, char **argv)
 				delsys = SYS_ISDBC;
 			if (!strcmp(optarg, "ISDBT"))
 				delsys = SYS_ISDBT;
+			if (!strcmp(optarg, "ISDBS"))
+				delsys = SYS_ISDBS;
 			break;
 		case 'p':
 			if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
