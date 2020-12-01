@@ -27,14 +27,16 @@ void proc_ts(int i, uint8_t *buf)
 {
 	uint16_t pid= 0x1fff& ((buf[1] << 8) | buf[2]);
 	uint8_t ccin = buf[3] & 0x1f;
-	
+
 	if( buf[0] == 0x47 && (buf[1] & 0x80) == 0) {
 		if( pid != 8191 ) {
 			if (ccin & 0x10) {
 				if( cc[pid] != 0 ) {
 					// TODO: 1 repetition allowed
-					if ((((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
+					if ((((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  {
 						cc_errors += 1;
+						printf("%04x: %u != %u\n", pid, (cc[pid] + 1) & 0x0F, ccin & 0x0F);
+					}
 				}
 				cc[pid] = ccin;
 			}
