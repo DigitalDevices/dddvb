@@ -89,6 +89,7 @@ struct ddflash {
 	int fd;
 	uint32_t link;
 	char *fname;
+	int force;
 	
 	struct ddb_id id;
 	uint32_t version;
