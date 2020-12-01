@@ -644,6 +644,7 @@ static int mod_set_sdr_attenuator(struct ddb *dev, u32 value)
 static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 {
 	u32 control = ddbreadl(dev, SDR_CONTROL);
+	struct ddb_link *link = &dev->link[0];
 
 	if (control & 0x01000000) {
 		if (gain > 511)
@@ -658,6 +659,8 @@ static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 			return -EINVAL;
 		ddbwritel(dev, gain, SDR_GAIN_F);
 	}
+	if (link->mci_ok)
+		mci_cmd_val(link, 0xc1, gain);
 	return 0;
 }
 
@@ -1516,6 +1519,7 @@ static int mod3_set_ari(struct ddb_mod *mod, u32 rate)
 
 static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 {
+	struct ddb *dev = mod->port->dev;
 	u32 cic, inc, bypass = 0;
 
 	switch (rate) {
@@ -1556,19 +1560,52 @@ static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 		inc = 0x7684BD82; //1988410754;
 		cic = 7;
 		break;
-	case SYS_DVBS2_22:
+	case SYS_DVB_22:
 		inc = 0x72955555; // 1922389333;
 		cic = 5;
 		bypass = 2;
 		break;
-	case SYS_DVBS2_24:
+	case SYS_DVB_24:
 		inc = 0x7d000000;
 		cic = 5;
 		bypass = 2;
 		break;
+	case SYS_DVB_30:
+		inc = 0x7d000000;
+		cic = 4;
+		bypass = 2;
+		break;
+	case SYS_ISDBS_2886:
+		inc = 0x78400000;
+		cic = 4;
+		bypass = 2;
+		break;
 	default:
-		return -EINVAL;
+	{
+		u64 a;
+				
+		if (rate < 1000000)
+			return -EINVAL;
+		if (rate > 30720000)
+			return -EINVAL;
+
+		bypass = 2;
+		if (rate > 24576000)
+			cic = 4;
+		else if (rate > 20480000)
+			cic = 5;
+		else if (rate > 17554286)
+			cic = 6;
+		else if (rate > 15360000)
+			cic = 7;
+		else
+			cic = 8;
+		a = (1ULL << 31) * rate * 2 * cic;
+		inc = div_s64(a, 245760000);
+		break;
 	}
+	}
+	dev_info(dev->dev, "inc = %08x, cic = %u, bypass = %u\n", inc, cic, bypass);
 	ddbwritel(mod->port->dev, inc, SDR_CHANNEL_ARICW(mod->port->nr));
 	ddbwritel(mod->port->dev, (cic << 8) | (bypass << 4),
 		  SDR_CHANNEL_CONFIG(mod->port->nr));
@@ -1596,6 +1633,7 @@ static int mod3_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 
 	case MODULATOR_GAIN:
 		return mod_set_sdr_gain(mod->port->dev, tvp->u.data);
+
 	}
 	return -EINVAL;
 }

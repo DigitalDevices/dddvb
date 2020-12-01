@@ -114,6 +114,16 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
+static int ddb_mci_tsconfig(struct mci *state, u32 config)
+{
+	struct ddb_link *link = state->base->link;
+
+	if (link->ids.device != 0x0009  && link->ids.device != 0x000b)
+		return -EINVAL;
+	ddblwritel(link, config, SX8_TSCONFIG);
+	return 0;
+}
+
 static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
 	int stat;
@@ -172,7 +182,7 @@ static int stop_iq(struct dvb_frontend *fe)
 	cmd.command = SX8_CMD_STOP_IQ;
 	cmd.demod = state->mci.demod;
 	ddb_mci_cmd(&state->mci, &cmd, NULL);
-	ddb_mci_config(&state->mci, SX8_TSCONFIG_MODE_NORMAL);
+	ddb_mci_tsconfig(&state->mci, SX8_TSCONFIG_MODE_NORMAL);
 
 	mutex_lock(&mci_base->tuner_lock);
 	sx8_base->tuner_use_count[input]--;
@@ -209,7 +219,7 @@ static int stop(struct dvb_frontend *fe)
 			cmd.demod = state->mci.demod;
 			cmd.output = 0;
 			ddb_mci_cmd(&state->mci, &cmd, NULL);
-			ddb_mci_config(&state->mci, SX8_TSCONFIG_MODE_NORMAL);
+			ddb_mci_tsconfig(&state->mci, SX8_TSCONFIG_MODE_NORMAL);
 		}
 	}
 	mutex_lock(&mci_base->tuner_lock);
@@ -331,7 +341,7 @@ unlock:
 		cmd.demod = state->mci.demod;
 		cmd.output = p->stream_id & 7;
 		ddb_mci_cmd(&state->mci, &cmd, NULL);
-		ddb_mci_config(&state->mci, ts_config);
+		ddb_mci_tsconfig(&state->mci, ts_config);
 	}
 	if (p->stream_id != NO_STREAM_ID_FILTER && !(p->stream_id & 0xf0000000))
 		flags |= 0x80;
@@ -411,7 +421,7 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
 	if (stat)
 		stop_iq(fe);
-	ddb_mci_config(&state->mci, ts_config);
+	ddb_mci_tsconfig(&state->mci, ts_config);
 	return stat;
 }
 

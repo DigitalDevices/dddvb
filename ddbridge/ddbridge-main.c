@@ -427,6 +427,7 @@ static const struct pci_device_id ddb_id_table[] __devinitconst = {
 	DDB_DEVICE_ANY(0x0220),
 	DDB_DEVICE_ANY(0x0221),
 	DDB_DEVICE_ANY(0x0222),
+	DDB_DEVICE_ANY(0x0223),
 	DDB_DEVICE_ANY(0x0320),
 	DDB_DEVICE_ANY(0x0321),
 	DDB_DEVICE_ANY(0x0322),

@@ -39,11 +39,6 @@
 #define MIC_INTERFACE_OUT       (0x0680)
 #define MIC_INTERFACE_VER       (0x06F0)
 
-
-#define MCI_CONTROL                         (0x500)
-#define MCI_COMMAND                         (0x600)
-#define MCI_RESULT                          (0x680)
-
 #define MCI_COMMAND_SIZE                    (0x80)
 #define MCI_RESULT_SIZE                     (0x80)
 
@@ -686,7 +681,7 @@ struct mci_result {
 		} ISDBS_TMCCInfo;
 	};
 	u32 version[3];
-	u32 version_rsvd;
+	u8  version_rsvd;
 	u8  version_major;
 	u8  version_minor;
 	u8  version_sub;
@@ -767,9 +762,9 @@ struct mci_base {
 	struct list_head     mci_list;
 	void                *key;
 	struct ddb_link     *link;
-	struct completion    completion;
+//	struct completion    completion;
 	struct mutex         tuner_lock;
-	struct mutex         mci_lock;
+//	struct mutex         mci_lock;
 	int                  count;
 	int                  type;
 };
@@ -795,14 +790,14 @@ struct mci_cfg {
 };
 
 int ddb_mci_cmd(struct mci *state, struct mci_command *command, struct mci_result *result);
-int ddb_mci_cmd_raw(struct mci *state, struct mci_command *command, u32 command_len,
-		    struct mci_result *result, u32 result_len);
-int ddb_mci_config(struct mci *state, u32 config);
+int ddb_mci_cmd_link(struct ddb_link *link, struct mci_command *command, struct mci_result *result);
 int ddb_mci_get_status(struct mci *mci, struct mci_result *res);
 int ddb_mci_get_snr(struct dvb_frontend *fe);
 int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
 void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
+int mci_init(struct ddb_link *link);
+int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val);
 
 extern struct mci_cfg ddb_max_sx8_cfg;
 extern struct mci_cfg ddb_max_m4_cfg;

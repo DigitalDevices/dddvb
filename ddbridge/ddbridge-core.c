@@ -2507,8 +2507,10 @@ static void ddb_input_init(struct ddb_port *port, int nr, int pnr, int anr)
 	rm = io_regmap(input, 1);
 	input->regs = DDB_LINK_TAG(port->lnr) |
 		(rm->input->base + rm->input->size * nr);
+#if 0
 	dev_info(dev->dev, "init link %u, input %u, regs %08x\n",
 		 port->lnr, nr, input->regs);
+#endif
 	if (dev->has_dma) {
 		const struct ddb_regmap *rm0 = io_regmap(input, 0);
 		u32 base = rm0->irq_base_idma;
@@ -3210,6 +3212,12 @@ struct ddb_i2c_msg {
 	__u32  mlen;
 };
 
+struct ddb_mci_msg {
+	__u32 link;
+	struct mci_command cmd;
+	struct mci_result res;
+};
+
 #define IOCTL_DDB_FLASHIO    _IOWR(DDB_MAGIC, 0x00, struct ddb_flashio)
 #define IOCTL_DDB_GPIO_IN    _IOWR(DDB_MAGIC, 0x01, struct ddb_gpio)
 #define IOCTL_DDB_GPIO_OUT   _IOWR(DDB_MAGIC, 0x02, struct ddb_gpio)
@@ -3222,6 +3230,7 @@ struct ddb_i2c_msg {
 #define IOCTL_DDB_WRITE_MDIO _IOR(DDB_MAGIC, 0x09, struct ddb_mdio)
 #define IOCTL_DDB_READ_I2C   _IOWR(DDB_MAGIC, 0x0a, struct ddb_i2c_msg)
 #define IOCTL_DDB_WRITE_I2C  _IOR(DDB_MAGIC, 0x0b, struct ddb_i2c_msg)
+#define IOCTL_DDB_MCI_CMD    _IOWR(DDB_MAGIC, 0x0c, struct ddb_mci_msg)
 
 #define DDB_NAME "ddbridge"
 
@@ -3432,6 +3441,24 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (i2c_write(adap, i2c.adr, buf, i2c.hlen + i2c.mlen) < 0)
 			return -EIO;
 		break;
+	}
+	case IOCTL_DDB_MCI_CMD:
+	{
+		struct ddb_mci_msg msg;
+		struct ddb_link *link;
+		int res;
+
+		if (copy_from_user(&msg, parg, sizeof(msg)))
+			return -EFAULT;
+		if (msg.link > 3)
+			return -EFAULT;
+		link = &dev->link[msg.link];
+		if (!link->mci_base)
+			return -EFAULT;
+		res = ddb_mci_cmd_link(link, &msg.cmd, &msg.res);
+		if (copy_to_user(parg, &msg, sizeof(msg)))
+			return -EFAULT;
+		return res;
 	}
 	default:
 		return -ENOTTY;
@@ -4414,6 +4441,13 @@ static int ddb_init_boards(struct ddb *dev)
 			usleep_range(2000, 3000);
 		}
 		ddb_init_tempmon(link);
+
+		if (info->regmap->mci) {
+			if (link->info->type == DDB_OCTOPUS_MCI ||
+			    ((link->info->type == DDB_MOD) &&
+			     (link->ids.regmapid & 0xfff0)))
+				mci_init(link);
+		}
 	}
 	return 0;
 }
