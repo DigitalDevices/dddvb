@@ -6,10 +6,10 @@ install: all
 	install -m 0755 octokey $(DESTDIR)/usr/bin
 	install -m 0755 ddflash $(DESTDIR)/usr/bin
 
-ddflash: ddflash.c
+ddflash: ddflash.c flash.h flash.c
 	$(CC) -o ddflash ddflash.c
 
-ddtest: ddtest.c
+ddtest: ddtest.c flash.h flash.c
 	$(CC) -o ddtest ddtest.c
 
 octonet: octonet.c

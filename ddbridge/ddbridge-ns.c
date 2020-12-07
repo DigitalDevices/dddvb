@@ -1,9 +1,9 @@
 /*
  * ddbridge-ns.c: Digital Devices PCIe bridge driver net streaming
  *
- * Copyright (C) 2010-2017Marcus Metzler <mocm@metzlerbros.de>
+ * Copyright (C) 2010-2017 Digital Devices GmbH
+ *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
- *                         Digital Devices GmbH
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -441,11 +441,11 @@ static int ns_start(struct dvbnss *nss)
 		reg |= 0x40;
 	if (nss->params.flags & DVB_NS_IPV6)
 		reg |= 0x80;
+	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
+		  STREAM_CONTROL(dns->nr));
 	if (dns->fe != input)
 		ddb_dvb_ns_input_start(dns->fe);
 	ddb_dvb_ns_input_start(input);
-	ddbwritel(dev, reg | (dns->fe->nr << 8) | (dns->fe->port->lnr << 16),
-		  STREAM_CONTROL(dns->nr));
 	return 0;
 }
 

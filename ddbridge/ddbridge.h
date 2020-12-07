@@ -1,7 +1,8 @@
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * ddbridge.h: Digital Devices PCIe bridge driver
  *
- * Copyright (C) 2010-2019 Digital Devices GmbH
+ * Copyright (C) 2010-2017 Digital Devices GmbH
  *                         Marcus Metzler <mocm@metzlerbros.de>
  *                         Ralph Metzler <rjkm@metzlerbros.de>
  *
@@ -15,10 +16,8 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
- *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, point your browser to
- * http://www.gnu.org/copyleft/gpl.html
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef _DDBRIDGE_H_
@@ -61,22 +60,20 @@
 #include <linux/mutex.h>
 #include <asm/dma.h>
 #include <asm/irq.h>
-#include <linux/io.h>
 #include <linux/uaccess.h>
 
 #include <linux/dvb/ca.h>
 #include <linux/socket.h>
 #include <linux/device.h>
-#include <linux/io.h>
 
 #include "dvb_netstream.h"
-#include "dmxdev.h"
-#include "dvbdev.h"
-#include "dvb_demux.h"
-#include "dvb_frontend.h"
-#include "dvb_ringbuffer.h"
-#include "dvb_ca_en50221.h"
-#include "dvb_net.h"
+#include <media/dmxdev.h>
+#include <media/dvbdev.h>
+#include <media/dvb_demux.h>
+#include <media/dvb_frontend.h>
+#include <media/dvb_ringbuffer.h>
+#include <media/dvb_ca_en50221.h>
+#include <media/dvb_net.h>
 
 #include "tda18271c2dd.h"
 #include "stv6110x.h"
@@ -215,6 +212,9 @@ struct ddb_dma {
 	u32                    ctrl;
 	u32                    cbuf;
 	u32                    coff;
+
+	u32                    stall_count;
+	u32                    packet_loss;
 };
 
 struct ddb_dvb {
@@ -236,7 +236,7 @@ struct ddb_dvb {
 	enum fe_sec_tone_mode  tone;
 	enum fe_sec_voltage    voltage;
 
-	int (*i2c_gate_ctrl)(struct dvb_frontend *, int);
+	int (*i2c_gate_ctrl)(struct dvb_frontend *fe, int val);
 	int (*set_voltage)(struct dvb_frontend *fe,
 			   enum fe_sec_voltage voltage);
 	int (*set_input)(struct dvb_frontend *fe, int input);
@@ -254,6 +254,7 @@ struct ddb_io {
 	struct ddb_port       *port;
 	u32                    nr;
 	u32                    regs;
+	u32                    con;
 	struct ddb_dma        *dma;
 	struct ddb_io         *redo;
 	struct ddb_io         *redi;
@@ -405,7 +406,7 @@ struct ddb_lnb {
 };
 
 struct ddb_irq {
-	void                   (*handler)(void *);
+	void                   (*handler)(void *data);
 	void                   *data;
 };
 
@@ -424,6 +425,8 @@ struct ddb_link {
 	int                    over_temperature_error;
 	u8                     temp_tab[11];
 	struct ddb_irq         irq[256];
+
+	struct mci_base        *mci_base;
 };
 
 struct ddb {
@@ -450,7 +453,7 @@ struct ddb {
 	struct ddb_dma         odma[DDB_MAX_OUTPUT];
 
 	struct device         *ddb_dev;
-	u32                    ddb_dev_users;
+	atomic_t               ddb_dev_users;
 	u32                    nr;
 	u8                     iobuf[1028];
 
@@ -539,7 +542,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg);
 int ddbridge_mod_init(struct ddb *dev);
 void ddbridge_mod_output_stop(struct ddb_output *output);
 int ddbridge_mod_output_start(struct ddb_output *output);
-void ddbridge_mod_rate_handler(void *);
+void ddbridge_mod_rate_handler(void *data);
 
 void ddb_device_destroy(struct ddb *dev);
 void ddb_nsd_detach(struct ddb *dev);

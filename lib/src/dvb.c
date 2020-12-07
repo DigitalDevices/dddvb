@@ -128,6 +128,9 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 	}
 	if (input != DDDVB_UNDEF)
 		set_property(fd, DTV_INPUT, input);
+	fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
+	if (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF)
+		set_property(fd, DTV_BANDWIDTH_HZ, fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
 		set_property(fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
 	if (fe->param.param[PARAM_SSI] != DDDVB_UNDEF)
@@ -228,6 +231,7 @@ static int set_en50607(struct dddvb_fe *fe, uint32_t freq, uint32_t sr,
 	uint32_t input = 3 & (sat >> 6);
 	int fd = fe->fd;
 	
+	//printf("input = %u, sat = %u\n", input, sat&0x3f);
 	hor &= 1;
 	cmd.msg[1] = slot << 3;
 	cmd.msg[1] |= ((t >> 8) & 0x07);
@@ -314,9 +318,13 @@ static int tune_sat(struct dddvb_fe *fe)
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->dd->uni_lock);
 	} else {
+		uint32_t input = lnb;
+
+		if (input != DDDVB_UNDEF)
+			input = 3 & (input >> 6);
 		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
 	}
 }
 
@@ -324,7 +332,7 @@ static int tune_c(struct dddvb_fe *fe)
 {
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
-		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000},
 		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
 		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_SYMBOL_RATE, .u.data = fe->param.param[PARAM_SR] },
@@ -351,19 +359,28 @@ static int tune_c(struct dddvb_fe *fe)
 	return 0;
 }
 
-static int tune_cable(struct dddvb_fe *fe)
+static int tune_j83b(struct dddvb_fe *fe)
 {
-	uint32_t freq;
-	struct dvb_frontend_parameters p = {
-		.frequency = fe->param.param[PARAM_FREQ] * 1000,
-		.u.qam.symbol_rate = fe->param.param[PARAM_SR],
-		.u.qam.fec_inner = (fe->param.param[PARAM_FEC] != DDDVB_UNDEF) ?
-		(fe->param.param[PARAM_FEC]) : FEC_AUTO,
-		.u.qam.modulation = fe->param.param[PARAM_MTYPE],
-	};
-	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
-	if (ioctl(fe->fd, FE_SET_FRONTEND, &p) == -1) {
-		perror("FE_SET_FRONTEND error");
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000},
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 6000000 },
+		{ .cmd = DTV_SYMBOL_RATE, .u.data = (fe->param.param[PARAM_SR] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_SR] : 5056941},
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	printf("tune_j83b()\n");
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_B);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
 	return 0;
@@ -374,7 +391,8 @@ static int tune_terr(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
@@ -422,7 +440,8 @@ static int tune_c2(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_STREAM_ID, .u.data = fe->param.param[PARAM_PLP] },
 		{ .cmd = DTV_TUNE },
 	};		
@@ -446,7 +465,8 @@ static int tune_terr2(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 8000000 },
 		{ .cmd = DTV_STREAM_ID, .u.data = fe->param.param[PARAM_PLP] },
 		{ .cmd = DTV_TUNE },
 	};		
@@ -470,7 +490,8 @@ static int tune_isdbt(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = fe->param.param[PARAM_BW_HZ] },
+		{ .cmd = DTV_BANDWIDTH_HZ, .u.data = (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF) ?
+		  fe->param.param[PARAM_BW_HZ] : 6000000 },
 		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
@@ -501,6 +522,9 @@ static int tune(struct dddvb_fe *fe)
 	case SYS_DVBC_ANNEX_A:
 		ret = tune_c(fe);
 		break;
+	case SYS_DVBC_ANNEX_B:
+		ret = tune_j83b(fe);
+		break;
 	case SYS_DVBT:
 		ret = tune_terr(fe);
 		break;
@@ -519,7 +543,7 @@ static int tune(struct dddvb_fe *fe)
 	return ret;
 }
 
-static int open_dmx(struct dddvb_fe *fe)
+int open_dmx(struct dddvb_fe *fe)
 {
 	char fname[80];
 	struct dmx_pes_filter_params pesFilterParams; 
@@ -611,10 +635,9 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 	uint32_t newtune, count = 0, max, nolock = 0;
 	int ret;
 
-	printf("fe_handle\n");
 	
-	open_dmx(fe);
-	printf("fe_handle 2\n");
+	if (fe->dd->get_ts)
+		open_dmx(fe);
 	while (fe->state == 1) {
 		pthread_mutex_lock(&fe->mutex);
 		newtune = fe->n_tune;

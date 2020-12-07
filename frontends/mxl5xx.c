@@ -41,7 +41,7 @@
 #include <asm/div64.h>
 #include <asm/unaligned.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 #include "mxl5xx.h"
 #include "mxl5xx_regs.h"
 #include "mxl5xx_defs.h"
@@ -357,19 +357,6 @@ static int update_by_mnemonic(struct mxl *state,
 	return stat;
 }
 
-#if 0
-static void extract_from_mnemonic(u32 regAddr, u8 lsbPos, u8 width,
-				  u32 *toAddr, u8 *toLsbPos, u8 *toWidth)
-{
-	if (toAddr)
-		*toAddr = regAddr;
-	if (toLsbPos)
-		*toLsbPos = lsbPos;
-	if (toWidth)
-		*toWidth = width;
-}
-#endif
-
 static int firmware_is_alive(struct mxl *state)
 {
 	u32 hb0, hb1;
@@ -379,10 +366,10 @@ static int firmware_is_alive(struct mxl *state)
 	msleep(20);
 	if (read_register(state, HYDRA_HEAR_BEAT, &hb1))
 		return 0;
-	if (hb1 == hb0)
+	if (hb1 == hb0) {
+		pr_warn("mxl5xx: Hydra FW not running!\n");
 		return 0;
-
-	pr_info("mxl5xx: Hydra FW alive. Hail!\n");
+	}
 	return 1;
 }
 
@@ -405,7 +392,7 @@ static void release(struct dvb_frontend *fe)
 	kfree(state);
 }
 
-static int get_algo(struct dvb_frontend *fe)
+static enum dvbfe_algo get_algo(struct dvb_frontend *fe)
 {
 	return DVBFE_ALGO_HW;
 }
@@ -799,6 +786,7 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 		default:
 			break;
 		}
+		/* fallthrough */
 	case SYS_DVBS:
 		switch ((MXL_HYDRA_MODULATION_E)
 			regData[DMD_MODULATION_SCHEME_ADDR]) {
@@ -846,10 +834,10 @@ static struct dvb_frontend_ops mxl_ops = {
 	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.info = {
 		.name			= "MXL5XX",
-		.frequency_min		= 300000,
-		.frequency_max		= 2350000,
-		.frequency_stepsize	= 0,
-		.frequency_tolerance	= 0,
+		.frequency_min_hz	= 300000000,
+		.frequency_max_hz	= 2350000000,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
 		.symbol_rate_min	= 1000000,
 		.symbol_rate_max	= 45000000,
 		.caps			= FE_CAN_INVERSION_AUTO |

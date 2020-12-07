@@ -1,27 +1,3 @@
-/*
-/* ddflash - Programmer for flash on Digital Devices devices
- *
- * Copyright (C) 2013 Digital Devices GmbH
- *                    Ralph Metzler <rmetzler@digitaldevices.de>
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * version 3 only, as published by the Free Software Foundation.
- *
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
- * 02110-1301, USA
- * Or, point your browser to http://www.gnu.org/copyleft/gpl.html
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -35,33 +11,33 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 
+
 #include "flash.h"
 #include "flash.c"
 
-static int reboot(uint32_t off)
+static int verbose = 0;
+
+static int yesno()
 {
-	FILE *f;
-	uint32_t time;
+	char c;
 
-	if ((f = fopen ("/sys/class/rtc/rtc0/since_epoch", "r")) == NULL)
-		return -1;
-	fscanf(f, "%u", &time);
-	fclose(f);
-
-	if ((f = fopen ("/sys/class/rtc/rtc0/wakealarm", "r+")) == NULL)
-		return -1;
-	fprintf(f, "%u", time + off);
-	fclose(f);
-	system("/sbin/poweroff");
-	return 0;
+	printf("\n\nNew firmware available\nReally flash now? y/n\n");
+	fflush(0);
+	c = getchar();
+	if (c!='y') {
+		printf("\nFlashing aborted.\n\n");
+		return 0;
+	}
+	printf("\nStarting to flash\n\n");
+	return 1;
 }
-
 
 static int update_flash(struct ddflash *ddf)
 {
-	char *fname;
+	char *fname, *default_fname;
 	int res, stat = 0;
-
+	char *name = 0, *dname;
+	
 	switch (ddf->id.device) {
 	case 0x300:
 	case 0x301:
@@ -134,52 +110,134 @@ static int update_flash(struct ddflash *ddf)
 		return stat;
 		break;
 	default:
-		return 0;
+		fname = ddf->fname;
+		default_fname = devid2fname(ddf->id.device, &name);
+		if (!fname)
+			fname = default_fname;
+		if (name)
+			printf("Card:   %s\n", name);
+		if (ddf->flash_name)
+			printf("Flash:  %s\n", ddf->flash_name);
+		printf("Version:%08x\n", ddf->id.hw);
+		//printf("REGMAPa: %08x\n", ddf->id.regmap);
+		if ((res = update_image(ddf, fname, 0x10000, 0x100000, 1, 0)) == 1)
+			stat |= 1;
+		return stat;
 	}
 	return stat;
 }
 
-int main(int argc, char **argv)
+static int update_link(struct ddflash *ddf)
+{
+	int ret;
+	
+	ret = flash_detect(ddf);
+	if (ret < 0)
+		return ret;
+	ret = update_flash(ddf);
+
+	if (ddf->buffer)
+		free(ddf->buffer);
+
+	return ret;
+}
+
+static int update_card(int ddbnum, char *fname)
 {
 	struct ddflash ddf;
 	char ddbname[80];
-	uint8_t *buffer = 0;
-	uint32_t FlashOffset = 0x10000;
-	int i, err, res;
-	int ddbnum = 0;
+	struct ddb_id ddbid;
+	int ddb, ret, link, links;
+	
+	sprintf(ddbname, "/dev/ddbridge/card%d", ddbnum);
+	ddb = open(ddbname, O_RDWR);
+	if (ddb < 0)
+		return -3;
+	ddf.fd = ddb;
+	ddf.link = 0;
+	ddf.fname = fname;
+	links = 1;
 
-	uint32_t svid, jump, flash;
+	for (link = 0; link < links; link++) {
+		ddf.link = link;
+		if (verbose >= 2)
+			printf("Get id card %u link %u\n", ddbnum, link);
+		ret = get_id(&ddf);
+		if (ret < 0)
+			goto out;
+		if (!link) {
+			switch (ddf.id.device) {
+			case 0x20:
+				links = 4;
+				break;
+			case 0x300:
+			case 0x301:
+			case 0x307:
+				links = 2;
+				break;
+			
+			default:
+				break;
+			}
+		}
+		//printf("%08x %08x\n", ddf.id.device, ddf.id.subdevice);
+		if (ddf.id.device) {
+			printf("\n\nUpdate card %s link %u:\n", ddbname, link);
+			ret = update_link(&ddf);
+			//if (ret < 0)
+			//	break;
+		}
+	}
+	
+out:
+	close(ddb);
+	return ret;
+}
 
-	memset(&ddf, 0, sizeof(ddf));
+static int usage()
+{
+	printf("ddupdate [OPTION]\n\n"
+	       "-n N\n  only update card N (default with N=0)\n\n"
+	       "-a \n   update all cards\n\n"
+	       "-b file\n  fpga image file override (ignored if -a is used)\n\n"
+	       "-v \n   more verbose (up to -v -v -v)\n\n"
+		);
+}
 
+int main(int argc, char **argv)
+{
+	int ddbnum = -1, all = 0, i, force = 0;
+	char *fname = 0;
+	
         while (1) {
                 int option_index = 0;
 		int c;
                 static struct option long_options[] = {
-			{"svid", required_argument, NULL, 's'},
 			{"help", no_argument , NULL, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"d:n:s:o:l:dfhj",
+				"n:havfb:",
 				long_options, &option_index);
 		if (c==-1)
 			break;
 
 		switch (c) {
-		case 's':
-			svid = strtoul(optarg, NULL, 16);
-			break;
-		case 'o':
-			FlashOffset = strtoul(optarg, NULL, 16);
+		case 'b':
+			fname = optarg;
 			break;
 		case 'n':
 			ddbnum = strtol(optarg, NULL, 0);
 			break;
-		case 'j':
-			jump = 1;
+		case 'a':
+			all = 1;
+			break;
+		case 'v':
+			verbose++;
 			break;
 		case 'h':
+			usage();
+			break;
 		default:
 			break;
 
@@ -188,28 +246,24 @@ int main(int argc, char **argv)
 	if (optind < argc) {
 		printf("Warning: unused arguments\n");
 	}
-	sprintf(ddbname, "/dev/ddbridge/card%d", ddbnum);
-	while ((ddf.fd = open(ddbname, O_RDWR)) < 0) {
-		if (errno == EBUSY)
-			usleep(100000);
-		else {
-			printf("Could not open device\n");
-			return -1;
-		}
-	}
-	ddf.link = 0;
-	flash = flash_detect(&ddf);
-	if (flash < 0)
+	if (!all && (ddbnum < 0)) {
+		printf("Select card number or all cards\n\n");
+		usage();
 		return -1;
-	get_id(&ddf);
+	}
+		
+	if (!all)
+		return update_card(ddbnum, fname);
 
-	res = update_flash(&ddf);
-
-	if (ddf.buffer)
-		free(ddf.buffer);
-	if (res < 0)
-		return res;
-	if (res & 1)
-		reboot(40);
-	return res;
+	for (i = 0; i < 100; i++) {
+		int ret = update_card(i, 0);
+		
+		if (ret == -3)     /* could not open, no more cards! */
+			break; 
+		if (ret < 0)
+			return i; /* fatal error */ 
+		if (verbose >= 1)
+			printf("card %d up to date\n", i);
+	}
+	return 0; 
 }

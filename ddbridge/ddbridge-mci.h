@@ -148,10 +148,11 @@
 #define M4_CMD_GET_IDS            (0x51)
 #define M4_CMD_GET_DVBT_TPS       (0x52)
 #define MCI_CMD_GET_BBHEADER      (0x53)
-#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 #define M4_CMD_GET_ISDBT_TMCC     (0x54)
 #define M4_CMD_GET_ISDBS_TMCC     (0x55)
 #define M4_CMD_GET_ISDBC_TSMF     (0x56)
+
+#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 
 #define M4_L1INFO_SEL_PRE         (0)
 #define M4_L1INFO_SEL_DSINFO      (1)
@@ -180,6 +181,7 @@
 #define M4_SIGNALINFO_FLAG_CHANGE (0x01)
 #define M4_SIGNALINFO_FLAG_EWS    (0x02)
 
+#define SX8_ROLLOFF_35  0
 #define SX8_ROLLOFF_25  1
 #define SX8_ROLLOFF_20  2
 #define SX8_ROLLOFF_15  5
@@ -205,7 +207,7 @@ struct mci_command {
 		u32 params[31];
 		struct {
 			u8  flags; /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled,
-				      6: FrequencyRange, 7: InputStreamID */
+				      5: ChannelBonding, 6: FrequencyRange, 7: InputStreamID */
 			u8  s2_modulation_mask; /* Bit 0 : QPSK, 1: 8PSK/8APSK,
 						   2 : 16APSK, 3: 32APSK, 4: 64APSK,
 						   5: 128APSK, 6: 256APSK */
@@ -217,6 +219,9 @@ struct mci_command {
 			u8  rsvd2[3];
 			u32 scrambling_sequence_index;
 			u32 frequency_range;
+			u8  channel_bonding_config; /* Bit 7: IsSlave,  Bit 5..4: MasterDemod,
+						       bit 0:  Num channels - 2. 
+						       (must be set on all channels to same value) */
 		} dvbs2_search;
 
 		struct {
@@ -306,11 +311,10 @@ struct mci_command {
 			u16  point;
 		} get_iq_symbol;
 
-
 		struct {
 			uint8_t   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
-					     Bit 1: 1 = Disable AGC, Bit 2:
-					     1 = Set Gain.   */
+					     Bit 1: 1 = Disable AGC,
+					     Bit 2: 1 = Set Gain.   */
 			uint8_t   roll_off;
 			uint8_t   rsvd1;
 			uint8_t   rsvd2;
@@ -319,7 +323,7 @@ struct mci_command {
 			uint8_t   gain;         /* Gain in 0.25 dB Steps */
 			/* Frequency, symbolrate and gain can be schanged while running */
 		} sx8_start_iq;
-		
+	
 		struct {
 			uint8_t   flags;
                         /*   Bit 0:1 Preamp Mode;  0 = Preamp AGC, 1 == Minimum (~ -17dB) ,
@@ -392,6 +396,21 @@ struct mci_result {
 			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;		
 		} dvbs2_signal_info;
+
+		struct {
+			u8  modcod;
+			u8  rsvd0[2];
+			u8  flags;             /* Bit 0: TMCC changed, Bit 1: EWS */
+			u32 frequency;         /* actual frequency in Hz */
+			u32 symbol_rate;       /* actual symbolrate in Hz */
+			s16 channel_power;     /* channel power in dBm x 100 */
+			s16 band_power;        /*/ band power in dBm x 100 */
+			s16 signal_to_noise;   /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
+			s16 rsvd2;
+			u32 packet_errors;     /* Counter for packet errors. (set to 0 on Start command) */
+			u32 ber_numerator;     /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
+			u32 ber_denominator;		
+		} isdbs_signal_info;
 
 		struct {
 			u8  constellation;
@@ -644,14 +663,13 @@ struct mci_result {
 			u8  min_input_stream_id;
 			u8  max_input_stream_id;
 		} BBHeader;
-		
+
 		struct {
 			u8  Mode;          // FFT Mode   1,2,3
-			u8  GuardInterval; // 1/32, 1/16, 1/8, /14   
-			
-			u8  TMCCInfo[13];      // TMCC B20 - B121,  byte 0 bit 7: B20,  byte 12 bit 2: B121 
+			u8  GuardInterval; // 1/32, 1/16, 1/8, /14
+			u8  TMCCInfo[13];  // TMCC B20 - B121,  byte 0 bit 7: B20,  byte 12 bit 2: B121
 		} ISDBT_TMCCInfo;
-		
+
 		struct {
 			u8   Change;  // 5 bits, increments with every change
 			struct {
@@ -710,7 +728,7 @@ struct mci_result {
 
 /* DVB-T2 L1-Post Signalling Data   ( ETSI EN 302 755 V1.4.1 Chapter 7.2.3 ) */
 
-#define L1POST_SUB_SLICES_PER_FRAME(p)     (((u16)(p)[ 0] & 0x7F) | (p)[ 1])
+#define L1POST_SUB_SLICES_PER_FRAME(p)     (((u16)(p)[0] & 0x7F) | (p)[1])
 #define L1POST_NUM_PLP(p)                  ((p)[2] & 0xFF)
 #define L1POST_NUM_AUX(p)                  ((p)[3] & 0x0F)
 #define L1POST_AUX_CONFIG_RFU(p)           ((p)[4] & 0xFF)
@@ -750,8 +768,6 @@ struct mci_base {
 	void                *key;
 	struct ddb_link     *link;
 	struct completion    completion;
-	struct i2c_adapter  *i2c;
-	struct mutex         i2c_lock;
 	struct mutex         tuner_lock;
 	struct mutex         mci_lock;
 	int                  count;
@@ -759,6 +775,7 @@ struct mci_base {
 };
 
 struct mci {
+	struct ddb_io       *input;
 	struct mci_base     *base;
 	struct dvb_frontend  fe;
 	int                  nr;
@@ -786,5 +803,8 @@ int ddb_mci_get_snr(struct dvb_frontend *fe);
 int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
 void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
+
+extern struct mci_cfg ddb_max_sx8_cfg;
+extern struct mci_cfg ddb_max_m4_cfg;
 
 #endif

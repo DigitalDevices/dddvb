@@ -26,7 +26,7 @@
 #include <linux/slab.h>
 #include <linux/string.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 
 #include "stv6110x_reg.h"
 #include "stv6110x.h"
@@ -345,10 +345,10 @@ static void stv6110x_release(struct dvb_frontend *fe)
 
 static const struct dvb_tuner_ops stv6110x_ops = {
 	.info = {
-		.name		= "STV6110(A) Silicon Tuner",
-		.frequency_min	=  950000,
-		.frequency_max	= 2150000,
-		.frequency_step	= 0,
+		.name		   = "STV6110(A) Silicon Tuner",
+		.frequency_min_hz  =  950000000,
+		.frequency_max_hz  = 2150000000,
+		.frequency_step_hz = 0,
 	},
 	.release		= stv6110x_release
 };

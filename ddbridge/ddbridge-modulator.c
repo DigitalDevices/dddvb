@@ -435,7 +435,7 @@ static int mod_setup_max2871(struct ddb *dev, u32 *reg)
 
 			if (j == 4)
 				val &= 0xFFFFFEDF;
-			status = mod_write_max2871(dev, reg[j]);
+			status = mod_write_max2871(dev, val);
 			if (status)
 				break;
 			msleep(30);
@@ -1516,11 +1516,12 @@ static int mod3_set_ari(struct ddb_mod *mod, u32 rate)
 
 static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 {
-	u32 cic, inc;
-	
+	u32 cic, inc, bypass = 0;
+
 	switch (rate) {
+		/* 2^31 * freq*4*cic / 245.76Mhz */
 	case SYS_DVBT_6:
-		inc = 1917396114;
+		inc = 0x72492492;
 		cic = 8;
 		break;
 	case SYS_DVBT_7:
@@ -1532,15 +1533,45 @@ static int mod3_set_sample_rate(struct ddb_mod *mod, u32 rate)
 		inc = 1917396114;
 		cic = 6;
 		break;
+	case SYS_DVBC_6900:
+		inc = 0x73000000; //1929379840;
+		cic = 8;
+		break;
+	case 9:
+		inc = 0x47e00000; //1929379840;
+		cic = 10;
+		bypass = 2;
+		break;
+
+	case SYS_J83B_64_6: /* 5056941  */
+		inc = 0x695a5a1d;
+		cic = 10;
+		break;
+	case SYS_J83B_256_6: /* 5360537  */
+		inc = 0x6fad87da;
+		cic = 10;
+		break;
+		
 	case SYS_ISDBT_6:
-		inc = 1988410754;
+		inc = 0x7684BD82; //1988410754;
 		cic = 7;
+		break;
+	case SYS_DVBS2_22:
+		inc = 0x72955555; // 1922389333;
+		cic = 5;
+		bypass = 2;
+		break;
+	case SYS_DVBS2_24:
+		inc = 0x7d000000;
+		cic = 5;
+		bypass = 2;
 		break;
 	default:
 		return -EINVAL;
 	}
 	ddbwritel(mod->port->dev, inc, SDR_CHANNEL_ARICW(mod->port->nr));
-	ddbwritel(mod->port->dev, cic << 8, SDR_CHANNEL_CONFIG(mod->port->nr));
+	ddbwritel(mod->port->dev, (cic << 8) | (bypass << 4),
+		  SDR_CHANNEL_CONFIG(mod->port->nr));
 	return 0;
 }
 
@@ -1870,7 +1901,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, RFDAC_CMD_RESET, RFDAC_CONTROL);
 	for (i = 0; i < 10; i++) {
 		msleep(20);
@@ -1880,7 +1911,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, RFDAC_CMD_SETUP, RFDAC_CONTROL);
 	for (i = 0; i < 10; i++) {
 		msleep(20);
@@ -1890,7 +1921,7 @@ static int rfdac_init(struct ddb *dev)
 	}
 	if (tmp & 0x80)
 		return -1;
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	ddbwritel(dev, 0x01, JESD204B_BASE);
 	for (i = 0; i < 400; i++) {
 		msleep(20);
@@ -1898,7 +1929,7 @@ static int rfdac_init(struct ddb *dev)
 		if ((tmp & 0xc0000000) == 0xc0000000)
 			break;
 	}
-	dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
+	//dev_info(dev->dev, "sync %d:%08x\n", i, tmp);
 	if ((tmp & 0xc0000000) != 0xc0000000)
 		return -1;
 	return 0;

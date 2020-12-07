@@ -329,7 +329,7 @@ int ddb_ci_attach(struct ddb_port *port, u32 bitrate)
 	case DDB_CI_EXTERNAL_XO2_B:
 		ci_xo2_attach(port);
 		break;
-		
+
 	case DDB_CI_INTERNAL:
 		ci_attach(port);
 		break;

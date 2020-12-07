@@ -32,7 +32,7 @@
 #include <linux/version.h>
 #include <asm/div64.h>
 
-#include "dvb_frontend.h"
+#include <media/dvb_frontend.h>
 
 #ifndef CHK_ERROR
 #define CHK_ERROR(s) if ((status = s) < 0) break
@@ -889,9 +889,9 @@ static int get_bandwidth(struct dvb_frontend *fe, u32 *bandwidth)
 static struct dvb_tuner_ops tuner_ops = {
 	.info = {
 		.name = "NXP TDA18212",
-		.frequency_min  =  47125000,
-		.frequency_max  = 865000000,
-		.frequency_step =     62500
+		.frequency_min_hz  =  47125000,
+		.frequency_max_hz  = 865000000,
+		.frequency_step_hz =     62500
 	},
 	.init              = init,
 	.sleep             = sleep,

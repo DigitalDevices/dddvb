@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*
  * ddbridge-mci.c: Digital Devices microcode interface
  *
@@ -38,7 +39,7 @@ static int mci_reset(struct mci *state)
 	msleep(300);
 	ddblwritel(link, 0, MCI_CONTROL);
 
-	while(1) {
+	while (1) {
 		status = ddblreadl(link, MCI_CONTROL);
 		if ((status & MCI_CONTROL_READY) == MCI_CONTROL_READY)
 			break;
@@ -46,7 +47,7 @@ static int mci_reset(struct mci *state)
 			break;
 		msleep(50);
 	}
-	if ((status & MCI_CONTROL_READY) == 0 )
+	if ((status & MCI_CONTROL_READY) == 0)
 		return -1;
 	if (link->ids.device == 0x0009  || link->ids.device == 0x000b)
 		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
@@ -71,7 +72,7 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 	struct ddb_link *link = state->base->link;
 	u32 i, val;
 	unsigned long stat;
-	
+
 	val = ddblreadl(link, MCI_CONTROL);
 	if (val & (MCI_CONTROL_RESET | MCI_CONTROL_START_COMMAND))
 		return -EIO;
@@ -80,19 +81,21 @@ static int ddb_mci_cmd_raw_unlocked(struct mci *state,
 			ddblwritel(link, cmd[i], MCI_COMMAND + i * 4);
 	val |= (MCI_CONTROL_START_COMMAND | MCI_CONTROL_ENABLE_DONE_INTERRUPT);
 	ddblwritel(link, val, MCI_CONTROL);
-	
+
 	stat = wait_for_completion_timeout(&state->base->completion, HZ);
 	if (stat == 0) {
 		u32 istat = ddblreadl(link, INTERRUPT_STATUS);
 
-		printk("MCI timeout\n");
+		dev_err(state->base->link->dev->dev, "MCI timeout\n");
 		val = ddblreadl(link, MCI_CONTROL);
 		if (val == 0xffffffff) {
-			printk("Lost PCIe link!\n");
+			dev_err(state->base->link->dev->dev,
+				"Lost PCIe link!\n");
 			return -EIO;
 		} else {
-			printk("DDBridge IRS %08x link %u\n", istat, link->nr);
-			if (istat & 1) 
+			dev_err(state->base->link->dev->dev,
+				"DDBridge IRS %08x link %u\n", istat, link->nr);
+			if (istat & 1)
 				ddblwritel(link, istat, INTERRUPT_ACK);
 			if (link->nr)
 				ddbwritel(link->dev, 0xffffff, INTERRUPT_ACK);
@@ -110,7 +113,7 @@ int ddb_mci_cmd_unlocked(struct mci *state,
 {
 	u32 *cmd = (u32 *) command;
 	u32 *res = (u32 *) result;
-	
+
 	return ddb_mci_cmd_raw_unlocked(state, cmd, sizeof(*command)/sizeof(u32),
 					res, sizeof(*result)/sizeof(u32));
 }
@@ -141,7 +144,7 @@ int ddb_mci_cmd_raw(struct mci *state,
 		    struct mci_result *result, u32 result_len)
 {
 	int stat;
-	
+
 	mutex_lock(&state->base->mci_lock);
 	stat = ddb_mci_cmd_raw_unlocked(state,
 					(u32 *)command, command_len,
@@ -186,8 +189,7 @@ int ddb_mci_get_snr(struct dvb_frontend *fe)
 
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = (s64) mci->
-		signal_info.dvbs2_signal_info.signal_to_noise * 10;
+	p->cnr.stat[0].svalue = (s64) mci->signal_info.dvbs2_signal_info.signal_to_noise * 10;
 	return 0;
 }
 
@@ -249,7 +251,7 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 		ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_10,
 		ROLLOFF_5, ROLLOFF_15, ROLLOFF_35, ROLLOFF_35
 	};
-	
+
 	p->frequency =
 		mci->signal_info.dvbs2_signal_info.frequency;
 	switch (p->delivery_system) {
@@ -259,23 +261,31 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	{
 		u32 pls_code =
 			mci->signal_info.dvbs2_signal_info.pls_code;
-		
 		p->frequency =
 			mci->signal_info.dvbs2_signal_info.frequency / 1000;
 		p->delivery_system =
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
 		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
-			u32 modcod = (0x7c & pls_code) >> 2;
-			
+			u32 modcod;
+
 			p->delivery_system = SYS_DVBS2;
-			p->rolloff =
-				ro_lut[mci->signal_info.
-				       dvbs2_signal_info.roll_off & 7];
-			p->pilot = (pls_code & 1) ? PILOT_ON : PILOT_OFF;
-			p->fec_inner = modcod2fec[modcod];
-			p->modulation = modcod2mod[modcod];
 			p->transmission_mode = pls_code;
+			p->rolloff =
+				ro_lut[mci->signal_info.dvbs2_signal_info.roll_off & 7];
+			p->pilot = (pls_code & 1) ? PILOT_ON : PILOT_OFF;
+			if (pls_code & 0x80) {
+				/* no suitable values defined in Linux DVB API yet */
+				/* modcod = (0x7f & pls_code) >> 1; */
+				p->fec_inner = FEC_NONE;
+				p->modulation = 0;
+				if (pls_code >= 250)
+					p->pilot = PILOT_ON;
+			} else {
+				modcod = (0x7c & pls_code) >> 2;
+				p->fec_inner = modcod2fec[modcod];
+				p->modulation = modcod2mod[modcod];
+			}
 		} else {
 			p->delivery_system = SYS_DVBS;
 			p->rolloff = ROLLOFF_35;
@@ -314,8 +324,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = (s64) mci->
-		signal_info.dvbs2_signal_info.signal_to_noise * 10;
+	p->cnr.stat[0].svalue = (s64)
+		mci->signal_info.dvbs2_signal_info.signal_to_noise * 10;
 
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
@@ -388,6 +398,7 @@ struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg
 	state->nr = nr;
 	state->demod = nr;
 	state->tuner = tuner;
+	state->input = input;
 	if (cfg->init)
 		cfg->init(state);
 	return &state->fe;
