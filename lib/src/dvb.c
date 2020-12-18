@@ -128,7 +128,7 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 	}
 	if (input != DDDVB_UNDEF)
 		set_property(fd, DTV_INPUT, input);
-	fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
+	//fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF)
 		set_property(fd, DTV_BANDWIDTH_HZ, fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
@@ -320,11 +320,12 @@ static int tune_sat(struct dddvb_fe *fe)
 	} else {
 		uint32_t input = lnb;
 
-		if (input != DDDVB_UNDEF)
-			input = 3 & (input >> 6);
+		//if (input != DDDVB_UNDEF)
+		//	input = 3 & (input >> 6);
 		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
 	}
 }
 
