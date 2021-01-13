@@ -294,6 +294,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 		p->delivery_system =
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
+		p->inversion = (mci->signal_info.dvbs2_signal_info.roll_off & 0x80) ?
+			INVERSION_ON : INVERSION_OFF;
 		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
 			u32 modcod;
 
