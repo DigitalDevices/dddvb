@@ -177,7 +177,12 @@ void ddbcpyto(struct ddb *dev, u32 adr, void *src, long count)
 
 void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 {
+	return gtlcpyfrom(dev, dst, adr, count);
+	/*  The possible 64 bit read in memcpy_fromio produces errors
+	    on some platforms, i.e. arm64 rpi4
 	if (unlikely(adr & 0xf0000000))
 		return gtlcpyfrom(dev, dst, adr, count);
-	return memcpy_fromio(dst, dev->regs + adr, count);
+        return memcpy_fromio(dst, dev->regs + adr, count);
+	*/
+
 }
