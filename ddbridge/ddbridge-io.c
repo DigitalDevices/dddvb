@@ -139,8 +139,8 @@ void gtlcpyfrom(struct ddb *dev, u8 *buf, u32 adr, long count)
 	u32 a = p & 3;
 
 	if (a) {
-		val = ddbreadl(dev, p) >> (8 * a);
-		while (p & 3 && count) {
+		val = ddbreadl(dev, p & ~3) >> (8 * a);
+		while ((p & 3) && count) {
 			*buf = val & 0xff;
 			val >>= 8;
 			p++;
