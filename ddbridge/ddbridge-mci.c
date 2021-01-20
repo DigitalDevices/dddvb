@@ -28,150 +28,177 @@
 
 static LIST_HEAD(mci_list);
 
-static int mci_reset(struct mci *state)
+static int mci_reset(struct ddb_link *link)
 {
-	struct ddb_link *link = state->base->link;
+	const struct ddb_regmap *regmap = link->info->regmap;
+	u32 control;
 	u32 status = 0;
 	u32 timeout = 40;
 
-	ddblwritel(link, MCI_CONTROL_RESET, MCI_CONTROL);
-	ddblwritel(link, 0, MCI_CONTROL + 4); /* 1= no internal init */
-	msleep(300);
-	ddblwritel(link, 0, MCI_CONTROL);
+	if (!regmap || ! regmap->mci)
+		return -EINVAL;
+	control = regmap->mci->base;
 
+	if ((link->info->type == DDB_OCTOPUS_MCI) &&
+	    (ddblreadl(link, control) & MCI_CONTROL_START_COMMAND)) {
+		ddblwritel(link, MCI_CONTROL_RESET, control);
+		ddblwritel(link, 0, control + 4); /* 1= no internal init */
+		msleep(300);
+	}
+	ddblwritel(link, 0, control);
 	while (1) {
-		status = ddblreadl(link, MCI_CONTROL);
+		status = ddblreadl(link, control);
 		if ((status & MCI_CONTROL_READY) == MCI_CONTROL_READY)
 			break;
 		if (--timeout == 0)
 			break;
 		msleep(50);
 	}
-	if ((status & MCI_CONTROL_READY) == 0)
+	dev_info(link->dev->dev, "MCI control port @ %08x\n", control);
+	if ((status & MCI_CONTROL_READY) == 0) {
+		dev_err(link->dev->dev, "MCI init failed!\n");
 		return -1;
-	if (link->ids.device == 0x0009  || link->ids.device == 0x000b)
-		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
+	}
+	dev_info(link->dev->dev, "MCI port OK, init time %u msecs\n", (40-timeout)*50);
 	return 0;
 }
 
-int ddb_mci_config(struct mci *state, u32 config)
-{
-	struct ddb_link *link = state->base->link;
-
-	if (link->ids.device != 0x0009  && link->ids.device != 0x000b)
-		return -EINVAL;
-	ddblwritel(link, config, SX8_TSCONFIG);
-	return 0;
-}
-
-
-static int ddb_mci_cmd_raw_unlocked(struct mci *state,
+static int ddb_mci_cmd_raw_unlocked(struct ddb_link *link,
 				    u32 *cmd, u32 cmd_len,
 				    u32 *res, u32 res_len)
 {
-	struct ddb_link *link = state->base->link;
+	const struct ddb_regmap *regmap = link->info->regmap;
+	u32 control, command, result;
 	u32 i, val;
 	unsigned long stat;
 
-	val = ddblreadl(link, MCI_CONTROL);
+	if (!regmap || ! regmap->mci)
+		return -EINVAL;
+	control = regmap->mci->base;
+	command = regmap->mci_buf->base;
+	result = command + MCI_COMMAND_SIZE;
+	val = ddblreadl(link, control);
 	if (val & (MCI_CONTROL_RESET | MCI_CONTROL_START_COMMAND))
 		return -EIO;
 	if (cmd && cmd_len)
 		for (i = 0; i < cmd_len; i++)
-			ddblwritel(link, cmd[i], MCI_COMMAND + i * 4);
-	val |= (MCI_CONTROL_START_COMMAND | MCI_CONTROL_ENABLE_DONE_INTERRUPT);
-	ddblwritel(link, val, MCI_CONTROL);
+			ddblwritel(link, cmd[i], command + i * 4);
+	val |= (MCI_CONTROL_START_COMMAND |
+		MCI_CONTROL_ENABLE_DONE_INTERRUPT);
+	ddblwritel(link, val, control);
 
-	stat = wait_for_completion_timeout(&state->base->completion, HZ);
+	stat = wait_for_completion_timeout(&link->mci_completion, HZ);
 	if (stat == 0) {
 		u32 istat = ddblreadl(link, INTERRUPT_STATUS);
 
-		dev_err(state->base->link->dev->dev, "MCI timeout\n");
-		val = ddblreadl(link, MCI_CONTROL);
+		dev_err(link->dev->dev, "MCI timeout\n");
+		val = ddblreadl(link, control);
 		if (val == 0xffffffff) {
-			dev_err(state->base->link->dev->dev,
+			dev_err(link->dev->dev,
 				"Lost PCIe link!\n");
 			return -EIO;
 		} else {
-			dev_err(state->base->link->dev->dev,
-				"DDBridge IRS %08x link %u\n", istat, link->nr);
+			dev_err(link->dev->dev,
+				"DDBridge IRS %08x link %u\n",
+				istat, link->nr);
 			if (istat & 1)
 				ddblwritel(link, istat, INTERRUPT_ACK);
 			if (link->nr)
-				ddbwritel(link->dev, 0xffffff, INTERRUPT_ACK);
+				ddbwritel(link->dev,
+					  0xffffff, INTERRUPT_ACK);
 		}
 	}
 	if (res && res_len)
 		for (i = 0; i < res_len; i++)
-			res[i] = ddblreadl(link, MCI_RESULT + i * 4);
+			res[i] = ddblreadl(link, result + i * 4);
 	return 0;
 }
 
-int ddb_mci_cmd_unlocked(struct mci *state,
-			 struct mci_command *command,
-			 struct mci_result *result)
+int ddb_mci_cmd_link(struct ddb_link *link,
+		     struct mci_command *command,
+		     struct mci_result *result)
 {
-	u32 *cmd = (u32 *) command;
-	u32 *res = (u32 *) result;
-
-	return ddb_mci_cmd_raw_unlocked(state, cmd, sizeof(*command)/sizeof(u32),
-					res, sizeof(*result)/sizeof(u32));
-}
-
-int ddb_mci_cmd(struct mci *state,
-		struct mci_command *command,
-		struct mci_result *result)
-{
-	int stat;
 	struct mci_result res;
+	int stat;
 
 	if (!result)
 		result = &res;
-	mutex_lock(&state->base->mci_lock);
-	stat = ddb_mci_cmd_raw_unlocked(state,
-				 (u32 *)command, sizeof(*command)/sizeof(u32),
-				 (u32 *)result, sizeof(*result)/sizeof(u32));
-	mutex_unlock(&state->base->mci_lock);
+	mutex_lock(&link->mci_lock);
+	stat = ddb_mci_cmd_raw_unlocked(link,
+					(u32 *)command,
+					sizeof(*command)/sizeof(u32),
+					(u32 *)result,
+					sizeof(*result)/sizeof(u32));
+	mutex_unlock(&link->mci_lock);
 	if (command && result && (result->status & 0x80))
-		dev_warn(state->base->link->dev->dev,
+		dev_warn(link->dev->dev,
 			 "mci_command 0x%02x, error=0x%02x\n",
 			 command->command, result->status);
 	return stat;
 }
 
+static void mci_handler(void *priv)
+{
+	struct ddb_link *link = (struct ddb_link *) priv;
+
+	complete(&link->mci_completion);
+}
+
+int mci_init(struct ddb_link *link)
+{
+	int result;
+	
+	mutex_init(&link->mci_lock);
+	init_completion(&link->mci_completion);
+	result = mci_reset(link);
+	if (result < 0)
+		return result;
+	if (link->ids.device == 0x0009  || link->ids.device == 0x000b)
+		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
+	
+	ddb_irq_set(link->dev, link->nr,
+		    link->info->regmap->irq_base_mci,
+		    mci_handler, link);
+	link->mci_ok = 1;
+	return result;
+}
+
+int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val)
+{
+	struct mci_result result;
+	struct mci_command command = {
+		.command_word = cmd,
+		.params = { val },
+	};
+
+	return ddb_mci_cmd_link(link, &command, &result);
+}
+
+/****************************************************************************/
+/****************************************************************************/
+
+int ddb_mci_cmd(struct mci *state,
+		struct mci_command *command,
+		struct mci_result *result)
+{
+	return ddb_mci_cmd_link(state->base->link, command, result);
+}
+
+
 int ddb_mci_cmd_raw(struct mci *state,
 		    struct mci_command *command, u32 command_len,
 		    struct mci_result *result, u32 result_len)
 {
+	struct ddb_link *link = state->base->link;
 	int stat;
 
-	mutex_lock(&state->base->mci_lock);
-	stat = ddb_mci_cmd_raw_unlocked(state,
+	mutex_lock(&link->mci_lock);
+	stat = ddb_mci_cmd_raw_unlocked(link,
 					(u32 *)command, command_len,
 					(u32 *)result, result_len);
-	mutex_unlock(&state->base->mci_lock);
+	mutex_unlock(&link->mci_lock);
 	return stat;
 }
-
-#if 0
-static int ddb_mci_get_iq(struct mci *mci, u32 demod, s16 *i, s16 *q)
-{
-	int stat;
-	struct mci_command cmd;
-	struct mci_result res;
-
-	memset(&cmd, 0, sizeof(cmd));
-	memset(&res, 0, sizeof(res));
-	cmd.command = MCI_CMD_GET_IQSYMBOL;
-	cmd.demod = demod;
-	stat = ddb_mci_cmd(mci, &cmd, &res);
-	if (!stat) {
-		*i = res.iq_symbol.i;
-		*q = res.iq_symbol.q;
-	}
-	return stat;
-}
-#endif
 
 int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
 {
@@ -189,7 +216,8 @@ int ddb_mci_get_snr(struct dvb_frontend *fe)
 
 	p->cnr.len = 1;
 	p->cnr.stat[0].scale = FE_SCALE_DECIBEL;
-	p->cnr.stat[0].svalue = (s64) mci->signal_info.dvbs2_signal_info.signal_to_noise * 10;
+	p->cnr.stat[0].svalue =
+		(s64) mci->signal_info.dvbs2_signal_info.signal_to_noise * 10;
 	return 0;
 }
 
@@ -266,6 +294,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 		p->delivery_system =
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
+		p->inversion = (mci->signal_info.dvbs2_signal_info.roll_off & 0x80) ?
+			INVERSION_ON : INVERSION_OFF;
 		if (mci->signal_info.dvbs2_signal_info.standard == 2) {
 			u32 modcod;
 
@@ -306,6 +336,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	case SYS_ISDBT:
 		break;
 	}
+	/* post is correct, we cannot provide both pre and post at the same time  */
+	/* set pre and post the same for now */
 	p->pre_bit_error.len = 1;
 	p->pre_bit_error.stat[0].scale = FE_SCALE_COUNTER;
 	p->pre_bit_error.stat[0].uvalue =
@@ -314,6 +346,16 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	p->pre_bit_count.len = 1;
 	p->pre_bit_count.stat[0].scale = FE_SCALE_COUNTER;
 	p->pre_bit_count.stat[0].uvalue =
+		mci->signal_info.dvbs2_signal_info.ber_denominator;
+
+	p->post_bit_error.len = 1;
+	p->post_bit_error.stat[0].scale = FE_SCALE_COUNTER;
+	p->post_bit_error.stat[0].uvalue =
+		mci->signal_info.dvbs2_signal_info.ber_numerator;
+
+	p->post_bit_count.len = 1;
+	p->post_bit_count.stat[0].scale = FE_SCALE_COUNTER;
+	p->post_bit_count.stat[0].uvalue =
 		mci->signal_info.dvbs2_signal_info.ber_denominator;
 
 	p->block_error.len = 1;
@@ -329,15 +371,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 
 	p->strength.len = 1;
 	p->strength.stat[0].scale = FE_SCALE_DECIBEL;
-	p->strength.stat[0].svalue =
+	p->strength.stat[0].svalue = (s64)
 		mci->signal_info.dvbs2_signal_info.channel_power * 10;
-}
-
-static void mci_handler(void *priv)
-{
-	struct mci_base *base = (struct mci_base *)priv;
-
-	complete(&base->completion);
 }
 
 static struct mci_base *match_base(void *key)
@@ -350,13 +385,8 @@ static struct mci_base *match_base(void *key)
 	return NULL;
 }
 
-static int probe(struct mci *state)
-{
-	mci_reset(state);
-	return 0;
-}
-
-struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr, int tuner)
+struct dvb_frontend *ddb_mci_attach(struct ddb_input *input,
+				    struct mci_cfg *cfg, int nr, int tuner)
 {
 	struct ddb_port *port = input->port;
 	struct ddb *dev = port->dev;
@@ -380,12 +410,11 @@ struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg
 		base->key = key;
 		base->count = 1;
 		base->link = link;
-		mutex_init(&base->mci_lock);
+		link->mci_base = base;
 		mutex_init(&base->tuner_lock);
-		ddb_irq_set(dev, link->nr, 0, mci_handler, base);
-		init_completion(&base->completion);
 		state->base = base;
-		if (probe(state) < 0) {
+
+		if (!link->mci_ok) {
 			kfree(base);
 			goto fail;
 		}

@@ -128,7 +128,7 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 	}
 	if (input != DDDVB_UNDEF)
 		set_property(fd, DTV_INPUT, input);
-	fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
+	//fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF)
 		set_property(fd, DTV_BANDWIDTH_HZ, fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
@@ -320,11 +320,12 @@ static int tune_sat(struct dddvb_fe *fe)
 	} else {
 		uint32_t input = lnb;
 
-		if (input != DDDVB_UNDEF)
-			input = 3 & (input >> 6);
+		//if (input != DDDVB_UNDEF)
+		//	input = 3 & (input >> 6);
 		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
 	}
 }
 
@@ -509,6 +510,32 @@ static int tune_isdbt(struct dddvb_fe *fe)
 	return 0;
 }
 
+static int tune_isdbs(struct dddvb_fe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ]},
+		//{ .cmd = DTV_SYMBOL_RATE, .u.data = fe->param.param[PARAM_SR] },
+		//{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ISDBS);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
+		set_property(fe->fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
+	set_property(fe->fd, DTV_TUNE, 0);
+	return 0;
+}
+
 static int tune(struct dddvb_fe *fe)
 {
 	int ret;
@@ -536,6 +563,9 @@ static int tune(struct dddvb_fe *fe)
 		break;
 	case SYS_ISDBT:
 		ret = tune_isdbt(fe);
+		break;
+	case SYS_ISDBS:
+		ret = tune_isdbs(fe);
 		break;
 	default:
 		break;
@@ -678,7 +708,7 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 			} else {
 				max = 1;
 				nolock++;
-				if (nolock > 100)
+				if (nolock > 10)
 					fe->tune = 1;
 			}
 			break;

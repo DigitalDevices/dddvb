@@ -124,6 +124,32 @@ static const struct ddb_regset octopus_i2c_buf = {
 
 /****************************************************************************/
 
+static const struct ddb_regset max_mci = {
+	.base = 0x500,
+	.num  = 0x01,
+	.size = 0x04,
+};
+
+static const struct ddb_regset max_mci_buf = {
+	.base = 0x600,
+	.num  = 0x01,
+	.size = 0x100,
+};
+
+static const struct ddb_regset sdr_mci = {
+	.base = 0x260,
+	.num  = 0x01,
+	.size = 0x04,
+};
+
+static const struct ddb_regset sdr_mci_buf = {
+	.base = 0x300,
+	.num  = 0x01,
+	.size = 0x100,
+};
+
+/****************************************************************************/
+
 static const struct ddb_regset octopro_input = {
 	.base = 0x400,
 	.num  = 0x14,
@@ -224,6 +250,25 @@ static const struct ddb_regmap octopus_map = {
 	.output = &octopus_output,
 };
 
+static const struct ddb_regmap octopus_mci_map = {
+	.irq_version = 1,
+	.irq_base_i2c = 0,
+	.irq_base_idma = 8,
+	.irq_base_odma = 16,
+	.irq_base_mci = 0,
+	.i2c = &octopus_i2c,
+	.i2c_buf = &octopus_i2c_buf,
+	.idma = &octopus_idma,
+	.idma_buf = &octopus_idma_buf,
+	.odma = &octopus_odma,
+	.odma_buf = &octopus_odma_buf,
+	.input = &octopus_input,
+	.output = &octopus_output,
+
+	.mci = &max_mci,
+	.mci_buf = &max_mci_buf,
+};
+
 static const struct ddb_regmap octopro_map = {
 	.irq_version = 2,
 	.irq_base_i2c = 32,
@@ -280,10 +325,14 @@ static const struct ddb_regmap octopus_sdr_map = {
 	.irq_version = 2,
 	.irq_base_odma = 64,
 	.irq_base_rate = 32,
+	.irq_base_mci = 10,
 	.output = &octopus_sdr_output,
 	.odma = &octopus_mod_2_odma,
 	.odma_buf = &octopus_mod_2_odma_buf,
 	.channel = &octopus_mod_2_channel,
+
+	.mci = &sdr_mci,
+	.mci_buf = &sdr_mci_buf,
 };
 
 static const struct ddb_regmap gtl_mini = {
@@ -537,6 +586,16 @@ static const struct ddb_info ddb_sdr_iq = {
 	.tempmon_irq = 8,
 };
 
+static const struct ddb_info ddb_sdr_iq2 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices SDR IQ2",
+	.version  = 17,
+	.regmap   = &octopus_sdr_map,
+	.port_num = 4,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
 static const struct ddb_info ddb_sdr_dvbt = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices DVBT",
@@ -568,7 +627,7 @@ static const struct ddb_info ddb_octopro = {
 static const struct ddb_info ddb_s2_48 = {
 	.type     = DDB_OCTOPUS_MAX,
 	.name     = "Digital Devices MAX S8 4/8",
-	.regmap   = &octopus_map,
+	.regmap   = &octopus_mci_map,
 	.port_num = 4,
 	.i2c_mask = 0x01,
 	.board_control = 1,
@@ -635,10 +694,12 @@ static const struct ddb_info ddb_c2t2i_8 = {
 	.tempmon_irq = 24,
 };
 
+/****************************************************************************/
+
 static const struct ddb_info ddb_s2x_48 = {
 	.type     = DDB_OCTOPUS_MCI,
 	.name     = "Digital Devices MAX SX8",
-	.regmap   = &octopus_map,
+	.regmap   = &octopus_mci_map,
 	.port_num = 4,
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
@@ -650,7 +711,7 @@ static const struct ddb_info ddb_s2x_48 = {
 static const struct ddb_info ddb_s2x_48_b = {
 	.type     = DDB_OCTOPUS_MCI,
 	.name     = "Digital Devices MAX SX8 Basic",
-	.regmap   = &octopus_map,
+	.regmap   = &octopus_mci_map,
 	.port_num = 4,
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
@@ -662,7 +723,7 @@ static const struct ddb_info ddb_s2x_48_b = {
 static const struct ddb_info ddb_m4 = {
 	.type     = DDB_OCTOPUS_MCI,
 	.name     = "Digital Devices MAX M4",
-	.regmap   = &octopus_map,
+	.regmap   = &octopus_mci_map,
 	.port_num = 2,
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
@@ -670,6 +731,8 @@ static const struct ddb_info ddb_m4 = {
 	.mci_type = 1,
 	.temp_num = 1,
 };
+
+/****************************************************************************/
 
 static const struct ddb_info ddb_gtl_mini = {
 	.type     = DDB_OCTOPUS,
@@ -813,6 +876,8 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr_atv),
 	DDB_DEVID(0x0221, 0x0001, ddb_sdr_iq),
 	DDB_DEVID(0x0222, 0x0001, ddb_sdr_dvbt),
+	DDB_DEVID(0x0223, 0x0001, ddb_sdr_iq2),
+	DDB_DEVID(0xffff, 0xffff, ddb_sdr_iq2),
 
 	/* testing on OctopusNet Pro */
 	DDB_DEVID(0x0320, 0xffff, ddb_octopro_hdin),

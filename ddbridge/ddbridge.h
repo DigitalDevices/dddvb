@@ -114,6 +114,7 @@ struct ddb_regmap {
 	u32 irq_base_odma;
 	u32 irq_base_gtl;
 	u32 irq_base_rate;
+	u32 irq_base_mci;
 
 	const struct ddb_regset *i2c;
 	const struct ddb_regset *i2c_buf;
@@ -127,6 +128,9 @@ struct ddb_regmap {
 
 	const struct ddb_regset *channel;
 	const struct ddb_regset *gtl;
+
+	const struct ddb_regset *mci;
+	const struct ddb_regset *mci_buf;
 };
 
 struct ddb_ids {
@@ -427,6 +431,9 @@ struct ddb_link {
 	struct ddb_irq         irq[256];
 
 	struct mci_base        *mci_base;
+	struct completion      mci_completion;
+	struct mutex           mci_lock;
+	int                    mci_ok;
 };
 
 struct ddb {

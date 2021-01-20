@@ -139,8 +139,8 @@ void gtlcpyfrom(struct ddb *dev, u8 *buf, u32 adr, long count)
 	u32 a = p & 3;
 
 	if (a) {
-		val = ddbreadl(dev, p) >> (8 * a);
-		while (p & 3 && count) {
+		val = ddbreadl(dev, p & ~3) >> (8 * a);
+		while ((p & 3) && count) {
 			*buf = val & 0xff;
 			val >>= 8;
 			p++;
@@ -177,7 +177,12 @@ void ddbcpyto(struct ddb *dev, u32 adr, void *src, long count)
 
 void ddbcpyfrom(struct ddb *dev, void *dst, u32 adr, long count)
 {
+	return gtlcpyfrom(dev, dst, adr, count);
+	/*  The possible 64 bit read in memcpy_fromio produces errors
+	    on some platforms, i.e. arm64 rpi4
 	if (unlikely(adr & 0xf0000000))
 		return gtlcpyfrom(dev, dst, adr, count);
-	return memcpy_fromio(dst, dev->regs + adr, count);
+        return memcpy_fromio(dst, dev->regs + adr, count);
+	*/
+
 }
