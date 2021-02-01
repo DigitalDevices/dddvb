@@ -557,7 +557,7 @@ static const struct ddb_info ddb_mod_fsm_8 = {
 
 static const struct ddb_info ddb_mod_fsm_4 = {
 	.type     = DDB_MOD,
-	.name     = "Digital Devices DVB-C modulator FSM-8",
+	.name     = "Digital Devices DVB-C modulator FSM-4",
 	.version  = 2,
 	.regmap   = &octopus_mod_2_map,
 	.port_num = 4,
