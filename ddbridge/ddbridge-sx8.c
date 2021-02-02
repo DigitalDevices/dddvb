@@ -484,7 +484,7 @@ static int set_parameters(struct dvb_frontend *fe)
 			state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
 		}
 	} else {
-		stat = start_iq(fe, 0xffffff, 4, ts_config);
+		stat = start_iq(fe, isi & 0xffffff, 4, ts_config);
 		if (!stat) {
 			state->iq_started = 1;
 			state->first_time_lock = 1;
