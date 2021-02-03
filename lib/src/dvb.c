@@ -954,6 +954,31 @@ void lnb_config(struct dddvb *dd, char *name, char *val)
 	}
 }
 
+void ca_config(struct dddvb *dd, char *name, char *val)
+{
+	if (!name || !val)
+		return;
+	char *p = strpbrk(val, "\r\n");
+	if (p)
+		*p = 0;
+	if (!strcasecmp(name, "family")) {
+		if (!strcasecmp(val, "tcp")) {
+			dd->cam_family = 1;
+		} else if (!strcasecmp(val, "unix")) {
+			dd->cam_family = 2;
+		}
+		return;
+	}
+	if (!strcasecmp(name, "proto")) {
+		dd->cam_proto = strtoul(val, NULL, 10);
+		return;
+	}
+	if (!strcasecmp(name, "port")) {
+		dd->cam_port = strtoul(val, NULL, 10);
+		return;
+	}
+}
+
 int dddvb_dvb_init(struct dddvb *dd)
 {
 	pthread_mutex_init(&dd->uni_lock, 0);
@@ -961,6 +986,23 @@ int dddvb_dvb_init(struct dddvb *dd)
 	parse_config(dd, "", "scif", &scif_config);
 	set_lnb(dd, 0, 0, 9750000, 10600000, 11700000);
 	parse_config(dd, "", "LNB", &lnb_config);
+	parse_config(dd, "", "CA", &ca_config);
+	{
+		if (dd->cam_family == 0)
+			dd->cam_family = 1;
+		if (dd->cam_proto == 0) {
+			switch (dd->cam_family) {
+				case 1:
+					dd->cam_proto = 1;
+					break;
+				case 2:
+					dd->cam_proto = 2;
+					break;
+			}
+		}
+		if (dd->cam_port == 0)
+			dd->cam_port = 8888;
+	}
 	scan_dvbca(dd);
 }
 

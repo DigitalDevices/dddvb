@@ -14,9 +14,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stddef.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <netdb.h>
 #include <net/if.h>
 #include <net/ethernet.h>
@@ -64,6 +66,32 @@ int streamsock(const char *port, int family, struct sockaddr *sadr)
 	}
 	freeaddrinfo(ais);
 	return sock;
+}
+
+int unixsock(const char *path)
+{
+	unlink(path);
+
+	struct sockaddr_un sa;
+	size_t hlen = offsetof(struct sockaddr_un, sun_path);
+	size_t pathlen = strlen(path);
+	if (pathlen > sizeof(sa.sun_path))
+		return(-1);
+	memset(&sa, 0, hlen);
+	sa.sun_family = AF_UNIX;
+	if (pathlen > 0)
+		memcpy(sa.sun_path, path, pathlen);
+
+	int sock = socket(AF_UNIX, SOCK_STREAM, 0);
+	if (sock == -1)
+		return(-1);
+
+	if (bind(sock, (struct sockaddr *) &sa, (socklen_t) (hlen + pathlen)) == -1) {
+		close(sock);
+		return(-1);
+	}
+
+	return(sock);
 }
 
 static int ai_callback(void *arg, uint8_t slot_id, uint16_t session_number,
@@ -357,10 +385,17 @@ static void handle_ci(struct dddvb_ca *ca)
 	int len;
 	int sock, i;
 	struct sockaddr sadr;
-	char port[6];
+	char port[6], path[32];
 
-	snprintf(port, sizeof(port), "%u", (uint16_t) (8888 + ca->nr));
-	sock = streamsock(port, AF_INET, &sadr);
+	if (ca->dd->cam_family == 1) {
+		snprintf(port, sizeof(port), "%u", (uint16_t) (8888 + ca->nr));
+		sock = streamsock(port, AF_INET, &sadr);
+	} else if (ca->dd->cam_family == 2) {
+		snprintf(path, sizeof(path), "/var/run/resiplayer/cam%u", ca->nr);
+		sock = unixsock(path);
+	} else {
+		sock = -1;
+	}
 	if (listen(sock, 4) < 0) {
 		dbgprintf(DEBUG_CA, "listen error");
 		return;
@@ -466,6 +501,8 @@ static int mmi_close_callback(void *arg, uint8_t slot_id, uint16_t snum,
 	struct dddvb_ca *ca = arg;
 	
 	ca->mmi_state = MMI_STATE_CLOSED;
+	if (ca->dd->cam_proto == 2)
+		sendstringx(ca->sock, "CLOSE", 0, NULL);
 	return 0;
 }
 
@@ -492,6 +529,8 @@ static int mmi_display_control_callback(void *arg, uint8_t slot_id, uint16_t snu
 	en50221_app_mmi_display_reply(ca->stdcam->mmi_resource, snum,
 				      MMI_DISPLAY_REPLY_ID_MMI_MODE_ACK, &reply);
 	ca->mmi_state = MMI_STATE_OPEN;
+	if (ca->dd->cam_proto == 2)
+		sendstringx(ca->sock, "OPEN", 0, NULL);
 	return 0;
 }
 
@@ -502,7 +541,10 @@ static int mmi_enq_callback(void *arg, uint8_t slot_id, uint16_t snum,
 	struct dddvb_ca *ca = arg;
 	
 	if (ca->sock >= 0) {
+		if (ca->dd->cam_proto == 1)
 			sendstring(ca->sock, "%.*s: ", text_size, text);
+		if (ca->dd->cam_proto == 2)
+			sendstringx(ca->sock, "ENQ", text_size, text);
 	}
 	//mmi_enq_blind = blind_answer;
 	//mmi_enq_length = expected_answer_length;
@@ -520,7 +562,7 @@ static int mmi_menu_callback(void *arg, uint8_t slot_id, uint16_t snum,
 	uint32_t i;
 	struct dddvb_ca *ca = arg;
 
-	if (ca->sock >= 0) {
+	if ((ca->sock >= 0) && (ca->dd->cam_proto == 1)) {
 		if (title->text_length) 
 			sendstring(ca->sock, "%.*s\n", title->text_length, title->text);
 		if (sub_title->text_length) 
@@ -529,6 +571,13 @@ static int mmi_menu_callback(void *arg, uint8_t slot_id, uint16_t snum,
 			sendstring(ca->sock, "%i. %.*s\n", i + 1, items[i].text_length, items[i].text);
 		if (bottom->text_length) 
 			sendstring(ca->sock, "%.*s\n", bottom->text_length, bottom->text);
+	}
+	if (ca->dd->cam_proto == 2) {
+		sendstringx(ca->sock, "MENU", title->text_length, title->text);
+		sendstringx(ca->sock, "MSUB", sub_title->text_length, sub_title->text);
+		for (i = 0; i < item_count; i++) 
+			sendstringx(ca->sock, "ITEM", items[i].text_length, items[i].text);
+		sendstringx(ca->sock, "MEND", bottom->text_length, bottom->text);
 	}
 	ca->mmi_state = MMI_STATE_MENU;
 	return 0;
