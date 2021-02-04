@@ -154,7 +154,8 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	return stat;
 }
 
-static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on)
+static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on,
+			 u8 flags, u8 gain)
 {
 	struct sx8 *state = fe->demodulator_priv;
 	struct mci_base *mci_base = state->mci.base;
@@ -164,7 +165,8 @@ static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on)
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.tuner = state->mci.tuner;
 	cmd.command = on ? SX8_CMD_INPUT_ENABLE : SX8_CMD_INPUT_DISABLE;
-	cmd.sx8_input_enable.flags = sx8_base->gain_mode[state->mci.tuner];
+	cmd.sx8_input_enable.flags = flags;//sx8_base->gain_mode[state->mci.tuner];
+	cmd.sx8_input_enable.rf_gain = gain;
 	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
@@ -187,7 +189,7 @@ static int stop_iq(struct dvb_frontend *fe)
 	mutex_lock(&mci_base->tuner_lock);
 	sx8_base->tuner_use_count[input]--;
         if (!sx8_base->tuner_use_count[input])
-		mci_set_tuner(fe, input, 0);
+		mci_set_tuner(fe, input, 0, 0, 0);
 	if (state->mci.demod != SX8_DEMOD_NONE) {
 		sx8_base->demod_in_use[state->mci.demod] = 0;
 		state->mci.demod = SX8_DEMOD_NONE;
@@ -225,7 +227,7 @@ static int stop(struct dvb_frontend *fe)
 	mutex_lock(&mci_base->tuner_lock);
 	sx8_base->tuner_use_count[input]--;
         if (!sx8_base->tuner_use_count[input])
-		mci_set_tuner(fe, input, 0);
+		mci_set_tuner(fe, input, 0, 0, 0);
 	if (state->mci.demod != SX8_DEMOD_NONE) {
 		sx8_base->demod_in_use[state->mci.demod] = 0;
 		state->mci.demod = SX8_DEMOD_NONE;
@@ -327,7 +329,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
         state->mci.demod = i;
 
         if (!sx8_base->tuner_use_count[input])
-		mci_set_tuner(fe, input, 1);
+		mci_set_tuner(fe, input, 1, 0, 0);
 	sx8_base->tuner_use_count[input]++;
 	sx8_base->iq_mode = (ts_config > 1);
 unlock:
@@ -400,8 +402,10 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 			goto unlock;
 		}
 		state->mci.demod = 0;
-		if (!sx8_base->tuner_use_count[input])
+		/*
+		  if (!sx8_base->tuner_use_count[input])
 			mci_set_tuner(fe, input, 1);
+		*/
 		sx8_base->tuner_use_count[input]++;
 		sx8_base->iq_mode = (ts_config > 1);
 	unlock:
@@ -409,13 +413,14 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 		if (stat)
 			return stat;
 	}
+	mci_set_tuner(fe, input, 1, flags & 0xff, 0);
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = SX8_CMD_START_IQ;
-	cmd.sx8_start_iq.flags = flags >> 8;
+	cmd.sx8_start_iq.flags = (flags >> 16) & 0xff;
 	cmd.sx8_start_iq.roll_off = roll_off;
 	cmd.sx8_start_iq.frequency = p->frequency * 1000;
 	cmd.sx8_start_iq.symbol_rate = p->symbol_rate;
-	cmd.sx8_start_iq.gain = flags & 0xff;
+	cmd.sx8_start_iq.gain = (flags >> 8) & 0xff;
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
@@ -479,7 +484,7 @@ static int set_parameters(struct dvb_frontend *fe)
 			state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
 		}
 	} else {
-		stat = start_iq(fe, (isi >> 8) & 0xffff, 4, ts_config);
+		stat = start_iq(fe, isi & 0xffffff, 4, ts_config);
 		if (!stat) {
 			state->iq_started = 1;
 			state->first_time_lock = 1;
