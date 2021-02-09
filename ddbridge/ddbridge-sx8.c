@@ -136,6 +136,10 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
 		return stat;
+	if (sx8_base->iq_mode >= 2) {
+		*status = 0x1f;
+		return stat;
+	}
 	*status = 0x00;
 	ddb_mci_get_info(&state->mci);
 	if (res.status == SX8_DEMOD_WAIT_MATYPE)
