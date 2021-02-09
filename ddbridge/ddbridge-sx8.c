@@ -411,7 +411,7 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 			mci_set_tuner(fe, input, 1);
 		*/
 		sx8_base->tuner_use_count[input]++;
-		sx8_base->iq_mode = (ts_config > 1);
+		sx8_base->iq_mode = 2;
 	unlock:
 		mutex_unlock(&mci_base->tuner_lock);
 		if (stat)
