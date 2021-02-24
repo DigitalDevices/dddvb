@@ -200,6 +200,7 @@ static int usage()
 	       "-n N\n  only update card N (default with N=0)\n\n"
 	       "-a \n   update all cards\n\n"
 	       "-b file\n  fpga image file override (ignored if -a is used)\n\n"
+	       "-f  \n  force  update\n\n"
 	       "-v \n   more verbose (up to -v -v -v)\n\n"
 		);
 }
