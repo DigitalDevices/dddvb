@@ -527,6 +527,18 @@ static void ddb_output_stop(struct ddb_output *output)
 	}
 }
 
+static void update_loss(struct ddb_dma *dma)
+{
+	struct ddb_input *input = (struct ddb_input *)dma->io;
+	u32 packet_loss = dma->packet_loss;
+	u32 cur_counter = ddbreadl(input->port->dev, TS_STAT(input)) & 0xffff;
+	
+	if (cur_counter < (packet_loss & 0xffff))
+		packet_loss += 0x10000;
+	packet_loss = ((packet_loss & 0xffff0000) | cur_counter);
+	dma->packet_loss = packet_loss;
+}
+
 static void ddb_input_stop_unlocked(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
