@@ -2290,7 +2290,7 @@ static void input_write_dvb(struct ddb_input *input,
 	}
 	while (dma->cbuf != ((dma->stat >> 11) & 0x1f) || (4 & dma->ctrl)) {
 		if (4 & dma->ctrl) {
-			/*dev_err(dev->dev, "Overflow dma %d\n", dma->nr);*/
+			dev_warn(dev->dev, "Overflow dma input %u\n", input->nr);
 			ack = 1;
 		}
 		if (alt_dma)
