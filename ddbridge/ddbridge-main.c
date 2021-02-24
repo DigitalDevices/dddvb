@@ -139,6 +139,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	ddb_buffers_free(dev);
 
 	ddb_unmap(dev);
+	pci_clear_master(pdev);
 	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
 }
