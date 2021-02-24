@@ -3457,8 +3457,6 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (msg.link > 3)
 			return -EFAULT;
 		link = &dev->link[msg.link];
-		if (!link->mci_base)
-			return -EFAULT;
 		res = ddb_mci_cmd_link(link, &msg.cmd, &msg.res);
 		if (copy_to_user(parg, &msg, sizeof(msg)))
 			return -EFAULT;
