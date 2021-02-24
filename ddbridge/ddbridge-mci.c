@@ -170,11 +170,17 @@ int mci_init(struct ddb_link *link)
 int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val)
 {
 	struct mci_result result;
+#if 0
 	struct mci_command command = {
 		.command_word = cmd,
 		.params = { val },
 	};
+#else
+	struct mci_command command;
 
+	command.command_word = cmd;
+	command.params[0] = val;
+#endif
 	return ddb_mci_cmd_link(link, &command, &result);
 }
 
