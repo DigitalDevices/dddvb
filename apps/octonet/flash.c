@@ -68,7 +68,7 @@ static struct flash_info *flash_getinfo(uint8_t *id)
 
 	while (f->id[0]) {
 		if ((f->id[0] == id[0]) && (f->id[1] == id[1]) &&
-		    ((id[0] == 0xff) || (f->id[0] == id[0])))
+		    ((id[2] == 0xff) || (f->id[2] == id[2])))
 			break;
 		f++;
 	}
