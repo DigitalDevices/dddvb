@@ -447,18 +447,13 @@ static int attach_init(struct tda_state *state)
 	if (!state->m_isMaster)
 		state->m_bLTEnable = false;
 
-	/*pr_info("tda18212dd: ChipID %04x %s\n", state->m_ID,
-	  state->m_isMaster ? "master" : "slave");*/
-
 	if (state->m_ID != 18212)
 		return -1;
 
 	stat = read_reg(state, POWER_STATE_1 , &PowerState);
 	if (stat < 0)
 		return stat;
-
-	/*pr_info("tda18212dd: PowerState %02x\n", PowerState);*/
-
+	
 	if (state->m_isMaster) {
 		if (PowerState & 0x02) {
 			/* msleep for XTAL Calibration
@@ -539,7 +534,6 @@ static int PowerMeasurement(struct tda_state *state, u8 *pPowerLevel)
 		if (*pPowerLevel > 110)
 			*pPowerLevel = 110;
 	} while (0);
-	/* pr_info("PL %d\n", *pPowerLevel); */
 	return status;
 }
 
@@ -806,7 +800,6 @@ static int set_params(struct dvb_frontend *fe)
 
 	bw = (p->bandwidth_hz + 999999) / 1000000;
 	state->m_Frequency = p->frequency;
-	/*pr_info("tuner bw=%u  freq=%u\n", bw, state->m_Frequency);*/
 	if (p->delivery_system == SYS_DVBT ||
 	    p->delivery_system == SYS_DVBT2 ||
 	    p->delivery_system == SYS_ISDBT ||
