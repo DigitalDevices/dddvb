@@ -1081,7 +1081,11 @@ static int demod_attach_dummy(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 
+#if 0
 	dvb->fe = dvb_attach(dummy_attach);
+#else
+	dvb->fe = dummy_attach();
+#endif
 	return 0;
 }
 
