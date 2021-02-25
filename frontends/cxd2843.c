@@ -54,6 +54,7 @@ struct cxd_state {
 	struct dvb_frontend   frontend;
 	struct i2c_adapter   *i2c;
 	struct mutex          mutex;
+	int repi2cerr;
 
 	u8  adrt;
 	u8  curbankt;
@@ -91,12 +92,13 @@ struct cxd_state {
 	u8    is24MHz;
 };
 
-static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len)
+static int i2c_write(struct i2c_adapter *adap, u8 adr, u8 *data, int len, int flag)
 {
 	struct i2c_msg msg = {
 		.addr = adr, .flags = 0, .buf = data, .len = len}; 
 	if (i2c_transfer(adap, &msg, 1) != 1) {
-		pr_err("cxd2843: i2c_write error adr %02x data %02x\n", adr, data[0]);
+		if (flag)
+			pr_err("cxd2843: i2c_write error adr %02x data %02x\n", adr, data[0]);
 		return -1;
 	}
 	return 0;
@@ -113,14 +115,14 @@ static int writeregs(struct cxd_state *state, u8 adr, u8 reg,
 	}
 	data[0] = reg;
 	memcpy(data + 1, regd, len);
-	return i2c_write(state->i2c, adr, data, len + 1);
+	return i2c_write(state->i2c, adr, data, len + 1, state->repi2cerr); 
 }
 
 static int writereg(struct cxd_state *state, u8 adr, u8 reg, u8 dat)
 {
 	u8 mm[2] = {reg, dat};
 
-	return i2c_write(state->i2c, adr, mm, 2);
+	return i2c_write(state->i2c, adr, mm, 2, state->repi2cerr); 
 }
 
 static int i2c_read(struct i2c_adapter *adap,
@@ -130,17 +132,19 @@ static int i2c_read(struct i2c_adapter *adap,
 				     .buf = msg, .len = len},
 				   { .addr = adr, .flags = I2C_M_RD,
 				     .buf = answ, .len = alen } };
-	if (i2c_transfer(adap, msgs, 2) != 2) {
-		pr_err("cxd2843: i2c_read error\n");
+	if (i2c_transfer(adap, msgs, 2) != 2)
 		return -1;
-	}
 	return 0;
 }
 
 static int readregs(struct cxd_state *state, u8 adr, u8 reg,
 		    u8 *val, int count)
 {
-	return i2c_read(state->i2c, adr, &reg, 1, val, count);
+	int ret = i2c_read(state->i2c, adr, &reg, 1, val, count);
+
+	if (ret && state->repi2cerr)
+		pr_err("cxd2843: i2c_read error\n");
+	return ret;
 }
 
 static int readregst_unlocked(struct cxd_state *cxd, u8 bank,
@@ -1644,7 +1648,7 @@ static void init_state(struct cxd_state *state, struct cxd2843_cfg *cfg)
 	/* IF Fullscale 0x50 = 1.4V, 0x39 = 1V, 0x28 = 0.7V */
 	state->IF_FS = 0x50;
 	state->is24MHz = (cfg->osc == 24000000) ? 1 : 0;
-	printk("is24Mhz = %u\n", state->is24MHz);
+	printk("is24Mhz = %u, adr = %02x\n", state->is24MHz, cfg->adr);
 }
 
 static int get_tune_settings(struct dvb_frontend *fe,
@@ -2646,8 +2650,9 @@ static int probe(struct cxd_state *state)
 		status = readregsx(state, 0x00, 0xFD, &ChipID, 1);
 	if (status)
 		return status;
-
-	printk("ChipID  = %02X\n", ChipID);
+	
+	state->repi2cerr = 1;
+	//pr_info("cxd2843: ChipID  = %02X\n", ChipID);
 	switch (ChipID) {
 	case 0xa4:
 		state->type = CXD2843;
@@ -2682,7 +2687,6 @@ struct dvb_frontend *cxd2843_attach(struct i2c_adapter *i2c,
 {
 	struct cxd_state *state = NULL;
 
-	pr_info("attach\n");
 	state = kzalloc(sizeof(struct cxd_state), GFP_KERNEL);
 	if (!state)
 		return NULL;

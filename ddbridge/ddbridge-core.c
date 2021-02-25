@@ -527,6 +527,18 @@ static void ddb_output_stop(struct ddb_output *output)
 	}
 }
 
+static void update_loss(struct ddb_dma *dma)
+{
+	struct ddb_input *input = (struct ddb_input *)dma->io;
+	u32 packet_loss = dma->packet_loss;
+	u32 cur_counter = ddbreadl(input->port->dev, TS_STAT(input)) & 0xffff;
+	
+	if (cur_counter < (packet_loss & 0xffff))
+		packet_loss += 0x10000;
+	packet_loss = ((packet_loss & 0xffff0000) | cur_counter);
+	dma->packet_loss = packet_loss;
+}
+
 static void ddb_input_stop_unlocked(struct ddb_input *input)
 {
 	struct ddb *dev = input->port->dev;
@@ -540,7 +552,8 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 			dev_warn(input->port->dev->dev,
 				 "DMA stalled %u times!\n",
 				 input->dma->stall_count);
-		if (input->dma->packet_loss)
+		update_loss(input->dma);
+		if (input->dma->packet_loss > 1)
 			dev_warn(input->port->dev->dev,
 				 "%u packets lost due to low DMA performance!\n",
 				 input->dma->packet_loss);
@@ -1068,7 +1081,11 @@ static int demod_attach_dummy(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 
+#if 0
 	dvb->fe = dvb_attach(dummy_attach);
+#else
+	dvb->fe = dummy_attach();
+#endif
 	return 0;
 }
 
@@ -2277,21 +2294,36 @@ static void input_write_dvb(struct ddb_input *input,
 	}
 	while (dma->cbuf != ((dma->stat >> 11) & 0x1f) || (4 & dma->ctrl)) {
 		if (4 & dma->ctrl) {
-			/*dev_err(dev->dev, "Overflow dma %d\n", dma->nr);*/
+			dev_warn(dev->dev, "Overflow dma input %u\n", input->nr);
 			ack = 1;
 		}
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
-		if (raw_stream || input->con)
+		if (raw_stream || input->con) {
 			dvb_dmx_swfilter_raw(&dvb->demux,
 					     dma2->vbuf[dma->cbuf],
 					     dma2->size);
-		else
-			dvb_dmx_swfilter_packets(&dvb->demux,
+		} else {
+			if (dma2->vbuf[dma->cbuf][0] != 0x47) {
+				if (!dma2->unaligned) {
+					dma2->unaligned++;
+					dev_warn(dev->dev, "Input %u dma buffer unaligned, "
+						 "switching to unaligned processing.\n",
+						 input->nr);
+					print_hex_dump(KERN_INFO, "TS: ", DUMP_PREFIX_OFFSET, 32, 1,
+						       dma2->vbuf[dma->cbuf],
+						       256, false);
+				}
+				dvb_dmx_swfilter(&dvb->demux,
 						 dma2->vbuf[dma->cbuf],
-						 dma2->size / 188);
-
+						 dma2->size);
+			} else
+				dvb_dmx_swfilter_packets(&dvb->demux,
+							 dma2->vbuf[dma->cbuf],
+							 dma2->size / 188);
+		}
+		
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
@@ -2321,16 +2353,7 @@ static void input_tasklet(unsigned long data)
 	}
 	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
 	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
-
-	{
-		u32 packet_loss = dma->packet_loss;
-		u32 cur_counter = ddbreadl(dev, TS_STAT(input)) & 0xffff;
-
-		if (cur_counter < (packet_loss & 0xffff))
-			packet_loss += 0x10000;
-		packet_loss = ((packet_loss & 0xffff0000) | cur_counter);
-		dma->packet_loss = packet_loss;
-	}
+	update_loss(dma);
 	if (4 & dma->ctrl)
 		dma->stall_count++;
 	if (input->redi)
@@ -3453,8 +3476,6 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (msg.link > 3)
 			return -EFAULT;
 		link = &dev->link[msg.link];
-		if (!link->mci_base)
-			return -EFAULT;
 		res = ddb_mci_cmd_link(link, &msg.cmd, &msg.res);
 		if (copy_to_user(parg, &msg, sizeof(msg)))
 			return -EFAULT;

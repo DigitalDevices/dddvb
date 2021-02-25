@@ -50,15 +50,15 @@ struct flash_info flashs[] = {
 	{ { 0x01, 0x40, 0x15 }, SPANSION_S25FL116K, 4096, 0x200000, "SPANSION S25FL116K 16 MBit" },
 	{ { 0x01, 0x40, 0x16 }, SPANSION_S25FL132K, 4096, 0x400000, "SPANSION S25FL132K 32 MBit" },
 	{ { 0x01, 0x40, 0x17 }, SPANSION_S25FL164K, 4096, 0x800000, "SPANSION S25FL164K 64 MBit" },
-	{ { 0xef, 0x40, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
-	{ { 0xef, 0x40, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
-	{ { 0xef, 0x40, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
-	{ { 0xef, 0x40, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
-	{ { 0xef, 0x70, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
-	{ { 0xef, 0x70, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
-	{ { 0xef, 0x70, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
-	{ { 0xef, 0x70, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
-	{ { 0x1f, 0x28, 0xff }, ATMEL_AT45DB642D, 1024, 0x800000, "Atmel AT45DB642D  64 MBit" },
+	{ { 0xef, 0x40, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond W25Q16JV 16 MBit" },
+	{ { 0xef, 0x40, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond W25Q32JV 32 MBit" },
+	{ { 0xef, 0x40, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond W25Q64JV 64 MBit" },
+	{ { 0xef, 0x40, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond W25Q128JV 128 MBit" },
+	{ { 0xef, 0x70, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond W25Q16JV 16 MBit" },
+	{ { 0xef, 0x70, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond W25Q32JV 32 MBit" },
+	{ { 0xef, 0x70, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond W25Q64JV 64 MBit" },
+	{ { 0xef, 0x70, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond W25Q128JV 128 MBit" },
+	{ { 0x1f, 0x28, 0xff }, ATMEL_AT45DB642D, 1024, 0x800000, "Atmel AT45DB642D 64 MBit" },
 	{ { 0x00, 0x00, 0x00 }, UNKNOWN_FLASH, 0, 0, "Unknown" },
 };
 
@@ -68,7 +68,7 @@ static struct flash_info *flash_getinfo(uint8_t *id)
 
 	while (f->id[0]) {
 		if ((f->id[0] == id[0]) && (f->id[1] == id[1]) &&
-		    ((id[0] == 0xff) || (f->id[0] == id[0])))
+		    ((id[2] == 0xff) || (f->id[2] == id[2])))
 			break;
 		f++;
 	}

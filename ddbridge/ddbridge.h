@@ -219,6 +219,7 @@ struct ddb_dma {
 
 	u32                    stall_count;
 	u32                    packet_loss;
+	u32                    unaligned;
 };
 
 struct ddb_dvb {

@@ -59,7 +59,11 @@ static int mci_reset(struct ddb_link *link)
 		dev_err(link->dev->dev, "MCI init failed!\n");
 		return -1;
 	}
-	dev_info(link->dev->dev, "MCI port OK, init time %u msecs\n", (40-timeout)*50);
+	dev_info(link->dev->dev, "MCI port OK, init time %u msecs\n", (40 - timeout) * 50);
+
+	print_hex_dump(KERN_INFO, "ddbridge: MCI INIT INFO: ", DUMP_PREFIX_NONE, 16, 1,
+		       link->dev->regs + regmap->mci_buf->base + MCI_COMMAND_SIZE,
+		       16, false);
 	return 0;
 }
 
@@ -166,11 +170,17 @@ int mci_init(struct ddb_link *link)
 int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val)
 {
 	struct mci_result result;
+#if 0
 	struct mci_command command = {
 		.command_word = cmd,
 		.params = { val },
 	};
+#else
+	struct mci_command command;
 
+	command.command_word = cmd;
+	command.params[0] = val;
+#endif
 	return ddb_mci_cmd_link(link, &command, &result);
 }
 
@@ -207,6 +217,21 @@ int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
 	cmd.command = MCI_CMD_GETSTATUS;
 	cmd.demod = mci->demod;
 	return ddb_mci_cmd_raw(mci, &cmd, 1, res, 1);
+}
+
+static void ddb_mci_print_info(struct mci *mci)
+{
+	struct ddb_link *link = mci->base->link;
+	const struct ddb_regmap *regmap = link->info->regmap;
+	struct mci_command cmd;
+	struct mci_result res;
+	
+	cmd.command = 0x0f;
+	if (ddb_mci_cmd_raw(mci, &cmd, 1, &res, 1) < 0)
+		return;
+	print_hex_dump(KERN_INFO, "", DUMP_PREFIX_OFFSET, 16, 1,
+		       link->dev->regs + regmap->mci_buf->base + MCI_COMMAND_SIZE,
+		       16, false);
 }
 
 int ddb_mci_get_snr(struct dvb_frontend *fe)
