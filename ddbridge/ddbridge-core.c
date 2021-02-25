@@ -2300,15 +2300,30 @@ static void input_write_dvb(struct ddb_input *input,
 		if (alt_dma)
 			dma_sync_single_for_cpu(dev->dev, dma2->pbuf[dma->cbuf],
 						dma2->size, DMA_FROM_DEVICE);
-		if (raw_stream || input->con)
+		if (raw_stream || input->con) {
 			dvb_dmx_swfilter_raw(&dvb->demux,
 					     dma2->vbuf[dma->cbuf],
 					     dma2->size);
-		else
-			dvb_dmx_swfilter_packets(&dvb->demux,
+		} else {
+			if (dma2->vbuf[dma->cbuf][0] != 0x47) {
+				if (!dma2->unaligned) {
+					dma2->unaligned++;
+					dev_warn(dev->dev, "Input %u dma buffer unaligned, "
+						 "switching to unaligned processing.\n",
+						 input->nr);
+					print_hex_dump(KERN_INFO, "TS: ", DUMP_PREFIX_OFFSET, 32, 1,
+						       dma2->vbuf[dma->cbuf],
+						       256, false);
+				}
+				dvb_dmx_swfilter(&dvb->demux,
 						 dma2->vbuf[dma->cbuf],
-						 dma2->size / 188);
-
+						 dma2->size);
+			} else
+				dvb_dmx_swfilter_packets(&dvb->demux,
+							 dma2->vbuf[dma->cbuf],
+							 dma2->size / 188);
+		}
+		
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
