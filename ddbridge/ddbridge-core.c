@@ -2307,7 +2307,7 @@ static void input_write_dvb(struct ddb_input *input,
 					     dma2->vbuf[dma->cbuf],
 					     dma2->size);
 		} else {
-			if (dma2->vbuf[dma->cbuf][0] != 0x47) {
+			if (dma2->unaligned || (dma2->vbuf[dma->cbuf][0] != 0x47)) {
 				if (!dma2->unaligned) {
 					dma2->unaligned++;
 					dev_warn(dev->dev, "Input %u dma buffer unaligned, "
