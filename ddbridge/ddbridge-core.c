@@ -2315,7 +2315,7 @@ static void input_write_dvb(struct ddb_input *input,
 						 input->nr);
 					print_hex_dump(KERN_INFO, "TS: ", DUMP_PREFIX_OFFSET, 32, 1,
 						       dma2->vbuf[dma->cbuf],
-						       256, false);
+						       512, false);
 				}
 				dvb_dmx_swfilter(&dvb->demux,
 						 dma2->vbuf[dma->cbuf],
