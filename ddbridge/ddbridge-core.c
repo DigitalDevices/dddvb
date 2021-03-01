@@ -281,9 +281,9 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 	for (i = 0; i < dma->num; i++) {
 		if (alt_dma) {
 #if (KERNEL_VERSION(4, 13, 0) > LINUX_VERSION_CODE)
-			dma->vbuf[i] = kmalloc(dma->size, __GFP_REPEAT);
+			dma->vbuf[i] = kzalloc(dma->size, __GFP_REPEAT);
 #else
-			dma->vbuf[i] = kmalloc(dma->size, __GFP_RETRY_MAYFAIL);
+			dma->vbuf[i] = kzalloc(dma->size, __GFP_RETRY_MAYFAIL);
 #endif
 			if (!dma->vbuf[i])
 				return -ENOMEM;
@@ -301,7 +301,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 			dma->vbuf[i] = dma_alloc_coherent(&pdev->dev,
 							  dma->size,
 							  &dma->pbuf[i],
-							  GFP_KERNEL);
+							  GFP_KERNEL | __GFP_ZERO);
 			if (!dma->vbuf[i])
 				return -ENOMEM;
 		}
