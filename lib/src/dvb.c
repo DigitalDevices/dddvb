@@ -750,6 +750,8 @@ int dddvb_fe_tune(struct dddvb_fe *fe, struct dddvb_params *p)
 	memcpy(fe->n_param.param, p->param, sizeof(fe->n_param.param));
 	fe->n_tune = 1;
 	pthread_mutex_unlock(&fe->mutex);
+	while(fe->n_tune) usleep(10000);
+	while(fe->tune != 2) usleep(10000);
 	return ret;
 }
 
