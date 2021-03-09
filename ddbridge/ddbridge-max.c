@@ -40,6 +40,10 @@ static int old_quattro;
 module_param(old_quattro, int, 0444);
 MODULE_PARM_DESC(old_quattro, "old quattro LNB input order ");
 
+static int no_voltage;
+module_param(no_voltage, int, 0444);
+MODULE_PARM_DESC(no_voltage, "Do not enable voltage on LNBH (will also disable 22KHz tone).");
+
 /* MAX LNB interface related functions */
 
 static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
@@ -164,6 +168,8 @@ static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input,
 {
 	int s = 0;
 
+	if (no_voltage)
+		voltage = SEC_VOLTAGE_OFF;
 	if (dev->link[link].lnb.oldvoltage[input] == voltage)
 		return 0;
 	switch (voltage) {

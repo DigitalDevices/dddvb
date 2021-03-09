@@ -147,11 +147,14 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (res.status == MCI_DEMOD_LOCKED) {
 		*status = 0x1f;
 		if (state->mci.signal_info.dvbs2_signal_info.standard == 2) {
-			sx8_base->used_ldpc_bitrate[state->mci.nr] =
-				p->symbol_rate *
-				dvbs2_bits_per_symbol[
-					state->mci.signal_info.
-					dvbs2_signal_info.pls_code];
+			mutex_lock(&mci_base->tuner_lock);
+			if (state->started)
+				sx8_base->used_ldpc_bitrate[state->mci.nr] =
+					p->symbol_rate *
+					dvbs2_bits_per_symbol[
+						state->mci.signal_info.
+						dvbs2_signal_info.pls_code];
+			mutex_unlock(&mci_base->tuner_lock);
 		} else 
 			sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;
 	}
