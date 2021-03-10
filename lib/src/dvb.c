@@ -318,14 +318,15 @@ static int tune_sat(struct dddvb_fe *fe)
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->dd->uni_lock);
 	} else {
-		uint32_t input = lnb;
+		uint32_t input = fe->param.param[PARAM_SRC];
 
-		//if (input != DDDVB_UNDEF)
-		//	input = 3 & (input >> 6);
-		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
+		if (input != DDDVB_UNDEF) {
+			input = 3 & (input >> 6);
+			printf("input = %u\n", input);
+		}
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, DDDVB_UNDEF);
 	}
 }
 
