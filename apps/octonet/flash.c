@@ -968,12 +968,10 @@ static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen,
 		return -1;
 	len = off - fw_off;
 	lseek(fs, fw_off, SEEK_SET);
-#if 0
 	if (len > maxlen) {
 		printf("file too big\n");
 		return -1;
 	}
-#endif
 	//printf("flash file len %u, compare to %08x in flash: ", len, addr);
 	for (j = 0; j < len; j += bl, addr += bl) {
 		if (len - j < bl)
@@ -1132,9 +1130,15 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 		return -4;
 	}
 	if (devid == ddf->id.device) {
-		if (version <= (ddf->id.hw & 0xffffff)) {
-			printf("%s is older or same version as flash\n", fn);
-			ret = -3; /* same id but no newer version */
+		if (version < (ddf->id.hw & 0xffffff)) {
+			printf("%s is older version than flash\n", fn);
+			if (!ddf->force)
+				ret = -3; /* same id but older newer version */
+		}
+		if (version == (ddf->id.hw & 0xffffff)) {
+			printf("%s is same version as flash\n", fn);
+			if (!ddf->force)
+				ret = 2; /* same and same version */
 		}
 	} else
 		ret = 1;
@@ -1147,7 +1151,7 @@ out:
 }
 
 static int update_image(struct ddflash *ddf, char *fn, 
-			uint32_t adr, uint32_t len,
+			uint32_t adr, uint32_t maxlen,
 			int has_header, int no_change)
 {
 	int fs, res = 0;
@@ -1167,7 +1171,7 @@ static int update_image(struct ddflash *ddf, char *fn,
 		printf("File %s not found \n", fn);
 		return -1;
 	}
-	res = flashcmp(ddf, fs, adr, len, fw_off);
+	res = flashcmp(ddf, fs, adr, maxlen, fw_off);
 	if (res == -2) {
 		printf("Flash already identical to %s\n", fn);
 		if (ddf->force) {
@@ -1177,9 +1181,9 @@ static int update_image(struct ddflash *ddf, char *fn,
 	}
 	if (res < 0) 
 		goto out;
-	res = flashwrite(ddf, fs, adr, len, fw_off);
+	res = flashwrite(ddf, fs, adr, maxlen, fw_off);
 	if (res == 0) {
-		res = flashcmp(ddf, fs, adr, len, fw_off);
+		res = flashcmp(ddf, fs, adr, maxlen, fw_off);
 		if (res == -2) {
 			res = 1;
 			printf("Flash verify OK!\n");
