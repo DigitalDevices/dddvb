@@ -288,7 +288,8 @@ static int tune_sat(struct dddvb_fe *fe)
 			freq = lofs - freq;
 	} 
 #endif
-	if (freq > 2100000) {
+
+	if (freq > 3000000) {
 		if (lofs)
 			hi = (freq > lofs) ? 1 : 0;
 		if (hi) 
