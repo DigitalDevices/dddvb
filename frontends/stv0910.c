@@ -208,9 +208,27 @@ static int write_field(struct stv *state, u32 field, u8 val)
 	return write_reg(state, field >> 16, new);
 }
 
+static int read_field(struct stv *state, u32 field, u8 *val)
+{
+	int status;
+	u8 shift, mask;
+
+	status = read_reg(state, field >> 16, val);
+	if (status)
+		return status;
+	mask = field & 0xff;
+	shift = (field >> 12) & 0xf;
+	*val = (*val & mask) >> shift;
+	return status;
+}
+
 #define set_field(_reg, _val)					\
 	write_field(state, state->nr ? FSTV0910_P2_##_reg :	\
 		    FSTV0910_P1_##_reg, _val)
+
+#define get_field(_reg, _val)					\
+	read_field(state, state->nr ? FSTV0910_P2_##_reg :	\
+		   FSTV0910_P1_##_reg, _val)
 
 #define set_reg(_reg, _val)					\
 	write_reg(state, state->nr ? RSTV0910_P2_##_reg :	\
@@ -218,7 +236,7 @@ static int write_field(struct stv *state, u32 field, u8 val)
 
 #define get_reg(_reg, _val)					\
 	read_reg(state, state->nr ? RSTV0910_P2_##_reg :	\
-		 RTV0910_P1_##_reg, _val)
+		 RSTV0910_P1_##_reg, _val)
 
 static const struct slookup s1_sn_lookup[] = {
 	{   0,    9242  }, /* C/N=  0dB */
@@ -1112,8 +1130,9 @@ static int init_diseqc(struct stv *state)
 	u16 offs = state->nr ? 0x40 : 0;  /* Address offset */
 	u8 freq = ((state->base->mclk + 11000 * 32) / (22000 * 32));
 
-	/* Disable receiver */
-	write_reg(state, RSTV0910_P1_DISRXCFG + offs, 0x00);
+	write_reg(state, RSTV0910_P1_DISRXCFG + offs, 0x05);
+	//write_reg(state, RSTV0910_P1_DISRXF220 + offs, 0x69); 2b?
+
 	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0xBA); /* Reset = 1 */
 	write_reg(state, RSTV0910_P1_DISTXCFG + offs, 0x3A); /* Reset = 0 */
 	write_reg(state, RSTV0910_P1_DISTXF22 + offs, freq);
@@ -1617,12 +1636,28 @@ static int wait_dis(struct stv *state, u8 flag, u8 val)
 	return -1;
 }
 
+static int clear_slave(struct dvb_frontend *fe)
+{
+	struct stv *state = fe->demodulator_priv;
+	u8 n, d, done;
+
+	get_field(RXEND, &done);
+	get_reg(DISRXBYTES, &n);
+	printk("clear: done = %u, %u fifo bytes\n", done, n);
+	
+	for (get_reg(DISRXBYTES, &n); n; n--) 
+		get_reg(DISRXFIFO, &d);
+	return 0;
+}
+
 static int send_master_cmd(struct dvb_frontend *fe,
 			   struct dvb_diseqc_master_cmd *cmd)
 {
 	struct stv *state = fe->demodulator_priv;
 	int i;
 
+	clear_slave(fe);
+	set_field(DISRX_ON, 0);
 	set_reg(DISTXCFG, 0x3e);
 	for (i = 0; i < cmd->msg_len; i++) {
 		wait_dis(state, 0x40, 0x00);
@@ -1630,12 +1665,59 @@ static int send_master_cmd(struct dvb_frontend *fe,
 	}
 	set_reg(DISTXCFG, 0x3a);
 	wait_dis(state, 0x20, 0x20);
+	set_field(DISRX_ON, 1);
 	return 0;
 }
 
 static int recv_slave_reply(struct dvb_frontend *fe,
 			    struct dvb_diseqc_slave_reply *reply)
 {
+	struct stv *state = fe->demodulator_priv;
+	int i, to, flag = 0, max = sizeof(reply->msg);
+	u8 done, val, n = 0;
+
+	
+#if 0
+	get_reg(DISRXBYTES, &val);
+	get_field(RXEND, &done);
+	printk("slave: done = %u, %u fifo bytes\n", done, val);
+#endif
+	to = reply->timeout;
+	if (to < 0) {
+		to = 100;
+		flag = 1;
+	} else if (to > 5000)
+		to = 100;
+	reply->msg_len = 0;
+	for (i = 0; i < to; i += 10) {
+		get_reg(DISRXBYTES, &val);
+		if (flag && val)
+			break;
+		get_field(RXEND, &done);
+		if (val >= max || done)
+			break;
+		msleep(10);
+	}
+	get_reg(DISRXBYTES, &val);
+	printk("done = %u, %u fifo bytes, i=%u\n", done, val, i);
+	if (i == to && !val)
+		return -EIO;
+	if (done && !val)
+		return -EIO;
+	for (i = 100; i; i--) {
+		get_field(RXEND, &done);
+		
+		for (get_reg(DISRXBYTES, &n); n; n--) {
+			if (reply->msg_len == max)
+				return 0;
+			get_reg(DISRXFIFO, &reply->msg[reply->msg_len++]);
+		}
+		if (!n || done)
+			break;
+		msleep(10);
+	}
+	if (!i)
+		return -EIO;
 	return 0;
 }
 
