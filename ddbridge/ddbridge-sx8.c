@@ -30,6 +30,10 @@ static int default_mod = 3;
 module_param(default_mod, int, 0444);
 MODULE_PARM_DESC(default_mod, "default modulations enabled, default is  3 (1 = QPSK, 2 = 8PSK, 4 = 16APSK, ...)");
 
+static int direct_mode;
+module_param(direct_mode, int, 0444);
+MODULE_PARM_DESC(direct_mode, "Ignore LDPC limits and assign high speed demods according to needed symbolrate.");
+
 static const u32 MCLK = (1550000000 / 12);
 
 /* Add 2MBit/s overhead allowance (minimum factor is 90/32400 for QPSK w/o Pilots) */
@@ -48,7 +52,6 @@ struct sx8_base {
 	u32                  used_ldpc_bitrate[SX8_DEMOD_NUM];
 	u8                   demod_in_use[SX8_DEMOD_NUM];
 	u32                  iq_mode;
-	u32                  direct_mode;
 };
 
 struct sx8 {
@@ -281,7 +284,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 		goto unlock;
 	}
 
-	if (sx8_base->direct_mode) {
+	if (direct_mode) {
 		if (p->symbol_rate >= MCLK / 2) {
 			if (state->mci.nr < 4)
 				i = state->mci.nr;
