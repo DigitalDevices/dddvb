@@ -162,14 +162,12 @@ static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on,
 			 u8 flags, u8 gain)
 {
 	struct sx8 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
 	struct mci_command cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.tuner = state->mci.tuner;
 	cmd.command = on ? SX8_CMD_INPUT_ENABLE : SX8_CMD_INPUT_DISABLE;
-	cmd.sx8_input_enable.flags = flags;//sx8_base->gain_mode[state->mci.tuner];
+	cmd.sx8_input_enable.flags = flags;
 	cmd.sx8_input_enable.rf_gain = gain;
 	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
