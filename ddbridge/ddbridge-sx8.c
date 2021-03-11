@@ -44,12 +44,10 @@ struct sx8_base {
 	struct mci_base      mci_base;
 
 	u8                   tuner_use_count[SX8_TUNER_NUM];
-	u32                  gain_mode[SX8_TUNER_NUM];
 
 	u32                  used_ldpc_bitrate[SX8_DEMOD_NUM];
 	u8                   demod_in_use[SX8_DEMOD_NUM];
 	u32                  iq_mode;
-	u32                  burst_size;
 	u32                  direct_mode;
 };
 
@@ -59,10 +57,6 @@ struct sx8 {
 	int                  first_time_lock;
 	int                  started;
 	int                  iq_started;
-
-	u32                  bb_mode;
-	u32                  local_frequency;
-	
 };
 
 static const u8 dvbs2_bits_per_symbol[] = {
