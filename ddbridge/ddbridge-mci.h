@@ -359,6 +359,7 @@ struct mci_result {
 	
 	union {
 		u32 result[27];
+		u8 result8[27 * 4];
 		struct {
 			u8  Rsvd0[3];
 			u8  Flags;
