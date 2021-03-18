@@ -159,6 +159,8 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 			}
 			mutex_unlock(&mci_base->tuner_lock);
 		}
+	} else if (res.status == MCI_DEMOD_TIMEOUT)
+		*status = FE_TIMEDOUT;
 	else if (res.status >= SX8_DEMOD_WAIT_MATYPE)
 		*status = FE_HAS_SYNC | FE_HAS_VITERBI | FE_HAS_CARRIER | FE_HAS_SIGNAL;
 unlock:
