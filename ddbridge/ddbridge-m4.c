@@ -392,10 +392,12 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	struct m4 *state = fe->demodulator_priv;
 	struct mci_result res;
 
+	*status = 0x00;
+	if (!state->started)
+		return 0;
 	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
 		return stat;
-	*status = 0x00;
 	stat = ddb_mci_get_info(&state->mci);
 	if (stat)
 		return stat;

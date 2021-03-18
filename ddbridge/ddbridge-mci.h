@@ -359,6 +359,7 @@ struct mci_result {
 	
 	union {
 		u32 result[27];
+		u8 result8[27 * 4];
 		struct {
 			u8  Rsvd0[3];
 			u8  Flags;
@@ -758,6 +759,8 @@ struct mci_result {
 #define L1POST_STATIC_FLAG(p)              (((p)[18] >> 1) & 0x01)
 #define L1POST_STATIC_PADDING_FLAG(p)      (((p)[18] >> 1) & 0x01)
 
+#ifdef __KERNEL__
+
 struct mci_base {
 	struct list_head     mci_list;
 	void                *key;
@@ -801,5 +804,6 @@ int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val);
 
 extern struct mci_cfg ddb_max_sx8_cfg;
 extern struct mci_cfg ddb_max_m4_cfg;
+#endif
 
 #endif

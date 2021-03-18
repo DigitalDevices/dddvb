@@ -30,6 +30,10 @@ static int default_mod = 3;
 module_param(default_mod, int, 0444);
 MODULE_PARM_DESC(default_mod, "default modulations enabled, default is  3 (1 = QPSK, 2 = 8PSK, 4 = 16APSK, ...)");
 
+static int direct_mode;
+module_param(direct_mode, int, 0444);
+MODULE_PARM_DESC(direct_mode, "Ignore LDPC limits and assign high speed demods according to needed symbolrate.");
+
 static const u32 MCLK = (1550000000 / 12);
 
 /* Add 2MBit/s overhead allowance (minimum factor is 90/32400 for QPSK w/o Pilots) */
@@ -44,25 +48,19 @@ struct sx8_base {
 	struct mci_base      mci_base;
 
 	u8                   tuner_use_count[SX8_TUNER_NUM];
-	u32                  gain_mode[SX8_TUNER_NUM];
 
 	u32                  used_ldpc_bitrate[SX8_DEMOD_NUM];
 	u8                   demod_in_use[SX8_DEMOD_NUM];
 	u32                  iq_mode;
-	u32                  burst_size;
-	u32                  direct_mode;
 };
 
 struct sx8 {
 	struct mci           mci;
+	struct mutex         lock;
 
 	int                  first_time_lock;
 	int                  started;
 	int                  iq_started;
-
-	u32                  bb_mode;
-	u32                  local_frequency;
-	
 };
 
 static const u8 dvbs2_bits_per_symbol[] = {
@@ -126,38 +124,47 @@ static int ddb_mci_tsconfig(struct mci *state, u32 config)
 
 static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
-	int stat;
+	int stat = 0;
 	struct sx8 *state = fe->demodulator_priv;
 	struct mci_base *mci_base = state->mci.base;
 	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_result res;
 
+	*status = 0x00;
+	mutex_lock(&state->lock);
+	if (!state->started && !state->iq_started)
+		goto unlock;
 	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
-		return stat;
-	if (sx8_base->iq_mode >= 2) {
-		*status = 0x1f;
-		return stat;
-	}
-	*status = 0x00;
+		goto unlock;
 	ddb_mci_get_info(&state->mci);
-	if (res.status == SX8_DEMOD_WAIT_MATYPE)
-		*status = 0x0f;
-	if (res.status == MCI_DEMOD_LOCKED) {
-		*status = 0x1f;
-		if (state->mci.signal_info.dvbs2_signal_info.standard == 2) {
+	if (stat)
+		goto unlock;
+	if (res.status == MCI_DEMOD_LOCKED || res.status == SX8_DEMOD_IQ_MODE) {
+		*status = FE_HAS_LOCK | FE_HAS_SYNC | FE_HAS_VITERBI |
+			FE_HAS_CARRIER | FE_HAS_SIGNAL;
+		if (res.status == MCI_DEMOD_LOCKED) {
 			mutex_lock(&mci_base->tuner_lock);
-			if (state->started)
-				sx8_base->used_ldpc_bitrate[state->mci.nr] =
-					p->symbol_rate *
-					dvbs2_bits_per_symbol[
-						state->mci.signal_info.
-						dvbs2_signal_info.pls_code];
+			if (state->first_time_lock && state->started) {
+				if (state->mci.signal_info.dvbs2_signal_info.standard == 2) {
+					sx8_base->used_ldpc_bitrate[state->mci.nr] =
+						p->symbol_rate *
+						dvbs2_bits_per_symbol[
+							state->mci.signal_info.
+							dvbs2_signal_info.pls_code];
+				} else
+					sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;
+				state->first_time_lock = 0;
+			}
 			mutex_unlock(&mci_base->tuner_lock);
-		} else 
-			sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;
-	}
+		}
+	} else if (res.status == MCI_DEMOD_TIMEOUT)
+		*status = FE_TIMEDOUT;
+	else if (res.status >= SX8_DEMOD_WAIT_MATYPE)
+		*status = FE_HAS_SYNC | FE_HAS_VITERBI | FE_HAS_CARRIER | FE_HAS_SIGNAL;
+unlock:
+	mutex_unlock(&state->lock);
 	return stat;
 }
 
@@ -165,14 +172,12 @@ static int mci_set_tuner(struct dvb_frontend *fe, u32 tuner, u32 on,
 			 u8 flags, u8 gain)
 {
 	struct sx8 *state = fe->demodulator_priv;
-	struct mci_base *mci_base = state->mci.base;
-	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
 	struct mci_command cmd;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.tuner = state->mci.tuner;
 	cmd.command = on ? SX8_CMD_INPUT_ENABLE : SX8_CMD_INPUT_DISABLE;
-	cmd.sx8_input_enable.flags = flags;//sx8_base->gain_mode[state->mci.tuner];
+	cmd.sx8_input_enable.flags = flags;
 	cmd.sx8_input_enable.rf_gain = gain;
 	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
@@ -202,9 +207,9 @@ static int stop_iq(struct dvb_frontend *fe)
 		state->mci.demod = SX8_DEMOD_NONE;
 	}
 	sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;	
+	mutex_unlock(&mci_base->tuner_lock);
 	sx8_base->iq_mode = 0;
 	state->iq_started = 0;
-	mutex_unlock(&mci_base->tuner_lock);
 	return 0;
 }
 
@@ -214,12 +219,13 @@ static int stop(struct dvb_frontend *fe)
 	struct mci_base *mci_base = state->mci.base;
 	struct sx8_base *sx8_base = (struct sx8_base *) mci_base;
 	struct mci_command cmd;
-	u32 input = state->mci.tuner;
+	u32 input;
 
+	input = state->mci.tuner;
 	if (!state->started)
 		return -1;
-	memset(&cmd, 0, sizeof(cmd));
 	if (state->mci.demod != SX8_DEMOD_NONE) {
+		memset(&cmd, 0, sizeof(cmd));
 		cmd.command = MCI_CMD_STOP;
 		cmd.demod = state->mci.demod;
 		ddb_mci_cmd(&state->mci, &cmd, NULL);
@@ -241,8 +247,8 @@ static int stop(struct dvb_frontend *fe)
 	}
 	sx8_base->used_ldpc_bitrate[state->mci.nr] = 0;	
 	sx8_base->iq_mode = 0;
-	mutex_unlock(&mci_base->tuner_lock);
 	state->started = 0;
+	mutex_unlock(&mci_base->tuner_lock);
 	return 0;
 }
 
@@ -260,6 +266,10 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 	u32 bits_per_symbol = 0;
 	int i = -1, stat = 0;
 	struct ddb_link *link = state->mci.base->link;
+	const u8 ro_lut[8] = {
+		8 | SX8_ROLLOFF_35, 8 | SX8_ROLLOFF_20, 8 | SX8_ROLLOFF_25, 0,
+		8 | SX8_ROLLOFF_15, 8 | SX8_ROLLOFF_10, 8 | SX8_ROLLOFF_05, 0,
+	};
 
 	if (link->ids.device == 0x000b) {
 		/* Mask out higher modulations and MIS for Basic
@@ -287,7 +297,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 		goto unlock;
 	}
 
-	if (sx8_base->direct_mode) {
+	if (direct_mode) {
 		if (p->symbol_rate >= MCLK / 2) {
 			if (state->mci.nr < 4)
 				i = state->mci.nr;
@@ -309,16 +319,15 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 		free_ldpc_bitrate = MAX_LDPC_BITRATE - used_ldpc_bitrate;
 		if (free_ldpc_bitrate > MAX_DEMOD_LDPC_BITRATE) 
 			free_ldpc_bitrate = MAX_DEMOD_LDPC_BITRATE;
-		
+
 		while (p->symbol_rate * bits_per_symbol > free_ldpc_bitrate)
 			bits_per_symbol--;
 		if (bits_per_symbol < 2) {
 			stat = -EBUSY;
 			goto unlock;
 		}
-		
 		modmask &= ((1 << (bits_per_symbol - 1)) - 1);
-		if( ((flags & 0x02) != 0)  &&  (modmask == 0)) {
+		if (((flags & 0x02) != 0) && (modmask == 0)) {
 			stat = -EBUSY;
 			goto unlock;
 		}
@@ -344,11 +353,10 @@ unlock:
 	if (stat)
 		return stat;
 	memset(&cmd, 0, sizeof(cmd));
-	
 	if (sx8_base->iq_mode) {
 		cmd.command = SX8_CMD_ENABLE_IQOUTPUT;
 		cmd.demod = state->mci.demod;
-		cmd.output = p->stream_id & 7;
+		cmd.output = p->stream_id & 0x0f;
 		ddb_mci_cmd(&state->mci, &cmd, NULL);
 		ddb_mci_tsconfig(&state->mci, ts_config);
 	}
@@ -364,6 +372,7 @@ unlock:
 	cmd.command = MCI_CMD_SEARCH_DVBS;
 	cmd.dvbs2_search.flags = flags;
 	cmd.dvbs2_search.s2_modulation_mask = modmask;
+	cmd.dvbs2_search.rsvd1 = ro_lut[p->rolloff & 7];
 	cmd.dvbs2_search.retry = 2;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
@@ -377,6 +386,9 @@ unlock:
 	    (p->stream_id & 0x80000000))
 		cmd.output |= 0x80;
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
+	state->started = 1;
+	state->first_time_lock = 1;
+	state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
 	if (stat)
 		stop(fe);
 	return stat;
@@ -395,8 +407,8 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 	u32 input = state->mci.tuner;
 	int i, stat = 0;
 
+	mutex_lock(&mci_base->tuner_lock);
 	if (!state->iq_started) {
-		mutex_lock(&mci_base->tuner_lock);
 		if (sx8_base->iq_mode) {
 			stat = -EBUSY;
 			goto unlock;
@@ -409,17 +421,18 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 			goto unlock;
 		}
 		state->mci.demod = 0;
-		/*
-		  if (!sx8_base->tuner_use_count[input])
-			mci_set_tuner(fe, input, 1);
-		*/
 		sx8_base->tuner_use_count[input]++;
 		sx8_base->iq_mode = 2;
-	unlock:
-		mutex_unlock(&mci_base->tuner_lock);
-		if (stat)
-			return stat;
+	} else {
+		if ((state->iq_started & 0x07) != state->mci.nr) {
+			stat = -EBUSY;
+			goto unlock;
+		}
 	}
+unlock:
+	mutex_unlock(&mci_base->tuner_lock);
+	if (stat)
+		return stat;
 	mci_set_tuner(fe, input, 1, flags & 0xff, 0);
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = SX8_CMD_START_IQ;
@@ -431,6 +444,9 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 	cmd.tuner = state->mci.tuner;
 	cmd.demod = state->mci.demod;
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
+	state->iq_started = 8 | state->mci.nr;
+	state->first_time_lock = 1;
+	state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
 	if (stat)
 		stop_iq(fe);
 	ddb_mci_tsconfig(&state->mci, ts_config);
@@ -442,7 +458,6 @@ static int set_lna(struct dvb_frontend *fe)
 	printk("set_lna\n");
 	return 0;
 }
-
 
 static int set_parameters(struct dvb_frontend *fe)
 {
@@ -459,6 +474,7 @@ static int set_parameters(struct dvb_frontend *fe)
 	state->mci.input->con = ts_mode << 8;
 	if (iq_mode)
 		ts_config = (SX8_TSCONFIG_TSHEADER | SX8_TSCONFIG_MODE_IQ);
+	mutex_lock(&state->lock);
 	stop(fe);
 	if (iq_mode < 2) {
 		u32 mask;
@@ -485,19 +501,10 @@ static int set_parameters(struct dvb_frontend *fe)
 			break;
 		}
 		stat = start(fe, 3, mask, ts_config);
-		if (!stat) {
-			state->started = 1;
-			state->first_time_lock = 1;
-			state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
-		}
 	} else {
 		stat = start_iq(fe, isi & 0xffffff, 4, ts_config);
-		if (!stat) {
-			state->iq_started = 1;
-			state->first_time_lock = 1;
-			state->mci.signal_info.status = MCI_DEMOD_WAIT_SIGNAL;
-		}
 	}
+	mutex_unlock(&state->lock);
 	return stat;
 }
 
@@ -536,16 +543,22 @@ static int set_input(struct dvb_frontend *fe, int input)
 		return -EINVAL;
 	if (state->mci.tuner == input)
 		return 0;
+	mutex_lock(&state->lock);
 	stop_iq(fe);
 	stop(fe);
 	state->mci.tuner = p->input = input;
+	mutex_unlock(&state->lock);
 	return 0;
 }
 
 static int sleep(struct dvb_frontend *fe)
 {
+	struct sx8 *state = fe->demodulator_priv;
+
+	mutex_lock(&state->lock);
 	stop_iq(fe);
 	stop(fe);
+	mutex_unlock(&state->lock);
 	return 0;
 }
 
@@ -591,6 +604,7 @@ static int init(struct mci *mci)
 	state->mci.demod = SX8_DEMOD_NONE;
 	mci->fe.ops.xbar[1] = mci->nr;
 	mci->fe.dtv_property_cache.input = mci->tuner;
+	mutex_init(&state->lock);
 	return 0;
 }
 

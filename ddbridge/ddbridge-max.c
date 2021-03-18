@@ -65,7 +65,7 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	return 0;
 }
 
-static int max_set_input_unlocked(struct dvb_frontend *fe, int in);
+static int max_set_input(struct dvb_frontend *fe, int in);
 
 static int max_emulate_switch(struct dvb_frontend *fe,
 			      u8 *cmd, u32 len)
@@ -79,7 +79,7 @@ static int max_emulate_switch(struct dvb_frontend *fe,
 		return -1;
 
 	input = cmd[3] & 3;
-	max_set_input_unlocked(fe, input);
+	max_set_input(fe, input);
 	return 0;
 }
 
@@ -98,7 +98,8 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 		return 0;
 
 	if (fmode == 4)
-		max_emulate_switch(fe, cmd->msg, cmd->msg_len);
+		if (!max_emulate_switch(fe, cmd->msg, cmd->msg_len))
+			return 0;
 
 	if (dvb->diseqc_send_master_cmd)
 		dvb->diseqc_send_master_cmd(fe, cmd);

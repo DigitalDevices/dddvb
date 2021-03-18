@@ -60,10 +60,6 @@ static int mci_reset(struct ddb_link *link)
 		return -1;
 	}
 	dev_info(link->dev->dev, "MCI port OK, init time %u msecs\n", (40 - timeout) * 50);
-
-	print_hex_dump(KERN_INFO, "ddbridge: MCI INIT INFO: ", DUMP_PREFIX_NONE, 16, 1,
-		       link->dev->regs + regmap->mci_buf->base + MCI_COMMAND_SIZE,
-		       16, false);
 	return 0;
 }
 

@@ -271,7 +271,7 @@ int main(int argc, char **argv)
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
 	uint32_t bandwidth = DDDVB_UNDEF, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
-	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
+	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = DDDVB_UNDEF;
 	uint32_t mtype= DDDVB_UNDEF;
 	uint32_t verbosity = 0;
 	uint32_t get_ts = 1;

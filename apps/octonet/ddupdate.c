@@ -119,7 +119,7 @@ static int update_flash(struct ddflash *ddf)
 			printf("Flash:    %s\n", ddf->flash_name);
 		printf("Version:  %08x\n", ddf->id.hw);
 		printf("REGMAP :  %08x\n", ddf->id.regmap);
-		if ((res = update_image(ddf, fname, 0x10000, 0x100000, 1, 0)) == 1)
+		if ((res = update_image(ddf, fname, 0x10000, ddf->size / 2, 1, 0)) == 1)
 			stat |= 1;
 		return stat;
 	}

@@ -113,7 +113,7 @@ int main(int argc, char*argv[])
 		}
 	}
 	if (optind < argc) {
-		printf("too man arguments\n");
+		printf("too many arguments\n");
 		exit(1);
 	}
 

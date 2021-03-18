@@ -288,7 +288,8 @@ static int tune_sat(struct dddvb_fe *fe)
 			freq = lofs - freq;
 	} 
 #endif
-	if (freq > 2100000) {
+
+	if (freq > 3000000) {
 		if (lofs)
 			hi = (freq > lofs) ? 1 : 0;
 		if (hi) 
@@ -318,14 +319,15 @@ static int tune_sat(struct dddvb_fe *fe)
 			    fe->scif_slot, fe->scif_freq, ds);
 		pthread_mutex_unlock(&fe->dd->uni_lock);
 	} else {
-		uint32_t input = lnb;
+		uint32_t input = fe->param.param[PARAM_SRC];
 
-		//if (input != DDDVB_UNDEF)
-		//	input = 3 & (input >> 6);
-		//set_property(fe->fd, DTV_INPUT, 3 & (lnb >> 6));
+		if (input != DDDVB_UNDEF) {
+			input = 3 & (input >> 6);
+			printf("input = %u\n", input);
+		}
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
-		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
-		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, ~(0U));
+		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
+		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, DDDVB_UNDEF);
 	}
 }
 
@@ -750,6 +752,8 @@ int dddvb_fe_tune(struct dddvb_fe *fe, struct dddvb_params *p)
 	memcpy(fe->n_param.param, p->param, sizeof(fe->n_param.param));
 	fe->n_tune = 1;
 	pthread_mutex_unlock(&fe->mutex);
+	while(fe->n_tune) usleep(10000);
+	while(fe->tune != 2) usleep(10000);
 	return ret;
 }
 
