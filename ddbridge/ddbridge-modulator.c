@@ -658,8 +658,6 @@ static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 			return -EINVAL;
 		ddbwritel(dev, gain, SDR_GAIN_F);
 	}
-	if (link->mci_ok)
-		mci_cmd_val(link, 0xc0, gain);
 	return 0;
 }
 
