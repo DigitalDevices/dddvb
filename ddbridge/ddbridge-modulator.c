@@ -2029,6 +2029,9 @@ static int mod_init_sdr_iq(struct ddb *dev)
 
 	ddbwritel(dev, 0x01, 0x240);
 
+	if (dev->link[0].ids.revision == 1)
+		return 0;
+
 	//mod3_set_base_frequency(dev, 602000000);
 	dev->mod_base.frequency = 570000000;
 	for (i = 0; i < streams; i++) {
