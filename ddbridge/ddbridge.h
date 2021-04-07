@@ -143,6 +143,7 @@ struct ddb_ids {
 	u32 regmapid;
 	u32 devid;
 	u32 mac;
+	u8 revision;
 };
 
 struct ddb_info {

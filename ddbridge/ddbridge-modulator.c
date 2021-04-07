@@ -644,7 +644,6 @@ static int mod_set_sdr_attenuator(struct ddb *dev, u32 value)
 static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 {
 	u32 control = ddbreadl(dev, SDR_CONTROL);
-	struct ddb_link *link = &dev->link[0];
 
 	if (control & 0x01000000) {
 		if (gain > 511)
@@ -659,8 +658,6 @@ static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 			return -EINVAL;
 		ddbwritel(dev, gain, SDR_GAIN_F);
 	}
-	if (link->mci_ok)
-		mci_cmd_val(link, 0xc0, gain);
 	return 0;
 }
 
@@ -2031,6 +2028,9 @@ static int mod_init_sdr_iq(struct ddb *dev)
 		dev_err(dev->dev, "RFDAC setup failed\n");
 
 	ddbwritel(dev, 0x01, 0x240);
+
+	if (dev->link[0].ids.revision == 1)
+		return 0;
 
 	//mod3_set_base_frequency(dev, 602000000);
 	dev->mod_base.frequency = 570000000;

@@ -312,6 +312,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.subvendor = id->subvendor;
 	dev->link[0].ids.subdevice = pdev->subsystem_device;
 	dev->link[0].ids.devid = (id->device << 16) | id->vendor;
+	dev->link[0].ids.revision = pdev->revision;
 
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
