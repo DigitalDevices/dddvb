@@ -185,6 +185,60 @@
 
 #define MCI_SUCCESS(status)     ((status & MCI_STATUS_UNSUPPORTED) == 0)
 
+/********************************************************/
+
+#define MOD_SETUP_CHANNELS      (0x60)
+#define MOD_SETUP_OUTPUT        (0x61)
+#define MOD_SETUP_STREAM        (0x62)
+
+#define MOD_SETUP_FLAG_FIRST    (0x01)
+#define MOD_SETUP_FLAG_LAST     (0x02)
+#define MOD_SETUP_FLAG_VALID    (0x80)
+
+#define MOD_STANDARD_GENERIC    (0x00)
+#define MOD_STANDARD_DVBT_8     (0x01)
+#define MOD_STANDARD_DVBT_7     (0x02)
+#define MOD_STANDARD_DVBT_6     (0x03)
+
+#define MOD_CONNECTOR_OFF       (0x00)
+#define MOD_CONNECTOR_F         (0x01)
+#define MOD_CONNECTOR_SMA       (0x02)
+
+#define MOD_UNIT_DBUV           (0x00)
+#define MOD_UNIT_DBM            (0x01)
+
+#define MOD_FORMAT_DEFAULT      (0x00)
+#define MOD_FORMAT_IQ16         (0x01)
+#define MOD_FORMAT_IQ8          (0x02)
+#define MOD_FORMAT_IDX8         (0x03)
+#define MOD_FORMAT_TS           (0x04)
+
+struct mod_setup_channels {
+	u8   flags;
+	u8   standard;
+	u8   num_channels;
+	u8   rsvd;
+	u32  frequency;
+	u32  offset;            /* used only when Standard == 0 */
+	u32  bandwidth;         /* used only when Standard == 0 */   
+};
+
+struct mod_setup_stream {
+	u8   standard;
+	u8   stream_format;
+	u8   rsvd[2];
+	u32  symbol_rate;        /* only used when Standard doesn't define a fixed symbol rate */
+	u8   fft_size;           /* 0 = 2K, 1 = 8K  (2K yet supported) */
+	u8   guard_interval;     /* 0 = 1/32, 1 = 1/16, 2 = 1/8, 3 = 1/4  (DVB-T Encoding) */
+};
+
+struct mod_setup_output {
+	u8   connector;         /* 0 = OFF, 1 = F, 2 = SMA */ 
+	u8   num_channels;      /* max active channels, determines max power for each channel. */
+	u8   unit;              /* 0 = dBµV, 1 = dBm, */
+	u8   rsvd;
+	s16  channel_power;
+};
 
 /********************************************************/
 
@@ -196,6 +250,12 @@ struct mci_command {
 			u8 tuner;
 			u8 demod;
 			u8 output;
+		};
+		struct {
+			u8 mod_command;
+			u8 mod_channel;
+			u8 mod_stream;
+			u8 mod_rsvd1;
 		};
 	};
 	union {
@@ -344,6 +404,10 @@ struct mci_command {
 		struct {
 			u8   select;        // 0 = Data PLP, 1 = Common PLP, only DVB-T2 and DVB-C2
 		} get_bb_header;
+
+		struct mod_setup_channels mod_setup_channels[4];
+		struct mod_setup_stream mod_setup_stream;
+		struct mod_setup_output mod_setup_output;
 	};
 };
 
