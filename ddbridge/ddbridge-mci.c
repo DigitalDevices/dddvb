@@ -120,6 +120,7 @@ static int ddb_mci_cmd_raw_unlocked(struct ddb_link *link,
 					  0xffffff, INTERRUPT_ACK);
 		}
 	}
+	//print_hex_dump(KERN_INFO, "MCI", DUMP_PREFIX_OFFSET, 16, 1, cmd, cmd_len, false);
 	if (res && res_len)
 		for (i = 0; i < res_len; i++)
 			res[i] = ddblreadl(link, result + i * 4);
@@ -178,17 +179,10 @@ int mci_init(struct ddb_link *link)
 int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val)
 {
 	struct mci_result result;
-#if 0
-	struct mci_command command = {
-		.command_word = cmd,
-		.params = { val },
-	};
-#else
 	struct mci_command command;
 
 	command.command_word = cmd;
 	command.params[0] = val;
-#endif
 	return ddb_mci_cmd_link(link, &command, &result);
 }
 
