@@ -34,10 +34,16 @@ static int mci_reset(struct ddb_link *link)
 	u32 control;
 	u32 status = 0;
 	u32 timeout = 40;
-
-	if (!regmap || ! regmap->mci)
+	union {
+		u32 u[4];
+		char s[16];
+	} version;
+	u32 vaddr;
+	
+	if (!regmap || !regmap->mci)
 		return -EINVAL;
 	control = regmap->mci->base;
+	vaddr = regmap->mci_buf->base + 0xf0;
 
 	if ((link->info->type == DDB_OCTOPUS_MCI) &&
 	    (ddblreadl(link, control) & MCI_CONTROL_START_COMMAND)) {
@@ -55,11 +61,17 @@ static int mci_reset(struct ddb_link *link)
 		msleep(50);
 	}
 	dev_info(link->dev->dev, "MCI control port @ %08x\n", control);
+
 	if ((status & MCI_CONTROL_READY) == 0) {
 		dev_err(link->dev->dev, "MCI init failed!\n");
 		return -1;
 	}
+	version.u[0] = ddblreadl(link, vaddr);
+	version.u[1] = ddblreadl(link, vaddr + 4);
+	version.u[2] = ddblreadl(link, vaddr + 8);
+	version.u[3] = ddblreadl(link, vaddr + 12);
 	dev_info(link->dev->dev, "MCI port OK, init time %u msecs\n", (40 - timeout) * 50);
+	dev_info(link->dev->dev, "MCI firmware version %s.%d\n", version.s, version.s[15]);
 	return 0;
 }
 
