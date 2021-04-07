@@ -367,27 +367,27 @@ struct mci_command {
 		} get_iq_symbol;
 
 		struct {
-			uint8_t   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
+			u8   flags; /*  Bit 0 : 0 = VTM/SDR, 1 = SCAN,
 					     Bit 1: 1 = Disable AGC,
 					     Bit 2: 1 = Set Gain.   */
-			uint8_t   roll_off;
-			uint8_t   rsvd1;
-			uint8_t   rsvd2;
-			uint32_t  frequency;
-			uint32_t  symbol_rate; /* Only in VTM/SDR mode, SCAN Mode uses exactly 1550/24 MSymbols/s.*/
-			uint8_t   gain;         /* Gain in 0.25 dB Steps */
+			u8   roll_off;
+			u8   rsvd1;
+			u8   rsvd2;
+			u32  frequency;
+			u32  symbol_rate; /* Only in VTM/SDR mode, SCAN Mode uses exactly 1550/24 MSymbols/s.*/
+			u8   gain;         /* Gain in 0.25 dB Steps */
 			/* Frequency, symbolrate and gain can be schanged while running */
 		} sx8_start_iq;
 	
 		struct {
-			uint8_t   flags;
+			u8   flags;
                         /*   Bit 0:1 Preamp Mode;  0 = Preamp AGC, 1 == Minimum (~ -17dB) ,
 			     2 = Medium, 3 = Maximum gain {~ 15dB}
 			     Bit 2: Bypass Input LNA (6 dB less gain) (Note this is after Preamp)
 			     Bit 4: Set RF Gain
 			     Bit 5: Freeze RF Gain (Turn AGC off at current gain, only when already enabled)
 			     Bit 7: Optimize RF Gain and freeze for FFT */
-			uint8_t   rf_gain;       /*   0 .. 50 dB */
+			u8   rf_gain;       /*   0 .. 50 dB */
 		} sx8_input_enable;
 		
 		struct {
@@ -864,7 +864,7 @@ int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
 void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
 int mci_init(struct ddb_link *link);
-int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val);
+int mci_cmd_val(struct ddb_link *link, u32 cmd, u32 val);
 
 extern struct mci_cfg ddb_max_sx8_cfg;
 extern struct mci_cfg ddb_max_m4_cfg;
