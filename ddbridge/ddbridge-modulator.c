@@ -644,7 +644,6 @@ static int mod_set_sdr_attenuator(struct ddb *dev, u32 value)
 static int mod_set_sdr_gain(struct ddb *dev, u32 gain)
 {
 	u32 control = ddbreadl(dev, SDR_CONTROL);
-	struct ddb_link *link = &dev->link[0];
 
 	if (control & 0x01000000) {
 		if (gain > 511)
