@@ -81,12 +81,24 @@ int mci_cmd(int dev, struct mci_command *cmd)
 {
 	int ret;
 	struct ddb_mci_msg msg;
+	uint8_t status;
 
 	msg.link = 0;
 	memcpy(&msg.cmd, cmd, sizeof(msg.cmd));
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
-		printf("mci_cmd error %d\n", errno);
+		dprintf(2, "mci_cmd error %d\n", errno);
+		return ret;
+	}
+	status = msg.res.status;
+	if (status == MCI_STATUS_OK)
+		return ret;
+	if (status == MCI_STATUS_UNSUPPORTED) {
+		dprintf(2, "Unsupported MCI command\n");
+		return ret;
+	}
+	if (status == MCI_STATUS_INVALID_PARAMETER) {
+		dprintf(2, "Invalid MCI parameters\n");
 		return ret;
 	}
 	return ret;
@@ -145,7 +157,7 @@ void output_cb(void *priv, char *par, char *val)
 		} else
 			printf("invalid connector\n");
 	} else if (!strcasecmp(par, "power")) {
-		mc->output.mod_setup_output.channel_power = strtol(val, NULL, 10);
+		mc->output.mod_setup_output.channel_power = (uint32_t) (strtod(val, NULL) * 100.0);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->output.mod_setup_output.num_channels = strtol(val, NULL, 10);
 	}else if (!strcasecmp(par, "unit")) {
@@ -168,16 +180,16 @@ void channels_cb(void *priv, char *par, char *val)
 		return;
 	}		
 	if (!strcasecmp(par, "frequency")) {
-		mc->channels.mod_setup_channels[0].frequency = strtol(val, NULL, 10);
+		mc->channels.mod_setup_channels[0].frequency =  (uint32_t) (strtod(val, NULL) * 1000000.0);
 		printf("frequency = %u\n", mc->channels.mod_setup_channels[0].frequency);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->channels.mod_setup_channels[0].num_channels = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "standard")) {
 		mc->channels.mod_setup_channels[0].standard = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "offset")) {
-		mc->channels.mod_setup_channels[0].offset = strtol(val, NULL, 10);
+		mc->channels.mod_setup_channels[0].offset =  (uint32_t) (strtod(val, NULL) * 1000000.0);
 	} else if (!strcasecmp(par, "bandwidth")) {
-		mc->channels.mod_setup_channels[0].bandwidth = strtol(val, NULL, 10);
+		mc->channels.mod_setup_channels[0].bandwidth = (uint32_t) (strtod(val, NULL) * 1000000.0);
 		mc->channels.mod_setup_channels[0].offset =
 			mc->channels.mod_setup_channels[0].bandwidth / 2;
 	} else
@@ -200,7 +212,7 @@ void streams_cb(void *priv, char *par, char *val)
 	} else if (!strcasecmp(par, "stream_format")) {
 		mc->stream.mod_setup_stream.stream_format = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "symbol_rate")) {
-		mc->stream.mod_setup_stream.symbol_rate = strtol(val, NULL, 10);
+		mc->stream.mod_setup_stream.symbol_rate = (uint32_t) (strtod(val, NULL) * 1000000.0);
 	} else if (!strcasecmp(par, "stream")) {
 		mc->stream.mod_stream = strtol(val, NULL, 10);
 		printf("set stream %u to channel %u\n", mc->stream.mod_stream, mc->stream.mod_channel);
@@ -232,6 +244,7 @@ int main(int argc, char*argv[])
 		static struct option long_options[] = {
 			{"device", required_argument, 0, 'd'},
 			{"config", required_argument, 0, 'c'},
+			{"help", no_argument, 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, "d:c:",
@@ -245,6 +258,9 @@ int main(int argc, char*argv[])
 		case 'c':
 			configname = optarg;
 			break;
+		case 'h':
+			dprintf(2, "modconfig [-d device_number] [-c config_file]\n");
+			break;
 		default:
 			break;
 		}
@@ -255,8 +271,10 @@ int main(int argc, char*argv[])
 	}
 	snprintf(fn, 127, "/dev/ddbridge/card%u", device);
 	fd = open(fn, O_RDWR);
-	if (fd < 0)
+	if (fd < 0) {
+		dprintf(2, "Could not open %s\n", fn);
 		return -1;
+	}
 	mc.fd = fd;
 	parse(configname, "output", (void *) &mc, output_cb);
 	if (mc.set_output)
