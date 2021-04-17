@@ -230,6 +230,7 @@ struct mod_setup_stream {
 	u32  symbol_rate;        /* only used when Standard doesn't define a fixed symbol rate */
 	u8   fft_size;           /* 0 = 2K, 1 = 8K  (2K yet supported) */
 	u8   guard_interval;     /* 0 = 1/32, 1 = 1/16, 2 = 1/8, 3 = 1/4  (DVB-T Encoding) */
+	u8   puncture_rate;      /* 0 = 1/2, 1 = 2/3, 2 = 3/4, 3 = 5/6, 4 = 7/8  (DVB-T Encoding) */
 };
 
 struct mod_setup_output {

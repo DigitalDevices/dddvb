@@ -157,7 +157,7 @@ void output_cb(void *priv, char *par, char *val)
 		} else
 			printf("invalid connector\n");
 	} else if (!strcasecmp(par, "power")) {
-		mc->output.mod_setup_output.channel_power = (uint32_t) (strtod(val, NULL) * 100.0);
+		mc->output.mod_setup_output.channel_power = (int16_t) (strtod(val, NULL) * 100.0);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->output.mod_setup_output.num_channels = strtol(val, NULL, 10);
 	}else if (!strcasecmp(par, "unit")) {
@@ -207,6 +207,8 @@ void streams_cb(void *priv, char *par, char *val)
 		mc->stream.mod_setup_stream.fft_size = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "guard_interval")) {
 		mc->stream.mod_setup_stream.guard_interval = strtol(val, NULL, 10);
+	} else if (!strcasecmp(par, "puncture_rate")) {
+		mc->stream.mod_setup_stream.puncture_rate = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "standard")) {
 		mc->stream.mod_setup_stream.standard = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "stream_format")) {
@@ -276,11 +278,11 @@ int main(int argc, char*argv[])
 		return -1;
 	}
 	mc.fd = fd;
-	parse(configname, "output", (void *) &mc, output_cb);
-	if (mc.set_output)
-		mci_cmd(fd, &mc.output);
 	parse(configname, "channels", (void *) &mc, channels_cb);
 	if (mc.set_channels)
 		mci_cmd(fd, &mc.channels);
 	parse(configname, "streams", (void *) &mc, streams_cb);
+	parse(configname, "output", (void *) &mc, output_cb);
+	if (mc.set_output)
+		mci_cmd(fd, &mc.output);
 }
