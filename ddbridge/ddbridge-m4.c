@@ -404,9 +404,11 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	ddb_mci_get_strength(fe);
 	if (res.status == MCI_DEMOD_WAIT_SIGNAL)
 		*status = 0x01;
-	if (res.status == M4_DEMOD_WAIT_TS)
+	else if (res.status == M4_DEMOD_WAIT_TS)
 		*status = 0x03;
-	if (res.status == MCI_DEMOD_LOCKED) {
+	else if (res.status == MCI_DEMOD_TIMEOUT)
+		*status = FE_TIMEDOUT;
+	else if (res.status == MCI_DEMOD_LOCKED) {
 		*status = 0x1f;
 		ddb_mci_get_snr(fe);
 	}
