@@ -59,34 +59,219 @@ int temp_info(int dev)
 }
 
 
+#define SIZE_OF_ARRAY(a) (sizeof(a)/sizeof(a[0]))
+
+char *DemodStatus[] = {
+    "Idle",
+    "IQ Mode",
+    "Wait for Signal",
+    "DVB-S2 Wait for MATYPE",
+    "DVB-S2 Wait for FEC",
+    "DVB-S1 Wait for FEC",
+    "Wait for TS",
+    "Unknown 7",
+    "Unknown 8",
+    "Unknown 9",
+    "Unknown 10",
+    "Unknown 11",
+    "Unknown 12",
+    "Unknown 13",
+    "Timeout",
+    "Locked",
+    "C2 Scan",
+};
+
+char* S2ModCods[32] = {
+/* 0x00 */    "DummyPL"     , 
+
+// Legacy S2:   index is S2_Modcod * 2 + short
+
+/* 0x01 */    "QPSK 1/4"    ,
+/* 0x02 */    "QPSK 1/3"    ,
+/* 0x03 */    "QPSK 2/5"    ,
+/* 0x04 */    "QPSK 1/2"    ,
+/* 0x05 */    "QPSK 3/5"    ,
+/* 0x06 */    "QPSK 2/3"    ,
+/* 0x07 */    "QPSK 3/4"    ,
+/* 0x08 */    "QPSK 4/5"    ,
+/* 0x09 */    "QPSK 5/6"    ,
+/* 0x0A */    "QPSK 8/9"    ,
+/* 0x0B */    "QPSK 9/10"   ,
+                             
+/* 0x0C */    "8PSK 3/5"    ,
+/* 0x0D */    "8PSK 2/3"    ,
+/* 0x0E */    "8PSK 3/4"    ,
+/* 0x0F */    "8PSK 5/6"    ,
+/* 0x10 */    "8PSK 8/9"    ,
+/* 0x11 */    "8PSK 9/10"   ,
+                             
+/* 0x12 */    "16APSK 2/3"  ,
+/* 0x13 */    "16APSK 3/4"  ,
+/* 0x14 */    "16APSK 4/5"  ,
+/* 0x15 */    "16APSK 5/6"  ,
+/* 0x16 */    "16APSK 8/9"  ,
+/* 0x17 */    "16APSK 9/10" ,
+                             
+/* 0x18 */    "32APSK 3/4"  ,
+/* 0x19 */    "32APSK 4/5"  ,
+/* 0x1A */    "32APSK 5/6"  ,
+/* 0x1B */    "32APSK 8/9"  ,
+/* 0x1C */    "32APSK 9/10" ,
+                             
+/* 0x1D */    "rsvd 0x1D"   ,
+/* 0x1E */    "rsvd 0x1E"   ,
+/* 0x1F */    "rsvd 0x1F"   ,
+};
+
+
+///* 129 */    "VLSNR1"          ,  
+///* 131 */    "VLSNR2"          ,  
+
+char* S2XModCods[59] = {
+/* 0x42 */    "QPSK 13/45"      , 
+/* 0x43 */    "QPSK 9/20"       , 
+/* 0x44 */    "QPSK 11/20"      , 
+                                  
+/* 0x45 */    "8APSK 5/9-L"     , 
+/* 0x46 */    "8APSK 26/45-L"   , 
+/* 0x47 */    "8PSK 23/36"      , 
+/* 0x48 */    "8PSK 25/36"      , 
+/* 0x49 */    "8PSK 13/18"      , 
+                                  
+/* 0x4A */    "16APSK 1/2-L"    , 
+/* 0x4B */    "16APSK 8/15-L"   , 
+/* 0x4C */    "16APSK 5/9-L"    , 
+/* 0x4D */    "16APSK 26/45"    , 
+/* 0x4E */    "16APSK 3/5"      , 
+/* 0x4F */    "16APSK 3/5-L"    , 
+/* 0x50 */    "16APSK 28/45"    , 
+/* 0x51 */    "16APSK 23/36"    , 
+/* 0x52 */    "16APSK 2/3-L"    , 
+/* 0x53 */    "16APSK 25/36"    , 
+/* 0x54 */    "16APSK 13/18"    , 
+                                  
+/* 0x55 */    "16APSK 7/9"      , 
+/* 0x56 */    "16APSK 77/90"    , 
+                                  
+/* 0x57 */    "32APSK 2/3-L"    , 
+/* 0x58 */    "rsvd 32APSK"     , 
+/* 0x59 */    "32APSK 32/45"    , 
+/* 0x5A */    "32APSK 11/15"    , 
+/* 0x5B */    "32APSK 7/9"      , 
+                                  
+/* 0x5C */    "64APSK 32/45-L"  , 
+/* 0x5D */    "64APSK 11/15"    , 
+/* 0x5E */    "rsvd 64APSK"     , 
+/* 0x5F */    "64APSK 7/9"      , 
+                                  
+/* 0x60 */    "rsvd 64APSK"     , 
+/* 0x61 */    "64APSK 4/5"      , 
+/* 0x62 */    "rsvd 64APSK"     , 
+/* 0x63 */    "64APSK 5/6"      , 
+                                  
+/* 0x64 */    "128APSK 3/4"     , 
+/* 0x65 */    "128APSK 7/9"     , 
+
+/* 0x66 */    "256APSK 29/45-L" , 
+/* 0x67 */    "256APSK 2/3-L"   , 
+/* 0x68 */    "256APSK 31/45-L" , 
+/* 0x69 */    "256APSK 32/45"   , 
+/* 0x6A */    "256APSK 11/15-L" , 
+/* 0x6B */    "256APSK 3/4"     , 
+
+/* 0x6C */    "QPSK 11/45-S"    ,
+/* 0x6D */    "QPSK 4/15-S"     ,
+/* 0x6E */    "QPSK 14/45-S"    ,
+/* 0x6F */    "QPSK 7/15-S"     ,
+/* 0x70 */    "QPSK 8/15-S"     ,
+/* 0x71 */    "QPSK 32/45-S"    ,
+                                 
+/* 0x72 */    "8PSK 7/15-S"     ,
+/* 0x73 */    "8PSK 8/15-S"     ,
+/* 0x74 */    "8PSK 26/45-S"    ,
+/* 0x75 */    "8PSK 32/45-S"    ,
+                                 
+/* 0x76 */    "16APSK 7/15-S"   ,
+/* 0x77 */    "16APSK 8/15-S"   ,
+/* 0x78 */    "16APSK 26/45-S"  ,
+/* 0x79 */    "16APSK 3/5-S"    ,
+/* 0x7A */    "16APSK 32/45-S"  ,
+                                 
+/* 0x7B */    "32APSK 2/3-S"    ,
+/* 0x7C */    "32APSK 32/45-S"  ,
+};
+
+char* S2Xrsvd[] = {
+/* 250 */    "rsvd 8PSK"       ,
+/* 251 */    "rsvd 16APSK"     ,
+/* 252 */    "rsvd 32APSK"     ,
+/* 253 */    "rsvd 64APSK"     ,
+/* 254 */    "rsvd 256APSK"    ,
+/* 255 */    "rsvd 1024APSK"   ,
+};
+
+char* PunctureRates[32] = {
+/* 0x00 */    "QPSK 1/2",   // DVB-S1 
+/* 0x01 */    "QPSK 2/3",   // DVB-S1 
+/* 0x02 */    "QPSK 3/4",   // DVB-S1 
+/* 0x03 */    "QPSK 5/6",   // DVB-S1 
+/* 0x04 */    "QPSK 6/7",   // DSS
+/* 0x05 */    "QPSK 7/8",   // DVB-S1 
+/* 0x06 */    "rsvd 6.0",
+/* 0x07 */    "rsvd 7.0",
+};
+
 void print_info(struct mci_result *res, uint8_t demod)
 {
 	if (res->status == MCI_DEMOD_STOPPED) {
-		printf("Demod %u stopped\n", demod);
+		printf("\nDemod %u: stopped\n", demod);
 		return;
 	}
 	
-	printf("Demod %u:\n", demod);
-	switch (res->mode) {
-		case 0:
+	printf("\nDemod %u:\n", demod);
+	if (res->status == MCI_DEMOD_LOCKED) {
+		switch (res->mode) {
 		case M4_MODE_DVBSX:
-		if (res->dvbs2_signal_info.standard == 2) {
-			printf("PLS-Code:      %u\n", res->dvbs2_signal_info.pls_code);
-			printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off]);
-			printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
-			printf("Frequency:     %u Hz\n", res->dvbs2_signal_info.frequency);
-			printf("Symbol Rate:   %u Symbols/s\n", res->dvbs2_signal_info.symbol_rate);
-			printf("Channel Power: %.2f dBm\n", (float) res->dvbs2_signal_info.channel_power / 100);
-			printf("Band Power:    %.2f dBm\n", (float) res->dvbs2_signal_info.band_power / 100);
-			printf("SNR:           %.2f dB\n", (float) res->dvbs2_signal_info.signal_to_noise / 100);
-			printf("Packet Errors: %u\n", res->dvbs2_signal_info.packet_errors);
-			printf("BER Numerator: %u\n", res->dvbs2_signal_info.ber_numerator);
-			printf("BER Denom.:    %u\n", res->dvbs2_signal_info.ber_denominator);
-			printf("\n");
-		} else {
-			
+			if (res->dvbs2_signal_info.standard == 2) {
+				int short_frame = 0;
+				
+				if ((res->dvbs2_signal_info.pls_code >= 128) ||
+				    ((res->dvbs2_signal_info.roll_off & 0x7f) > 2))
+					printf("Demod Locked:  DVB-S2X\n");
+				else
+					printf("Demod Locked:  DVB-S2\n");
+				printf("PLS-Code:      %u\n", res->dvbs2_signal_info.pls_code);
+				printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off]);
+				printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
+				printf("\n");
+			} else {
+				printf("Demod Locked:  DVB-S\n");
+				printf("PR:            %s\n",
+				       PunctureRates[res->dvbs2_signal_info.pls_code & 0x07]);
+				
+			}
+		case M4_MODE_DVBT:
+			printf("Locked DVB-T\n");
+			break;
+		case M4_MODE_DVBT2:
+			printf("Locked DVB-T2\n");
+			break;
 		}
+		printf("SNR:           %.2f dB\n", (float) res->dvbs2_signal_info.signal_to_noise / 100);
+		printf("Packet Errors: %u\n", res->dvbs2_signal_info.packet_errors);
+		printf("BER Numerator: %u\n", res->dvbs2_signal_info.ber_numerator);
+		printf("BER Denom.:    %u\n", res->dvbs2_signal_info.ber_denominator);
+	} else {
+		printf("Demod State:   %s\n",
+		       res->status < SIZE_OF_ARRAY(DemodStatus) ? DemodStatus[res->status] : "?");
+		
 	}
+	printf("Frequency:     %u Hz\n", res->dvbs2_signal_info.frequency);
+	printf("Symbol Rate:   %u Symbols/s\n", res->dvbs2_signal_info.symbol_rate);
+	printf("Channel Power: %.2f dBm\n", (float) res->dvbs2_signal_info.channel_power / 100);
+	if (res->dvbs2_signal_info.band_power > -10000)
+		printf("Band Power:    %.2f dBm\n", (float) res->dvbs2_signal_info.band_power / 100);
+	
 }
 
 int mci_info(int dev, uint8_t demod)
