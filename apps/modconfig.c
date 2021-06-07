@@ -24,7 +24,7 @@ struct mconf {
 	int set_output;
 	int set_channels;
 	int fd;
-	
+
 	struct mci_command channels;
 	struct mci_command stream;
 	struct mci_command output;
@@ -77,6 +77,98 @@ void parse(char *fname, char *sec, void *priv, void (*cb)(void *, char *, char *
 	fclose(f);
 }
 
+struct param_table_entry {
+	int value;
+	char* name;
+};
+
+struct param_table_entry mod_standard_table[] = {
+	{ .name = "GENERIC", .value = MOD_STANDARD_GENERIC },
+	{ .name = "DVBT_8", .value = MOD_STANDARD_DVBT_8 },
+	{ .name = "DVBT_7", .value = MOD_STANDARD_DVBT_7 },
+	{ .name = "DVBT_6", .value = MOD_STANDARD_DVBT_6 },
+	{ .name = "DVBT_5", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = "DVBT2_8", .value = MOD_STANDARD_DVBT_8 },
+	{ .name = "DVBT2_7", .value = MOD_STANDARD_DVBT_7 },
+	{ .name = "DVBT2_6", .value = MOD_STANDARD_DVBT_6 },
+	{ .name = "DVBT2_5", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = "0", .value = MOD_STANDARD_GENERIC },
+	{ .name = "1", .value = MOD_STANDARD_DVBT_8 },
+	{ .name = "2", .value = MOD_STANDARD_DVBT_7 },
+	{ .name = "3", .value = MOD_STANDARD_DVBT_6 },
+	{ .name = "4", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = NULL, .value = 0 }
+};
+
+struct param_table_entry stream_format_table[] = {
+	{ .name = "default", .value = MOD_FORMAT_DEFAULT },
+	{ .name = "IQ16", .value = MOD_FORMAT_IQ16 },
+	{ .name = "IQ8", .value = MOD_FORMAT_IQ8 },
+	{ .name = "IDX8", .value = MOD_FORMAT_IDX8 },
+	{ .name = "TS", .value = MOD_FORMAT_TS },
+	{ .name = "0", .value = MOD_FORMAT_DEFAULT },
+	{ .name = "1", .value = MOD_FORMAT_IQ16 },
+	{ .name = "2", .value = MOD_FORMAT_IQ8 },
+	{ .name = "3", .value = MOD_FORMAT_IDX8 },
+	{ .name = "4", .value = MOD_FORMAT_TS },
+	{ .name = NULL, .value = 0 }
+};
+
+
+struct param_table_entry guard_interval_table[] = {
+	{ .name = "1/32", .value = MOD_DVBT_GI_1_32 },
+	{ .name = "1/16", .value = MOD_DVBT_GI_1_16 },
+	{ .name = "1/8", .value = MOD_DVBT_GI_1_8	 },
+	{ .name = "1/4", .value = MOD_DVBT_GI_1_4	 },
+	{ .name = "0", .value = MOD_DVBT_GI_1_32 },
+	{ .name = "1", .value = MOD_DVBT_GI_1_16 },
+	{ .name = "2", .value = MOD_DVBT_GI_1_8	 },
+	{ .name = "3", .value = MOD_DVBT_GI_1_4	 },
+	{ .name = NULL, .value = 0 }
+};
+
+struct param_table_entry puncture_rate_table[] = {
+	{ .name = "1/2", .value = MOD_DVBT_PR_1_2 },
+	{ .name = "2/3", .value = MOD_DVBT_PR_2_3 },
+	{ .name = "3/4", .value = MOD_DVBT_PR_3_4 },
+	{ .name = "5/6", .value = MOD_DVBT_PR_5_6 },
+	{ .name = "7/8", .value = MOD_DVBT_PR_7_8 },
+	{ .name = "1", .value = MOD_DVBT_PR_1_2 },
+	{ .name = "2", .value = MOD_DVBT_PR_2_3 },
+	{ .name = "3", .value = MOD_DVBT_PR_3_4 },
+	{ .name = "5", .value = MOD_DVBT_PR_5_6 },
+	{ .name = "7", .value = MOD_DVBT_PR_7_8 },
+	{ .name = NULL, .value = 0 }
+};
+
+struct param_table_entry dvbt_constellation_table[] = {
+	{ .name = "0", .value = MOD_DVBT_QPSK },
+	{ .name = "qpsk", .value = MOD_DVBT_QPSK },
+	{ .name = "1", .value = MOD_DVBT_16QAM },
+	{ .name = "16qam", .value = MOD_DVBT_16QAM },
+	{ .name = "qam16", .value = MOD_DVBT_16QAM },
+	{ .name = "2", .value = MOD_DVBT_64QAM },
+	{ .name = "64qam", .value = MOD_DVBT_64QAM },
+	{ .name = "qam64", .value = MOD_DVBT_64QAM },
+	{ .name = NULL, .value = 0 }
+};
+
+int parse_param(char *val,struct param_table_entry *table, int *value) {
+	if (value) {
+		*value = 0;
+		if (table) {
+			while (table->name) {
+				if( !strcasecmp(val,table->name)) {
+					*value = table->value;
+					return 0;
+				}
+				table++;
+			}
+		}
+	}
+	return -1;
+}
+
 int mci_cmd(int dev, struct mci_command *cmd)
 {
 	int ret;
@@ -105,7 +197,7 @@ int mci_cmd(int dev, struct mci_command *cmd)
 }
 
 struct mci_command msg_channels = {
-	.mod_command = MOD_SETUP_CHANNELS,	
+	.mod_command = MOD_SETUP_CHANNELS,
 	.mod_channel = 0,
 	.mod_stream = 0,
 	.mod_setup_channels[0] = {
@@ -117,7 +209,7 @@ struct mci_command msg_channels = {
 };
 
 struct mci_command msg_stream = {
-	.mod_command = MOD_SETUP_STREAM,	
+	.mod_command = MOD_SETUP_STREAM,
 	.mod_channel = 1,
 	.mod_stream = 0,
 	.mod_setup_stream = {
@@ -146,7 +238,7 @@ void output_cb(void *priv, char *par, char *val)
 	if (!par && !val) {
 		mc->set_output = 1;
 		return;
-	}		
+	}
 	if (!strcasecmp(par, "connector")) {
 		if (!strcasecmp(val, "F")) {
 			mc->output.mod_setup_output.connector = MOD_CONNECTOR_F;
@@ -157,7 +249,7 @@ void output_cb(void *priv, char *par, char *val)
 		} else
 			printf("invalid connector\n");
 	} else if (!strcasecmp(par, "power")) {
-		mc->output.mod_setup_output.channel_power = (uint32_t) (strtod(val, NULL) * 100.0);
+		mc->output.mod_setup_output.channel_power = (int16_t) (strtod(val, NULL) * 100.0);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->output.mod_setup_output.num_channels = strtol(val, NULL, 10);
 	}else if (!strcasecmp(par, "unit")) {
@@ -174,20 +266,22 @@ void output_cb(void *priv, char *par, char *val)
 void channels_cb(void *priv, char *par, char *val)
 {
 	struct mconf *mc = (struct mconf *) priv;
+	int value;
 
 	if (!par && !val) {
 		mc->set_channels = 1;
 		return;
-	}		
+	}
 	if (!strcasecmp(par, "frequency")) {
-		mc->channels.mod_setup_channels[0].frequency =  (uint32_t) (strtod(val, NULL) * 1000000.0);
+		mc->channels.mod_setup_channels[0].frequency =	(uint32_t) (strtod(val, NULL) * 1000000.0);
 		printf("frequency = %u\n", mc->channels.mod_setup_channels[0].frequency);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->channels.mod_setup_channels[0].num_channels = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "standard")) {
-		mc->channels.mod_setup_channels[0].standard = strtol(val, NULL, 10);
+		if (!parse_param(val,mod_standard_table,&value))
+			mc->stream.mod_setup_channels[0].standard = value;
 	} else if (!strcasecmp(par, "offset")) {
-		mc->channels.mod_setup_channels[0].offset =  (uint32_t) (strtod(val, NULL) * 1000000.0);
+		mc->channels.mod_setup_channels[0].offset =	 (uint32_t) (strtod(val, NULL) * 1000000.0);
 	} else if (!strcasecmp(par, "bandwidth")) {
 		mc->channels.mod_setup_channels[0].bandwidth = (uint32_t) (strtod(val, NULL) * 1000000.0);
 		mc->channels.mod_setup_channels[0].offset =
@@ -199,28 +293,40 @@ void channels_cb(void *priv, char *par, char *val)
 void streams_cb(void *priv, char *par, char *val)
 {
 	struct mconf *mc = (struct mconf *) priv;
+	int value;
 
 	if (!par && !val) {
 		return;
-	}		
+	}
 	if (!strcasecmp(par, "fft_size")) {
 		mc->stream.mod_setup_stream.fft_size = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "guard_interval")) {
-		mc->stream.mod_setup_stream.guard_interval = strtol(val, NULL, 10);
+		if (!parse_param(val,guard_interval_table,&value))
+			mc->stream.mod_setup_stream.guard_interval = value;
+	} else if (!strcasecmp(par, "puncture_rate")) {
+		if (!parse_param(val,puncture_rate_table,&value))
+			mc->stream.mod_setup_stream.puncture_rate = value;
+	} else if (!strcasecmp(par, "constellation")) {
+		if (!parse_param(val,dvbt_constellation_table,&value))
+			mc->stream.mod_setup_stream.constellation = value;
+	} else if (!strcasecmp(par, "cell_identifier")) {
+		mc->stream.mod_setup_stream.cell_identifier = strtol(val, NULL, 0);
 	} else if (!strcasecmp(par, "standard")) {
-		mc->stream.mod_setup_stream.standard = strtol(val, NULL, 10);
+		if (!parse_param(val,mod_standard_table,&value))
+			mc->stream.mod_setup_stream.standard = value;
 	} else if (!strcasecmp(par, "stream_format")) {
-		mc->stream.mod_setup_stream.stream_format = strtol(val, NULL, 10);
+		if (!parse_param(val,stream_format_table,&value))
+			mc->stream.mod_setup_stream.stream_format = value;
 	} else if (!strcasecmp(par, "symbol_rate")) {
 		mc->stream.mod_setup_stream.symbol_rate = (uint32_t) (strtod(val, NULL) * 1000000.0);
+	} else if (!strcasecmp(par, "channel")) {
+		mc->stream.mod_channel = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "stream")) {
 		mc->stream.mod_stream = strtol(val, NULL, 10);
 		printf("set stream %u to channel %u\n", mc->stream.mod_stream, mc->stream.mod_channel);
 		mci_cmd(mc->fd, &mc->stream);
-	} else if (!strcasecmp(par, "channel")) {
-		mc->stream.mod_channel = strtol(val, NULL, 10);
 	} else
-		printf("invalid streams parameter: %s\n", par);
+		printf("invalid streams parameter: %s = %s\n", par, val);
 }
 
 int main(int argc, char*argv[])
@@ -236,7 +342,7 @@ int main(int argc, char*argv[])
 	mc.channels = msg_channels;
 	mc.stream = msg_stream;
 	mc.output = msg_output;
-	
+
 	while (1) {
 		int cur_optind = optind ? optind : 1;
 		int option_index = 0;
@@ -247,7 +353,7 @@ int main(int argc, char*argv[])
 			{"help", no_argument, 0, 'h'},
 			{0, 0, 0, 0}
 		};
-                c = getopt_long(argc, argv, "d:c:",
+								c = getopt_long(argc, argv, "d:c:",
 				long_options, &option_index);
 		if (c == -1)
 			break;
@@ -276,11 +382,11 @@ int main(int argc, char*argv[])
 		return -1;
 	}
 	mc.fd = fd;
-	parse(configname, "output", (void *) &mc, output_cb);
-	if (mc.set_output)
-		mci_cmd(fd, &mc.output);
 	parse(configname, "channels", (void *) &mc, channels_cb);
 	if (mc.set_channels)
 		mci_cmd(fd, &mc.channels);
 	parse(configname, "streams", (void *) &mc, streams_cb);
+	parse(configname, "output", (void *) &mc, output_cb);
+	if (mc.set_output)
+		mci_cmd(fd, &mc.output);
 }
