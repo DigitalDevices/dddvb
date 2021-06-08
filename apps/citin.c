@@ -10,7 +10,6 @@
 #include <sys/ioctl.h>
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>
-#include <linux/dvb/video.h>
 
 void proc_ts(int i, uint8_t *buf)
 {
