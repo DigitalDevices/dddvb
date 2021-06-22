@@ -23,7 +23,7 @@
 #ifndef _DDBRIDGE_H_
 #define _DDBRIDGE_H_
 
-#define DDB_USE_WORK
+/* #define DDB_USE_WORK */
 /*#define DDB_TEST_THREADED*/
 
 #include <linux/version.h>
