@@ -35,10 +35,10 @@ void print_temp(struct mci_result *res)
 	printf("Die temperature = %u\n", res->sx8_bist.temperature);
 }
 
-int temp_info(int dev)
+int temp_info(int dev, uint32_t link)
 {
 	struct ddb_mci_msg msg = {
-		.link = 0,
+		.link = link,
 		.cmd.command = SX8_CMD_GETBIST,
 	};
 	int ret;
@@ -233,23 +233,36 @@ void print_info(struct mci_result *res, uint8_t demod)
 		switch (res->mode) {
 		case M4_MODE_DVBSX:
 			if (res->dvbs2_signal_info.standard == 2) {
-				int short_frame = 0;
+				int short_frame = 0, pilots = 0;
+				char *modcod = "unknown";
+				uint8_t pls = res->dvbs2_signal_info.pls_code;
 				
-				if ((res->dvbs2_signal_info.pls_code >= 128) ||
-				    ((res->dvbs2_signal_info.roll_off & 0x7f) > 2))
+				if ((pls >= 128) || ((res->dvbs2_signal_info.roll_off & 0x7f) > 2))
 					printf("Demod Locked:  DVB-S2X\n");
 				else
 					printf("Demod Locked:  DVB-S2\n");
 				printf("PLS-Code:      %u\n", res->dvbs2_signal_info.pls_code);
-				printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off]);
-				printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
-				printf("\n");
+				if (pls >= 250)  {
+					pilots = 1;
+					modcod = S2Xrsvd[pls - 250];
+				} else if (pls >= 132) {
+					pilots = pls & 1;
+					short_frame = pls > 216;
+					modcod = S2XModCods[(pls - 132)/2];
+				} else if (pls < 128) {
+					pilots = pls & 1;
+					short_frame = pls & 2;
+					modcod = S2ModCods[pls / 4];
+				}
+				printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off & 7]);
+				printf("Pilots:        %s\n", pilots ? "On" : "Off");
+				printf("Frame:         %s\n", short_frame ? "Short" : "Long");
 			} else {
 				printf("Demod Locked:  DVB-S\n");
 				printf("PR:            %s\n",
 				       PunctureRates[res->dvbs2_signal_info.pls_code & 0x07]);
-				
 			}
+			printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
 		case M4_MODE_DVBT:
 			printf("Locked DVB-T\n");
 			break;
@@ -274,10 +287,37 @@ void print_info(struct mci_result *res, uint8_t demod)
 	
 }
 
-int mci_info(int dev, uint8_t demod)
+int readreg(int dev, uint32_t reg, uint32_t link, uint32_t *val)
+{
+	struct ddb_reg ddbreg;
+
+        ddbreg.reg =  reg + (link << 28);
+	if (ioctl(dev, IOCTL_DDB_READ_REG, &ddbreg) < 0)
+		return -1;
+	*val = ddbreg.val;
+	return 0;
+}
+
+void mci_firmware(int dev, uint32_t link)
+{
+	union {
+		uint32_t u[4];
+		char  s[16];
+	} version;
+	
+	readreg(dev, MIC_INTERFACE_VER     , link, &version.u[0]);
+	readreg(dev, MIC_INTERFACE_VER +  4, link, &version.u[1]);
+	readreg(dev, MIC_INTERFACE_VER +  8, link, &version.u[2]);
+	readreg(dev, MIC_INTERFACE_VER + 12, link, &version.u[3]);
+    
+	printf("MCI firmware: %s.%d\n", &version.s, version.s[15]);
+}
+
+
+int mci_info(int dev, uint32_t link, uint8_t demod)
 {
 	struct ddb_mci_msg msg = {
-		.link = 0,
+		.link = link,
 		.cmd.command = MCI_CMD_GETSIGNALINFO,
 		.cmd.demod = demod
 	};
@@ -380,20 +420,22 @@ static int card_info(int ddbnum, int demod)
 		       id.hw, id.regmap, (id.hw & 0xff0000) >> 16, (id.hw & 0xffff));
 		switch (id.device) {
 		case 0x0009:
+			mci_firmware(ddb, link);
 			if (demod >= 0)
-				mci_info(ddb, demod);
+				mci_info(ddb, link, demod);
 			else {
 				for (i = 0; i < 8; i++)
-					mci_info(ddb, i);
+					mci_info(ddb, link, i);
 			}
-			temp_info(ddb);
+			temp_info(ddb, link);
 			break;
 		case 0x000a:
+			mci_firmware(ddb, link);
 			if (demod >= 0)
-				mci_info(ddb, demod);
+				mci_info(ddb, link, demod);
 			else {
 				for (i = 0; i < 4; i++)
-					mci_info(ddb, i);
+					mci_info(ddb, link, i);
 			}
 			break;
 		default:
