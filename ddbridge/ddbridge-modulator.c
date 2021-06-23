@@ -1863,6 +1863,8 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		dev_err(dev->dev, "FSM setup failed!\n");
 		return -1;
 	}
+	if (dev->link[0].ids.revision == 1)
+		return 0;
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
@@ -2026,7 +2028,7 @@ static int mod_init_sdr_iq(struct ddb *dev)
 		ret = rfdac_init(dev);
 	if (ret)
 		dev_err(dev->dev, "RFDAC setup failed\n");
-
+	
 	ddbwritel(dev, 0x01, 0x240);
 
 	if (dev->link[0].ids.revision == 1)
@@ -2049,6 +2051,23 @@ static int mod_init_sdr_iq(struct ddb *dev)
 
 int ddbridge_mod_init(struct ddb *dev)
 {
+	dev_info(dev->dev, "Revision: %u\n", dev->link[0].ids.revision);
+	if (dev->link[0].ids.revision == 1) {
+		switch (dev->link[0].info->version) {
+		case 0:
+		case 1:
+			return mod_init_1(dev, 722000000);
+		case 2: /* FSM */
+			return mod_init_2(dev, 114000000);
+		case 16: /* PAL */
+			return mod_init_3(dev, 503250000);
+		case 17: /* raw IQ */
+		case 18: /* IQ+FFT */
+			return mod_init_sdr_iq(dev);
+		default:
+			return -1;
+		}
+	}
 	switch (dev->link[0].info->version) {
 	case 0:
 	case 1:

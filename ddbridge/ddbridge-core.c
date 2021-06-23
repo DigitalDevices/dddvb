@@ -2602,7 +2602,7 @@ static int ddb_port_match_link_i2c(struct ddb_port *port)
 
 static void ddb_ports_init(struct ddb *dev)
 {
-	u32 i, l, p;
+	u32 i, l, p, ports;
 	struct ddb_port *port;
 	const struct ddb_info *info;
 	const struct ddb_regmap *rm;
@@ -2614,7 +2614,12 @@ static void ddb_ports_init(struct ddb *dev)
 		rm = info->regmap;
 		if (!rm)
 			continue;
-		for (i = 0; i < info->port_num; i++, p++) {
+		ports = info->port_num;
+		if ((l == 0) && (dev->link[l].info->type == DDB_MOD) &&
+		    (dev->link[0].ids.revision == 1)) {
+			ports = ddbreadl(dev, 0x260) >> 24;
+		}
+		for (i = 0; i < ports; i++, p++) {
 			port = &dev->port[p];
 			port->dev = dev;
 			port->nr = i;
@@ -3266,8 +3271,8 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		ddbid.device = dev->link[0].ids.device;
 		ddbid.subvendor = dev->link[0].ids.subvendor;
 		ddbid.subdevice = dev->link[0].ids.subdevice;
-		ddbid.hw = ddbreadl(dev, 0);
-		ddbid.regmap = ddbreadl(dev, 4);
+		ddbid.hw = dev->link[0].ids.hwid;
+		ddbid.regmap = dev->link[0].ids.regmapid;
 		if (copy_to_user(parg, &ddbid, sizeof(ddbid)))
 			return -EFAULT;
 		break;
