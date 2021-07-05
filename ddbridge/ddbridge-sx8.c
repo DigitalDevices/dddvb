@@ -423,6 +423,7 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 		state->mci.demod = 0;
 		sx8_base->tuner_use_count[input]++;
 		sx8_base->iq_mode = 2;
+		mci_set_tuner(fe, input, 1, flags & 0xff, 0);
 	} else {
 		if ((state->iq_started & 0x07) != state->mci.nr) {
 			stat = -EBUSY;
@@ -433,7 +434,6 @@ unlock:
 	mutex_unlock(&mci_base->tuner_lock);
 	if (stat)
 		return stat;
-	mci_set_tuner(fe, input, 1, flags & 0xff, 0);
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = SX8_CMD_START_IQ;
 	cmd.sx8_start_iq.flags = (flags >> 16) & 0xff;
