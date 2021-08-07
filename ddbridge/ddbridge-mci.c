@@ -300,7 +300,7 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	};
 	const enum fe_code_rate dvbs_fec_lut[8] = {
 		FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6,
-		FEC_NONE, FEC_7_8, FEC_NONE, FEC_NONE,
+		FEC_7_8, FEC_7_8, FEC_NONE, FEC_NONE,
 	};
 	const enum fe_rolloff ro_lut[8] = {
 		ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_10,
