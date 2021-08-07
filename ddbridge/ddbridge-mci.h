@@ -770,10 +770,10 @@ struct mci_result {
 		} ISDBS_TMCCInfo;
 
 		struct {
-			uint8_t  cut;
-			uint8_t  avs_code;
-			uint8_t  temperature;
-			uint8_t  rsvd[13];
+			u8  cut;
+			u8  avs_code;
+			u8  temperature;
+			u8  rsvd[13];
 		} sx8_bist;
 	};
 	u32 version[3];
