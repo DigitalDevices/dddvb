@@ -603,7 +603,6 @@ static int open_fe(struct dddvb_fe *fe)
 
 	sprintf(fname, "/dev/dvb/adapter%d/frontend%d", fe->anum, fe->fnum); 
 	fe->fd = open(fname, O_RDWR);
-	printf("open = %d\n", fe->fd);
 	if (fe->fd < 0) 
 		return -1;
 	return 0;
