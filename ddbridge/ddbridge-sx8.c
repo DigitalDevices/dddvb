@@ -252,6 +252,11 @@ static int stop(struct dvb_frontend *fe)
 	return 0;
 }
 
+static const u8 ro_lut[8] = {
+	8 | SX8_ROLLOFF_35, 8 | SX8_ROLLOFF_20, 8 | SX8_ROLLOFF_25, 0,
+	8 | SX8_ROLLOFF_15, 8 | SX8_ROLLOFF_10, 8 | SX8_ROLLOFF_05, 0,
+};
+
 static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 {
 	struct sx8 *state = fe->demodulator_priv;
@@ -266,10 +271,6 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 	u32 bits_per_symbol = 0;
 	int i = -1, stat = 0;
 	struct ddb_link *link = state->mci.base->link;
-	const u8 ro_lut[8] = {
-		8 | SX8_ROLLOFF_35, 8 | SX8_ROLLOFF_20, 8 | SX8_ROLLOFF_25, 0,
-		8 | SX8_ROLLOFF_15, 8 | SX8_ROLLOFF_10, 8 | SX8_ROLLOFF_05, 0,
-	};
 
 	if (link->ids.device == 0x000b) {
 		/* Mask out higher modulations and MIS for Basic
