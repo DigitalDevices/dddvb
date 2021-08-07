@@ -775,6 +775,13 @@ struct mci_result {
 			u8  temperature;
 			u8  rsvd[13];
 		} sx8_bist;
+
+		struct {
+			u8   version;  /* 0 = none, 1 = SX8 */
+			u8   flags;    /* Bit 0: 1 = Tuner Valid, Bit 1: 1 = Output Valid */
+			u8   tuner;
+			u8   output;
+		} extended_status;
 	};
 	u32 version[3];
 	u8  version_rsvd;
