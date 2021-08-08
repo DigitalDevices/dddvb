@@ -34,6 +34,14 @@ static int direct_mode;
 module_param(direct_mode, int, 0444);
 MODULE_PARM_DESC(direct_mode, "Ignore LDPC limits and assign high speed demods according to needed symbolrate.");
 
+static u32 sx8_tuner_flags;
+module_param(sx8_tuner_flags, int, 0664);
+MODULE_PARM_DESC(sx8_tuner_flags, "Change SX8 tuner flags.");
+
+static u32 sx8_tuner_gain;
+module_param(sx8_tuner_gain, int, 0664);
+MODULE_PARM_DESC(sx8_tuner_gain, "Change SX8 tuner gain.");
+
 static const u32 MCLK = (1550000000 / 12);
 
 /* Add 2MBit/s overhead allowance (minimum factor is 90/32400 for QPSK w/o Pilots) */
@@ -346,7 +354,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
         state->mci.demod = i;
 
         if (!sx8_base->tuner_use_count[input])
-		mci_set_tuner(fe, input, 1, 0, 0);
+		mci_set_tuner(fe, input, 1, sx8_tuner_flags, sx8_tuner_gain);
 	sx8_base->tuner_use_count[input]++;
 	sx8_base->iq_mode = (ts_config > 1);
 unlock:
