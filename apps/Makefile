@@ -1,4 +1,4 @@
-all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo
+all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq
 
 cit: cit.c
 	$(CC) -o cit cit.c -lpthread
