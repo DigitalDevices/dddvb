@@ -3028,12 +3028,12 @@ int dvb_register_frontend(struct dvb_adapter *dvb,
 	fe->dvb = dvb;
 	fepriv->inversion = INVERSION_OFF;
 
-	dev_info(fe->dvb->device,
-		 "DVB: registering adapter %i frontend %i (%s)...\n",
-		 fe->dvb->num, fe->id, fe->ops.info.name);
-
 	dvb_register_device(fe->dvb, &fepriv->dvbdev, &dvbdev_template,
 			    fe, DVB_DEVICE_FRONTEND, 0);
+
+	dev_info(fe->dvb->device,
+		 "DVB: registering adapter %i frontend %i (%s)...\n",
+		 fe->dvb->num, fepriv->dvbdev->id, fe->ops.info.name);
 
 	/*
 	 * Initialize the cache to the proper values according with the

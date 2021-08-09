@@ -504,7 +504,8 @@ int main(int argc, char **argv)
 			cnr = dddvb_get_cnr(fe);
 			
 			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat, (long long int)str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
+			       stat, (long long int)str/1000, (long long int) abs(str%1000),
+			       (long long int) cnr/1000, (long long int)abs(cnr%1000));
 		sleep(1);
 		}
 	} else {
@@ -523,7 +524,8 @@ int main(int argc, char **argv)
 			cnr = dddvb_get_cnr(fe);
 			
 			fprintf(stderr,"stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat,(long long int) str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
+				stat, (long long int) str/1000, (long long int) abs(str%1000),
+				(long long int) cnr/1000, (long long int)abs(cnr%1000));
 			sleep(1);
 		}
 		fprintf(stderr,"got lock on %s\n", fe->name);

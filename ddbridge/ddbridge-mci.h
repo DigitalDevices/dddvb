@@ -456,7 +456,7 @@ struct mci_result {
 			s16 channel_power;      /* channel power in dBm x 100 */
 			s16 rsvd2;
 			s16 signal_to_noise;    /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
-			s16 rsvd3;
+			u16 signal_loss_counter;/* Counts signal losses and automatic retunes */
 			u32 rsvd4;
 			u32 ber_numerator;      /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 			u32 ber_denominator;
@@ -770,11 +770,18 @@ struct mci_result {
 		} ISDBS_TMCCInfo;
 
 		struct {
-			uint8_t  cut;
-			uint8_t  avs_code;
-			uint8_t  temperature;
-			uint8_t  rsvd[13];
+			u8  cut;
+			u8  avs_code;
+			u8  temperature;
+			u8  rsvd[13];
 		} sx8_bist;
+
+		struct {
+			u8   version;  /* 0 = none, 1 = SX8 */
+			u8   flags;    /* Bit 0: 1 = Tuner Valid, Bit 1: 1 = Output Valid */
+			u8   tuner;
+			u8   output;
+		} extended_status;
 	};
 	u32 version[3];
 	u8  version_rsvd;

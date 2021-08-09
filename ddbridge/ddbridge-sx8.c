@@ -34,6 +34,14 @@ static int direct_mode;
 module_param(direct_mode, int, 0444);
 MODULE_PARM_DESC(direct_mode, "Ignore LDPC limits and assign high speed demods according to needed symbolrate.");
 
+static u32 sx8_tuner_flags;
+module_param(sx8_tuner_flags, int, 0664);
+MODULE_PARM_DESC(sx8_tuner_flags, "Change SX8 tuner flags.");
+
+static u32 sx8_tuner_gain;
+module_param(sx8_tuner_gain, int, 0664);
+MODULE_PARM_DESC(sx8_tuner_gain, "Change SX8 tuner gain.");
+
 static const u32 MCLK = (1550000000 / 12);
 
 /* Add 2MBit/s overhead allowance (minimum factor is 90/32400 for QPSK w/o Pilots) */
@@ -252,6 +260,11 @@ static int stop(struct dvb_frontend *fe)
 	return 0;
 }
 
+static const u8 ro_lut[8] = {
+	8 | SX8_ROLLOFF_35, 8 | SX8_ROLLOFF_20, 8 | SX8_ROLLOFF_25, 0,
+	8 | SX8_ROLLOFF_15, 8 | SX8_ROLLOFF_10, 8 | SX8_ROLLOFF_05, 0,
+};
+
 static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 {
 	struct sx8 *state = fe->demodulator_priv;
@@ -266,10 +279,6 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
 	u32 bits_per_symbol = 0;
 	int i = -1, stat = 0;
 	struct ddb_link *link = state->mci.base->link;
-	const u8 ro_lut[8] = {
-		8 | SX8_ROLLOFF_35, 8 | SX8_ROLLOFF_20, 8 | SX8_ROLLOFF_25, 0,
-		8 | SX8_ROLLOFF_15, 8 | SX8_ROLLOFF_10, 8 | SX8_ROLLOFF_05, 0,
-	};
 
 	if (link->ids.device == 0x000b) {
 		/* Mask out higher modulations and MIS for Basic
@@ -345,7 +354,7 @@ static int start(struct dvb_frontend *fe, u32 flags, u32 modmask, u32 ts_config)
         state->mci.demod = i;
 
         if (!sx8_base->tuner_use_count[input])
-		mci_set_tuner(fe, input, 1, 0, 0);
+		mci_set_tuner(fe, input, 1, sx8_tuner_flags, sx8_tuner_gain);
 	sx8_base->tuner_use_count[input]++;
 	sx8_base->iq_mode = (ts_config > 1);
 unlock:
@@ -396,7 +405,7 @@ unlock:
 
 
 static int start_iq(struct dvb_frontend *fe, u32 flags,
-		    u32 roll_off, u32 ts_config)
+		    u32 ts_config)
 {
 	struct sx8 *state = fe->demodulator_priv;
 	struct mci_base *mci_base = state->mci.base;
@@ -423,6 +432,7 @@ static int start_iq(struct dvb_frontend *fe, u32 flags,
 		state->mci.demod = 0;
 		sx8_base->tuner_use_count[input]++;
 		sx8_base->iq_mode = 2;
+		mci_set_tuner(fe, input, 1, flags & 0xff, 0x40);
 	} else {
 		if ((state->iq_started & 0x07) != state->mci.nr) {
 			stat = -EBUSY;
@@ -433,11 +443,11 @@ unlock:
 	mutex_unlock(&mci_base->tuner_lock);
 	if (stat)
 		return stat;
-	mci_set_tuner(fe, input, 1, flags & 0xff, 0);
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = SX8_CMD_START_IQ;
 	cmd.sx8_start_iq.flags = (flags >> 16) & 0xff;
-	cmd.sx8_start_iq.roll_off = roll_off;
+	cmd.sx8_start_iq.roll_off = 5;
+	//cmd.sx8_start_iq.roll_off = ro_lut[p->rolloff & 7];
 	cmd.sx8_start_iq.frequency = p->frequency * 1000;
 	cmd.sx8_start_iq.symbol_rate = p->symbol_rate;
 	cmd.sx8_start_iq.gain = (flags >> 8) & 0xff;
@@ -502,7 +512,7 @@ static int set_parameters(struct dvb_frontend *fe)
 		}
 		stat = start(fe, 3, mask, ts_config);
 	} else {
-		stat = start_iq(fe, isi & 0xffffff, 4, ts_config);
+		stat = start_iq(fe, isi & 0xffffff, ts_config);
 	}
 	mutex_unlock(&state->lock);
 	return stat;

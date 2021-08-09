@@ -7,7 +7,21 @@ API:
 Currently DTV_STREAM_ID is misused.
 
 0x10000000 - symbols (locked and tracked) at symbol rate
-0x20000000 - samples at ADC rate (1550/24=64.583... MHz)
-0x30000000 - samples at symbol rate
+0x20000000 - samples at symbol rate
+             (fixed at ADC rate (1550/24=64.583... MHz) if 0x00010000 is set)
+             Max. sample rate is 64.583333 MHz.
 
-Max. sample rate is 64.583333 MHz.
+0x00xx0000 - flags
+	     Bit 0 : 0 = VTM/SDR, 1 = SCAN,
+	     Bit 1: 1 = Disable channel AGC,
+	     Bit 2: 1 = Set Gain. 
+
+0x0000xx00 - xx=gain
+
+0x000000xx - xx=flags
+	     Bit 0:1 Preamp Mode;  0 = Preamp AGC, 1 == Minimum (~ -17dB) ,
+	                           2 = Medium, 3 = Maximum gain {~ 15dB}
+	     Bit 2: Bypass Input LNA (6 dB less gain) (Note this is after Preamp)
+	     Bit 4: Set RF Gain
+	     Bit 5: Freeze RF Gain (Turn AGC off at current gain, only when already enabled)
+	     Bit 7: Optimize RF Gain and freeze for FFT
