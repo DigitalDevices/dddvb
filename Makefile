@@ -27,7 +27,7 @@ dep:
 
 install: all
 	$(MAKE) -C $(KDIR) KBUILD_EXTMOD=$(PWD) modules_install
-	depmod -a
+	depmod $(kernelver)
 
 clean:
 	rm -rf */.*.o.d */*.o */*.ko */*.mod.c */.*.cmd .tmp_versions Module* modules*
