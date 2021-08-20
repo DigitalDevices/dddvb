@@ -30,6 +30,21 @@ char *Rolloff[8] = {
 	"rsvd",
 };
 
+void dump(const uint8_t *b, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) {
+		printf("%04x: ", j);
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				printf("%02x ", b[i]);
+			else
+				printf("   ");
+		printf("\n");
+	}
+}       
+
 void print_temp(struct mci_result *res)
 {
 	printf("Die temperature = %u\n", res->sx8_bist.temperature);
@@ -55,6 +70,9 @@ int temp_info(int dev, uint32_t link)
 	}
 		
 	print_temp(&msg.res);
+	printf("BIST info dump:  ");
+	dump((uint8_t *) &msg.res, 16);
+	
 	return ret;
 }
 
@@ -231,8 +249,9 @@ void print_info(struct mci_result *res, uint8_t demod)
 	printf("\nDemod %u:\n", demod);
 	if (res->status == MCI_DEMOD_LOCKED) {
 		switch (res->mode) {
+		case 0:
 		case M4_MODE_DVBSX:
-			if (res->dvbs2_signal_info.standard == 2) {
+			if (res->dvbs2_signal_info.standard != 1) {
 				int short_frame = 0, pilots = 0;
 				char *modcod = "unknown";
 				uint8_t pls = res->dvbs2_signal_info.pls_code;
@@ -256,13 +275,14 @@ void print_info(struct mci_result *res, uint8_t demod)
 				}
 				printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off & 7]);
 				printf("Pilots:        %s\n", pilots ? "On" : "Off");
-				printf("Frame:         %s\n", short_frame ? "Short" : "Long");
+				printf("Frame:         %s\n", short_frame ? "Short" : "Normal");
 			} else {
 				printf("Demod Locked:  DVB-S\n");
 				printf("PR:            %s\n",
 				       PunctureRates[res->dvbs2_signal_info.pls_code & 0x07]);
 			}
 			printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
+			break;
 		case M4_MODE_DVBT:
 			printf("Locked DVB-T\n");
 			break;

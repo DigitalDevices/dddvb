@@ -27,11 +27,15 @@
 
 #define DVB_MAJOR 212
 
+#if 0
 #if defined(CONFIG_DVB_MAX_ADAPTERS) && CONFIG_DVB_MAX_ADAPTERS > 0
   #define DVB_MAX_ADAPTERS CONFIG_DVB_MAX_ADAPTERS
 #else
   #define DVB_MAX_ADAPTERS 64
 #endif
+#endif
+
+ #define DVB_MAX_ADAPTERS 64
 
 #define DVB_UNSET (-1)
 
