@@ -30,6 +30,21 @@ char *Rolloff[8] = {
 	"rsvd",
 };
 
+void dump(const uint8_t *b, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) {
+		printf("%04x: ", j);
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				printf("%02x ", b[i]);
+			else
+				printf("   ");
+		printf("\n");
+	}
+}       
+
 void print_temp(struct mci_result *res)
 {
 	printf("Die temperature = %u\n", res->sx8_bist.temperature);
@@ -55,6 +70,9 @@ int temp_info(int dev, uint32_t link)
 	}
 		
 	print_temp(&msg.res);
+	printf("BIST info dump:  ");
+	dump((uint8_t *) &msg.res, 16);
+	
 	return ret;
 }
 
