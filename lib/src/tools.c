@@ -13,7 +13,7 @@ int sendlen(int sock, char *buf, int len)
 
 	for (todo = len; todo; todo -= done, buf += done)
 		if ((done = send(sock, buf, todo, 0)) < 0) {
-			printf("sendlen error\n");
+			dprintf(2, "sendlen error\n");
 			return done;
 		}
 	return len;

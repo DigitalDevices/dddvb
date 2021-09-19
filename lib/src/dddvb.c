@@ -8,7 +8,7 @@ LIBDDDVB_EXPORTED struct dddvb *global_dd = NULL;
 LIBDDDVB_EXPORTED pthread_mutex_t dddvb_mutex = PTHREAD_MUTEX_INITIALIZER; 
 
 void __attribute__ ((constructor)) setup(void) {
-	printf("SETUP\n");
+	//printf("SETUP\n");
 }
 
 LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc_num(struct dddvb *dd, uint32_t type, uint32_t num)

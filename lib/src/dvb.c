@@ -231,7 +231,7 @@ static int set_en50607(struct dddvb_fe *fe, uint32_t freq, uint32_t sr,
 	uint32_t input = 3 & (sat >> 6);
 	int fd = fe->fd;
 	
-	//printf("input = %u, sat = %u\n", input, sat&0x3f);
+	dbgprintf(DEBUG_DVB, "input = %u, sat = %u\n", input, sat&0x3f);
 	hor &= 1;
 	cmd.msg[1] = slot << 3;
 	cmd.msg[1] |= ((t >> 8) & 0x07);
@@ -323,7 +323,7 @@ static int tune_sat(struct dddvb_fe *fe)
 
 		if (input != DDDVB_UNDEF) {
 			input = 3 & (input >> 6);
-			printf("input = %u\n", input);
+			dbgprintf(DEBUG_DVB, "input = %u\n", input);
 		}
 		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
 		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
@@ -349,7 +349,7 @@ static int tune_c(struct dddvb_fe *fe)
 	struct dtv_properties c;
 	int ret;
 
-	printf("tune_c()\n");
+	dbgprintf(DEBUG_DVB, "tune_c()\n");
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_A);
 
 	c.num = ARRAY_SIZE(p);
@@ -376,7 +376,7 @@ static int tune_j83b(struct dddvb_fe *fe)
 	struct dtv_properties c;
 	int ret;
 
-	printf("tune_j83b()\n");
+	dbgprintf(DEBUG_DVB, "tune_j83b()\n");
 	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_DVBC_ANNEX_B);
 
 	c.num = ARRAY_SIZE(p);
@@ -542,7 +542,7 @@ static int tune(struct dddvb_fe *fe)
 {
 	int ret;
 
-	printf("tune()\n");
+	dbgprintf(DEBUG_DVB, "tune()\n");
 	switch (fe->param.param[PARAM_MSYS]) {
 	case SYS_DVBS:
 	case SYS_DVBS2:
