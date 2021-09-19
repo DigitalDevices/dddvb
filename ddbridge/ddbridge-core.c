@@ -2336,15 +2336,9 @@ static void input_write_dvb(struct ddb_input *input,
 	}
 }
 
-#ifdef DDB_USE_WORK
-static void input_work(struct work_struct *work)
-{
-	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
-#else
 static void input_tasklet(unsigned long data)
 {
 	struct ddb_dma *dma = (struct ddb_dma *)data;
-#endif
 	struct ddb_input *input = (struct ddb_input *)dma->io;
 	struct ddb *dev = input->port->dev;
 	unsigned long flags;
@@ -2377,17 +2371,10 @@ static void input_handler(unsigned long data)
 	 * just copy pointers and ACK. So, there is no need to go
 	 * through the tasklet scheduler.
 	 */
-	#ifdef DDB_USE_WORK
-	if (input->redi)
-		queue_work(ddb_wq, &dma->work);
-	else
-		input_work(&dma->work);
-	#else
 	if (input->redi)
 		tasklet_schedule(&dma->tasklet);
 	else
 		input_tasklet(data);
-	#endif
 }
 
 #else
@@ -2396,23 +2383,13 @@ static void input_handler(void *data)
 	struct ddb_input *input = (struct ddb_input *)data;
 	struct ddb_dma *dma = input->dma;
 
-#ifdef DDB_USE_WORK
-	queue_work(ddb_wq, &dma->work);
-#else
 	input_tasklet((unsigned long)dma);
-#endif
 }
 #endif
 
-#ifdef DDB_USE_WORK
-static void output_work(struct work_struct *work)
-{
-	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
-#else
 static void output_tasklet(unsigned long data)
 {
 	struct ddb_dma *dma = (struct ddb_dma *)data;
-#endif
 	struct ddb_output *output = (struct ddb_output *)dma->io;
 	struct ddb *dev = output->port->dev;
 	unsigned long flags;
@@ -2454,11 +2431,7 @@ static void output_handler(void *data)
 	struct ddb_output *output = (struct ddb_output *)data;
 	struct ddb_dma *dma = output->dma;
 
-#ifdef DDB_USE_WORK
-	queue_work(ddb_wq, &dma->work);
-#else
 	tasklet_schedule(&dma->tasklet);
-#endif
 }
 #endif
 
@@ -2489,11 +2462,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 	spin_lock_init(&dma->lock);
 	init_waitqueue_head(&dma->wq);
 	if (out) {
-#ifdef DDB_USE_WORK
-		INIT_WORK(&dma->work, output_work);
-#else
 		tasklet_init(&dma->tasklet, output_tasklet, (unsigned long)dma);
-#endif
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
@@ -2507,11 +2476,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 			dma->div = 1;
 		}
 	} else {
-#ifdef DDB_USE_WORK
-		INIT_WORK(&dma->work, input_work);
-#else
 		tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)dma);
-#endif
 		dma->regs = rm->idma->base + rm->idma->size * nr;
 		dma->bufregs = rm->idma_buf->base + rm->idma_buf->size * nr;
 		dma->num = dma_buf_num;
@@ -2705,21 +2670,12 @@ void ddb_ports_release(struct ddb *dev)
 
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
-#ifdef DDB_USE_WORK
-		if (port->input[0] && port->input[0]->dma)
-			cancel_work_sync(&port->input[0]->dma->work);
-		if (port->input[1] && port->input[1]->dma)
-			cancel_work_sync(&port->input[1]->dma->work);
-		if (port->output && port->output->dma)
-			cancel_work_sync(&port->output->dma->work);
-#else
 		if (port->input[0] && port->input[0]->dma)
 			tasklet_kill(&port->input[0]->dma->tasklet);
 		if (port->input[1] && port->input[1]->dma)
 			tasklet_kill(&port->input[1]->dma->tasklet);
 		if (port->output && port->output->dma)
 			tasklet_kill(&port->output->dma->tasklet);
-#endif
 	}
 }
 
@@ -2823,9 +2779,6 @@ irqreturn_t ddb_irq_handler(int irq, void *dev_id)
 			irq_handle_msg(dev, s);
 		if (s & 0x0fffff00) {
 			irq_handle_io(dev, s);
-#ifdef DDB_TEST_THREADED
-		ret = IRQ_WAKE_THREAD;
-#endif
 		}
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
 
@@ -2872,15 +2825,6 @@ irqreturn_t ddb_irq_handler_v2(int irq, void *dev_id)
 
 	return ret;
 }
-
-#ifdef DDB_TEST_THREADED
-static irqreturn_t irq_thread(int irq, void *dev_id)
-{
-	/* struct ddb *dev = (struct ddb *) dev_id; */
-
-	return IRQ_HANDLED;
-}
-#endif
 
 /****************************************************************************/
 /****************************************************************************/

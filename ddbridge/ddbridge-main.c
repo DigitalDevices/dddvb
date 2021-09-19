@@ -255,17 +255,9 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 			return stat;
 		}
 	} else {
-#ifdef DDB_TEST_THREADED
-		stat = request_threaded_irq(pci_irq_vector(dev->pdev, 0),
-					    dev->pdev->irq, ddb_irq_handler,
-					    irq_thread,
-					    irq_flag,
-					    "ddbridge", (void *)dev);
-#else
 		stat = request_irq(pci_irq_vector(dev->pdev, 0),
 				   ddb_irq_handler,
 				   irq_flag, "ddbridge", (void *)dev);
-#endif
 		if (stat < 0)
 			return stat;
 	}
