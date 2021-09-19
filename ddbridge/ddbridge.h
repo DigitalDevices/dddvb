@@ -23,9 +23,6 @@
 #ifndef _DDBRIDGE_H_
 #define _DDBRIDGE_H_
 
-/* #define DDB_USE_WORK */
-/*#define DDB_TEST_THREADED*/
-
 #include <linux/version.h>
 
 #if (KERNEL_VERSION(3, 8, 0) <= LINUX_VERSION_CODE)
@@ -205,11 +202,7 @@ struct ddb_dma {
 	u32                    div;
 	u32                    bufval;
 
-#ifdef DDB_USE_WORK
-	struct work_struct     work;
-#else
 	struct tasklet_struct  tasklet;
-#endif
 	spinlock_t             lock; /* DMA lock */
 	wait_queue_head_t      wq;
 	int                    running;

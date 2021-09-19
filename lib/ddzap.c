@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <time.h>
+#include <inttypes.h>
 
 char line_start[16] = "";
 char line_end[16]   = "\r";
@@ -427,7 +428,10 @@ int main(int argc, char **argv)
 			get_ts = 0;
 			break;
 		case 'h':
-		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
+		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir]\n"
+			       "      [-f frequency(Hz for terr./kHz for SAT)]\n"
+			       "      [-m 16APSK/32APSK/64APSK/128APSK/256APSK]\n"
+			       "          (only needed for higher modulations than 8PSK) on some cards\n"
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
 			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
 			       "      [-o (write dvr to stdout)]\n"
@@ -503,9 +507,10 @@ int main(int argc, char **argv)
 			str = dddvb_get_strength(fe);
 			cnr = dddvb_get_cnr(fe);
 			
-			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat, (long long int)str/1000, (long long int) abs(str%1000),
-			       (long long int) cnr/1000, (long long int)abs(cnr%1000));
+			printf("stat=%02x, str=%" PRId64 ".%03udBm, "
+			       "snr=%" PRId64 ".%03uddB \n",
+			       stat, str/1000, abs(str%1000),
+			       cnr/1000, abs(cnr%1000));
 		sleep(1);
 		}
 	} else {

@@ -41,7 +41,7 @@ int parse_config(struct dddvb *dd, char *name, char *sec,
 		memcpy(fname + config_len, "dddvb.conf", 11);
 	
 	if ((f = fopen (fname, "r")) == NULL) {
-		printf("config file %s not found\n", fname);
+		dprintf(2, "config file %s not found\n", fname);
 		return -1;
 	}
 	
