@@ -105,7 +105,7 @@ static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
 
 	ddbwritel(ci->port->dev, CI_POWER_ON,
 		  CI_CONTROL(ci->nr));
-	msleep(100);
+	msleep(300);
 	ddbwritel(ci->port->dev, CI_POWER_ON | CI_RESET_CAM,
 		  CI_CONTROL(ci->nr));
 	ddbwritel(ci->port->dev, CI_ENABLE | CI_POWER_ON | CI_RESET_CAM,
@@ -236,7 +236,7 @@ static int slot_reset_xo2(struct dvb_ca_en50221 *ca, int slot)
 
 	write_creg(ci, 0x01, 0x01);
 	write_creg(ci, 0x04, 0x04);
-	msleep(20);
+	msleep(300);
 	write_creg(ci, 0x02, 0x02);
 	write_creg(ci, 0x00, 0x04);
 	write_creg(ci, 0x18, 0x18);
