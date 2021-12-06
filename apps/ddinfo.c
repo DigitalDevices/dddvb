@@ -239,7 +239,31 @@ char* PunctureRates[32] = {
 /* 0x07 */    "rsvd 7.0",
 };
 
-void print_info(struct mci_result *res, uint8_t demod)
+int mci_bb(int dev, uint32_t link, uint8_t demod)
+{
+	struct ddb_mci_msg msg = {
+		.link = link,
+		.cmd.command = MCI_CMD_GET_BBHEADER,
+		.cmd.demod = demod,
+		.cmd.get_bb_header.select = 0,
+	};
+	struct mci_result *res = &msg.res;
+	int ret;
+	int i;
+	
+	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
+	if (ret < 0) {
+		printf("Error: %d %d\n", ret, errno);
+		return ret;
+	}
+	if (res->bb_header.valid) {
+		printf("MATYPE1: %02x\n", res->bb_header.matype_1);
+		printf("MATYPE2: %02x\n", res->bb_header.matype_2);
+	}
+	return ret;
+}
+
+void print_info(int dev, uint32_t link, uint8_t demod, struct mci_result *res)
 {
 	if (res->status == MCI_DEMOD_STOPPED) {
 		printf("\nDemod %u: stopped\n", demod);
@@ -261,6 +285,7 @@ void print_info(struct mci_result *res, uint8_t demod)
 				else
 					printf("Demod Locked:  DVB-S2\n");
 				printf("PLS-Code:      %u\n", res->dvbs2_signal_info.pls_code);
+				mci_bb(dev, link, demod);
 				if (pls >= 250)  {
 					pilots = 1;
 					modcod = S2Xrsvd[pls - 250];
@@ -350,7 +375,7 @@ int mci_info(int dev, uint32_t link, uint8_t demod)
 		return ret;
 	}
 
-	print_info(&msg.res, demod);
+	print_info(dev, link, demod, &msg.res);
 	return ret;
 }
 
