@@ -614,8 +614,8 @@ struct mci_result {
 
 		struct {
 			u8   tps_info[7];
-			// uint16_t tps_cell_id;
-		} DVBT_TPSInfo;
+			// u16 tps_cell_id;
+		} dvbt_tps_info;
 
 		struct {
 			struct  {
@@ -644,7 +644,7 @@ struct mci_result {
 				u8 CurrentRFIndex;
 				u8 T2Version_PostScrambled_BaseLite_Rsvd[2]; // 4,1,1,4 bit
 				u8 CRC32[4];
-			} DVBT2_L1Pre;
+			} dvbt2_l1_pre;
 
 			struct  {
 				u8 SubSlicesPerFrame[2];
@@ -656,8 +656,8 @@ struct mci_result {
 				u8 FEFType;
 				u8 FEFLength[3];
 				u8 FEFInterval;
-			} DVBT2_L1Post;
-		} DVBT2_L1Info;
+			} dvbt2_l1_post;
+		} dvbt2_l1_info;
 
 		struct {
 			u8 PLPID;
@@ -677,7 +677,7 @@ struct mci_result {
 			u8 TimeILType;
 			u8 InBandAFlag;
 			u8 InBandBFlag_Rsvd1_Mode_StaticFlag_StaticPaddingFlag[2];  // 1,11,2,1,1
-		} DVBT2_PLPInfo;
+		} dvbt2_plp_info;
 
 		struct {
 			u8  NetworkID[2];
@@ -735,18 +735,18 @@ struct mci_result {
 		} DVBC2_PLPInfo;
 
 		struct {
-			u8  Valid;
-			u8  MATYPE_1;
-			u8  MATYPE_2;
-			u8  UPL[2];
-			u8  DFL[2];
-			u8  SYNC;
-			u8  SYNCD[2];
+			u8  valid;
+			u8  matype_1;
+			u8  matype_2;
+			u8  upl[2];
+			u8  dfl[2];
+			u8  sync;
+			u8  syncd[2];
 			u8  rsvd;
-			u8  ISSY[3];
+			u8  issy[3];
 			u8  min_input_stream_id;
 			u8  max_input_stream_id;
-		} BBHeader;
+		} bb_header;
 
 		struct {
 			u8  Mode;          // FFT Mode   1,2,3
