@@ -2011,14 +2011,14 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (port->nr == 1 && dev->link[l].info->type == DDB_OCTOPUS_CI &&
+	if (port->nr == 1 && link->info->type == DDB_OCTOPUS_CI &&
 	    link->info->i2c_mask == 1) {
 		port->name = "NO TAB";
 		port->class = DDB_PORT_NONE;
 		return;
 	}
 
-	if (dev->link[l].info->type == DDB_MOD) {
+	if (link->info->type == DDB_MOD) {
 		port->name = "MOD";
 		port->class = DDB_PORT_MOD;
 		return;
@@ -2034,9 +2034,8 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (link->info->type == DDB_OCTOPUS_MCI) {
-		if (port->nr >= link->info->mci_ports)
-			return;
+	if ((link->info->type == DDB_OCTOPUS_MCI) &&
+	    (port->nr < link->info->mci_ports)) {
 		port->name = "DUAL MCI";
 		port->type_name = "MCI";
 		port->class = DDB_PORT_TUNER;
@@ -2580,7 +2579,7 @@ static void ddb_ports_init(struct ddb *dev)
 		if (!rm)
 			continue;
 		ports = info->port_num;
-		if ((l == 0) && (dev->link[l].info->type == DDB_MOD) &&
+		if ((l == 0) && (info->type == DDB_MOD) &&
 		    (dev->link[0].ids.revision == 1)) {
 			ports = ddbreadl(dev, 0x260) >> 24;
 		}
@@ -2627,8 +2626,8 @@ static void ddb_ports_init(struct ddb *dev)
 			}
 			if (port->class == DDB_PORT_NONE)
 				continue;
-
-			switch (dev->link[l].info->type) {
+			
+			switch (info->type) {
 			case DDB_OCTOPUS_CI:
 				if (i >= 2) {
 					ddb_input_init(port, 2 + i, 0, 2 + i);
