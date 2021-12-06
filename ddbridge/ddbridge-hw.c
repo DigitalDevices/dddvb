@@ -319,6 +319,9 @@ static const struct ddb_regmap octopus_mod_2_map = {
 	.odma = &octopus_mod_2_odma,
 	.odma_buf = &octopus_mod_2_odma_buf,
 	.channel = &octopus_mod_2_channel,
+
+	.mci = &sdr_mci,
+	.mci_buf = &sdr_mci_buf,
 };
 
 static const struct ddb_regmap octopus_sdr_map = {
