@@ -932,9 +932,9 @@ static int ts_open(struct inode *inode, struct file *file)
 	if (err < 0)
 		return err;
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY)
-		ddb_input_start(input);
+		err = ddb_input_start(input);
 	else if ((file->f_flags & O_ACCMODE) == O_WRONLY)
-		ddb_output_start(output);
+		err = ddb_output_start(output);
 	return err;
 }
 
