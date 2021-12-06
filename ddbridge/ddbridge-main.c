@@ -400,6 +400,12 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 
+#ifndef PCI_DEVICE_SUB
+#define PCI_DEVICE_SUB(vend, dev, subvend, subdev) \
+	.vendor = (vend), .device = (dev), \
+		.subvendor = (subvend), .subdevice = (subdev)
+#endif
+
 #define DDB_DEVICE_ANY(_device) \
 	{ PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID) }
 
