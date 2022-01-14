@@ -457,10 +457,11 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 	*con2 = (nco << 16) | gap;
 }
 
-static void ddb_output_start_unlocked(struct ddb_output *output)
+static int ddb_output_start_unlocked(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 	u32 con = 0x11c, con2 = 0;
+	int err = 0;
 
 	if (output->dma) {
 		output->dma->cbuf = 0;
@@ -469,7 +470,7 @@ static void ddb_output_start_unlocked(struct ddb_output *output)
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class == DDB_PORT_MOD) {
-		ddbridge_mod_output_start(output);
+		err = ddbridge_mod_output_start(output);
 	} else {
 		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
 			con = (1UL << 13) | 0x14;
@@ -492,17 +493,21 @@ static void ddb_output_start_unlocked(struct ddb_output *output)
 		ddbwritel(dev, con | 1, TS_CONTROL(output));
 	if (output->dma)
 		output->dma->running = 1;
+	return err;
 }
 
-static void ddb_output_start(struct ddb_output *output)
+static int ddb_output_start(struct ddb_output *output)
 {
+	int err;
+
 	if (output->dma) {
 		spin_lock_irq(&output->dma->lock);
-		ddb_output_start_unlocked(output);
+		err = ddb_output_start_unlocked(output);
 		spin_unlock_irq(&output->dma->lock);
 	} else {
-		ddb_output_start_unlocked(output);
+		err = ddb_output_start_unlocked(output);
 	}
+	return err;
 }
 
 static void ddb_output_stop_unlocked(struct ddb_output *output)
@@ -932,7 +937,7 @@ static int ts_open(struct inode *inode, struct file *file)
 	if (err < 0)
 		return err;
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY)
-		err = ddb_input_start(input);
+		ddb_input_start(input);
 	else if ((file->f_flags & O_ACCMODE) == O_WRONLY)
 		err = ddb_output_start(output);
 	return err;
