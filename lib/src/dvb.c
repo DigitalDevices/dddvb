@@ -111,6 +111,7 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 		{ .cmd = DTV_INVERSION, .u.data = INVERSION_AUTO },
 		{ .cmd = DTV_SYMBOL_RATE, .u.data = sr },
 		{ .cmd = DTV_INNER_FEC, .u.data = FEC_AUTO },
+		{ .cmd = DTV_ROLLOFF, .u.data = ROLLOFF_AUTO },
 	};		
 	struct dtv_properties c;
 	int ret;
