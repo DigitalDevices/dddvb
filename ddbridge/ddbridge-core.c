@@ -2610,6 +2610,7 @@ static void ddb_ports_init(struct ddb *dev)
 				port->class = DDB_PORT_CI;
 				port->type = DDB_CI_EXTERNAL_XO2_B;
 				port->name = "DuoFlex CI_B";
+				port->type_name = "CI_XO2_B";
 				port->i2c = dev->port[p - 1].i2c;
 			}
 			dev_info(dev->dev, "Port %u: Link %u, Link Port %u (TAB %u): %s\n",
