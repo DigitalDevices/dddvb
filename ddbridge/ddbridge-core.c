@@ -3626,21 +3626,24 @@ static ssize_t snr_show(struct device *device,
 			struct device_attribute *attr, char *buf)
 {
 	struct ddb *dev = dev_get_drvdata(device);
-	char snr[32];
 	int num = attr->attr.name[3] - 0x30;
+	struct ddb_port *port = &dev->port[num];
+	struct i2c_adapter *i2c = &port->i2c->adap;
 
-	if (dev->port[num].type >= DDB_TUNER_XO2) {
-		if (i2c_read_regs(&dev->i2c[num].adap, 0x10, 0x10, snr, 16) < 0)
+	switch (port->type) {
+	case DDB_CI_EXTERNAL_XO2:
+	case DDB_TUNER_XO2 ... DDB_TUNER_DVBC2T2I_SONY:
+		if (i2c_read_regs(i2c, 0x10, 0x10, snr, 16) < 0)
 			return sprintf(buf, "NO SNR\n");
 		snr[16] = 0;
-	} else {
+		break;
+	default:
 		/* serial number at 0x100-0x11f */
-		if (i2c_read_regs16(&dev->i2c[num].adap,
-				    0x57, 0x100, snr, 32) < 0)
-			if (i2c_read_regs16(&dev->i2c[num].adap,
-					    0x50, 0x100, snr, 32) < 0)
+		if (i2c_read_regs16(i2c, 0x57, 0x100, snr, 32) < 0)
+			if (i2c_read_regs16(i2c, 0x50, 0x100, snr, 32) < 0)
 				return sprintf(buf, "NO SNR\n");
 		snr[31] = 0; /* in case it is not terminated on EEPROM */
+		break;
 	}
 	return sprintf(buf, "%s\n", snr);
 }
@@ -3651,15 +3654,17 @@ static ssize_t snr_store(struct device *device, struct device_attribute *attr,
 	struct ddb *dev = dev_get_drvdata(device);
 	int num = attr->attr.name[3] - 0x30;
 	u8 snr[34] = { 0x01, 0x00 };
+	struct ddb_port *port = &dev->port[num];
+	struct i2c_adapter *i2c = &port->i2c->adap;
 
 	return 0; /* NOE: remove completely? */
 	if (count > 31)
 		return -EINVAL;
-	if (dev->port[num].type >= DDB_TUNER_XO2)
+	if (port->type >= DDB_TUNER_XO2)
 		return -EINVAL;
 	memcpy(snr + 2, buf, count);
-	i2c_write(&dev->i2c[num].adap, 0x57, snr, 34);
-	i2c_write(&dev->i2c[num].adap, 0x50, snr, 34);
+	i2c_write(i2c, 0x57, snr, 34);
+	i2c_write(i2c, 0x50, snr, 34);
 	return count;
 }
 
