@@ -4424,7 +4424,9 @@ static int ddb_init_boards(struct ddb *dev)
 		if (info->regmap->mci) {
 			if (link->info->type == DDB_OCTOPUS_MCI ||
 			    ((link->info->type == DDB_MOD) &&
-			     (link->ids.regmapid & 0xfff0)))
+			     (link->ids.regmapid & 0xfff0)) ||
+			    ((link->info->type == DDB_MOD) &&
+			     (link->ids.revision == 1)))
 				mci_init(link);
 		}
 	}
