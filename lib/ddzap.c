@@ -512,8 +512,8 @@ int main(int argc, char **argv)
 			str = dddvb_get_strength(fe);
 			cnr = dddvb_get_cnr(fe);
 			
-			printf("stat=%02x, str=%" PRId64 ".%03udBm, "
-			       "snr=%" PRId64 ".%03uddB \n",
+			printf("stat=%02x, str=%" PRId64 ".%03u dBm, "
+			       "snr=%" PRId64 ".%03u dB\n",
 			       stat, str/1000, abs(str%1000),
 			       cnr/1000, abs(cnr%1000));
 		sleep(1);
