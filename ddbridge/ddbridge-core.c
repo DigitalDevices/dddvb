@@ -3627,6 +3627,7 @@ static ssize_t snr_show(struct device *device,
 			struct device_attribute *attr, char *buf)
 {
 	struct ddb *dev = dev_get_drvdata(device);
+	char snr[32];
 	int num = attr->attr.name[3] - 0x30;
 	struct ddb_port *port = &dev->port[num];
 	struct i2c_adapter *i2c = &port->i2c->adap;
