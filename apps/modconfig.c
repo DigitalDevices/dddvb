@@ -83,20 +83,26 @@ struct param_table_entry {
 };
 
 struct param_table_entry mod_standard_table[] = {
-	{ .name = "GENERIC", .value = MOD_STANDARD_GENERIC },
-	{ .name = "DVBT_8", .value = MOD_STANDARD_DVBT_8 },
-	{ .name = "DVBT_7", .value = MOD_STANDARD_DVBT_7 },
-	{ .name = "DVBT_6", .value = MOD_STANDARD_DVBT_6 },
-	{ .name = "DVBT_5", .value = MOD_STANDARD_DVBT_5 },
-	{ .name = "DVBT2_8", .value = MOD_STANDARD_DVBT_8 },
-	{ .name = "DVBT2_7", .value = MOD_STANDARD_DVBT_7 },
-	{ .name = "DVBT2_6", .value = MOD_STANDARD_DVBT_6 },
-	{ .name = "DVBT2_5", .value = MOD_STANDARD_DVBT_5 },
 	{ .name = "0", .value = MOD_STANDARD_GENERIC },
+	{ .name = "GENERIC", .value = MOD_STANDARD_GENERIC },
 	{ .name = "1", .value = MOD_STANDARD_DVBT_8 },
+	{ .name = "DVBT_8", .value = MOD_STANDARD_DVBT_8 },
+	{ .name = "DVBT2_8", .value = MOD_STANDARD_DVBT_8 },
 	{ .name = "2", .value = MOD_STANDARD_DVBT_7 },
+	{ .name = "DVBT_7", .value = MOD_STANDARD_DVBT_7 },
+	{ .name = "DVBT2_7", .value = MOD_STANDARD_DVBT_7 },
 	{ .name = "3", .value = MOD_STANDARD_DVBT_6 },
+	{ .name = "DVBT_6", .value = MOD_STANDARD_DVBT_6 },
+	{ .name = "DVBT2_6", .value = MOD_STANDARD_DVBT_6 },
 	{ .name = "4", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = "DVBT_5", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = "DVBT2_5", .value = MOD_STANDARD_DVBT_5 },
+	{ .name = "8", .value = MOD_STANDARD_DVBC_8 },
+	{ .name = "DVBC_8", .value = MOD_STANDARD_DVBC_8 },
+	{ .name = "9", .value = MOD_STANDARD_DVBC_7 },
+	{ .name = "DVBC_7", .value = MOD_STANDARD_DVBC_7 },
+	{ .name = "10", .value = MOD_STANDARD_DVBC_6 },
+	{ .name = "DVBC_6", .value = MOD_STANDARD_DVBC_6 },
 	{ .name = NULL, .value = 0 }
 };
 
@@ -118,12 +124,12 @@ struct param_table_entry stream_format_table[] = {
 struct param_table_entry guard_interval_table[] = {
 	{ .name = "1/32", .value = MOD_DVBT_GI_1_32 },
 	{ .name = "1/16", .value = MOD_DVBT_GI_1_16 },
-	{ .name = "1/8", .value = MOD_DVBT_GI_1_8	 },
-	{ .name = "1/4", .value = MOD_DVBT_GI_1_4	 },
+	{ .name = "1/8", .value = MOD_DVBT_GI_1_8 },
+	{ .name = "1/4", .value = MOD_DVBT_GI_1_4 },
 	{ .name = "0", .value = MOD_DVBT_GI_1_32 },
 	{ .name = "1", .value = MOD_DVBT_GI_1_16 },
-	{ .name = "2", .value = MOD_DVBT_GI_1_8	 },
-	{ .name = "3", .value = MOD_DVBT_GI_1_4	 },
+	{ .name = "2", .value = MOD_DVBT_GI_1_8	},
+	{ .name = "3", .value = MOD_DVBT_GI_1_4	},
 	{ .name = NULL, .value = 0 }
 };
 
@@ -153,7 +159,21 @@ struct param_table_entry dvbt_constellation_table[] = {
 	{ .name = NULL, .value = 0 }
 };
 
-int parse_param(char *val,struct param_table_entry *table, int *value) {
+struct param_table_entry qam_modulation_table[] = {
+	{ .name = "0", .value = MOD_QAM_DVBC_16 },
+	{ .name = "qam_dvbc_16", .value = MOD_QAM_DVBC_16 },
+	{ .name = "1", .value = MOD_QAM_DVBC_32 },
+	{ .name = "qam_dvbc_32", .value = MOD_QAM_DVBC_32 },
+	{ .name = "2", .value = MOD_QAM_DVBC_64 },
+	{ .name = "qam_dvbc_64", .value = MOD_QAM_DVBC_64 },
+	{ .name = "3", .value = MOD_QAM_DVBC_128 },
+	{ .name = "qam_dvbc_128", .value = MOD_QAM_DVBC_128 },
+	{ .name = "4", .value = MOD_QAM_DVBC_256 },
+	{ .name = "qam_dvbc_256", .value = MOD_QAM_DVBC_256 },
+	{ .name = NULL, .value = 0 }
+};
+
+int parse_param(char *val, struct param_table_entry *table, int *value) {
 	if (value) {
 		*value = 0;
 		if (table) {
@@ -166,6 +186,7 @@ int parse_param(char *val,struct param_table_entry *table, int *value) {
 			}
 		}
 	}
+	printf("unknown value %s\n", val);
 	return -1;
 }
 
@@ -213,9 +234,13 @@ struct mci_command msg_stream = {
 	.mod_channel = 1,
 	.mod_stream = 0,
 	.mod_setup_stream = {
-		.standard = MOD_STANDARD_DVBT_8,
-		.fft_size = 1,
-		.guard_interval = 0,
+		.standard = MOD_STANDARD_DVBC_8,
+#if 0
+		.ofdm = {
+			.fft_size = 1,
+			.guard_interval = 0,
+		}
+#endif
 	},
 };
 
@@ -299,18 +324,23 @@ void streams_cb(void *priv, char *par, char *val)
 		return;
 	}
 	if (!strcasecmp(par, "fft_size")) {
-		mc->stream.mod_setup_stream.fft_size = strtol(val, NULL, 10);
+		mc->stream.mod_setup_stream.ofdm.fft_size = strtol(val, NULL, 10);
 	} else if (!strcasecmp(par, "guard_interval")) {
-		if (!parse_param(val,guard_interval_table,&value))
-			mc->stream.mod_setup_stream.guard_interval = value;
+		if (!parse_param(val, guard_interval_table, &value))
+			mc->stream.mod_setup_stream.ofdm.guard_interval = value;
 	} else if (!strcasecmp(par, "puncture_rate")) {
-		if (!parse_param(val,puncture_rate_table,&value))
-			mc->stream.mod_setup_stream.puncture_rate = value;
+		if (!parse_param(val, puncture_rate_table, &value))
+			mc->stream.mod_setup_stream.ofdm.puncture_rate = value;
 	} else if (!strcasecmp(par, "constellation")) {
 		if (!parse_param(val,dvbt_constellation_table,&value))
-			mc->stream.mod_setup_stream.constellation = value;
+			mc->stream.mod_setup_stream.ofdm.constellation = value;
 	} else if (!strcasecmp(par, "cell_identifier")) {
-		mc->stream.mod_setup_stream.cell_identifier = strtol(val, NULL, 0);
+		mc->stream.mod_setup_stream.ofdm.cell_identifier = strtol(val, NULL, 0);
+	} else if (!strcasecmp(par, "modulation")) {
+		if (!parse_param(val, qam_modulation_table, &value))
+			mc->stream.mod_setup_stream.qam.modulation = value;
+	} else if (!strcasecmp(par, "rolloff")) {
+		mc->stream.mod_setup_stream.qam.rolloff = strtol(val, NULL, 0);
 	} else if (!strcasecmp(par, "standard")) {
 		if (!parse_param(val,mod_standard_table,&value))
 			mc->stream.mod_setup_stream.standard = value;
@@ -375,7 +405,8 @@ int main(int argc, char*argv[])
 		printf("too many arguments\n");
 		exit(1);
 	}
-	snprintf(fn, 127, "/dev/ddbridge/card%u", device);
+	//snprintf(fn, 127, "/dev/ddbridge/card%u", device);
+	snprintf(fn, 127, "/dev/dvb/adapter%u/mod0", device);
 	fd = open(fn, O_RDWR);
 	if (fd < 0) {
 		dprintf(2, "Could not open %s\n", fn);
@@ -383,10 +414,14 @@ int main(int argc, char*argv[])
 	}
 	mc.fd = fd;
 	parse(configname, "channels", (void *) &mc, channels_cb);
-	if (mc.set_channels)
+	if (mc.set_channels) {
+		printf("setting channels.\n");
 		mci_cmd(fd, &mc.channels);
+	}
 	parse(configname, "streams", (void *) &mc, streams_cb);
 	parse(configname, "output", (void *) &mc, output_cb);
-	if (mc.set_output)
+	if (mc.set_output) {
+		printf("setting output.\n");
 		mci_cmd(fd, &mc.output);
+	}
 }
