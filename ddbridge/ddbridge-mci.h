@@ -904,8 +904,6 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
 int mci_init(struct ddb_link *link);
 int mci_cmd_val(struct ddb_link *link, u32 cmd, u32 val);
 
-extern struct mci_cfg ddb_max_sx8_cfg;
-extern struct mci_cfg ddb_max_m4_cfg;
 #endif
 
 #endif
