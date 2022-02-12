@@ -309,7 +309,6 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
 					 id->subvendor, pdev->subsystem_device);
-	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
@@ -329,10 +328,6 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
-	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
-		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid,
-		 (dev->link[0].ids.hwid & 0xff0000) >> 16,
-		 dev->link[0].ids.hwid & 0xffff);
 	if ((dev->link[0].ids.hwid & 0xffffff) <
 	    dev->link[0].info->hw_min) {
 		u32 min = dev->link[0].info->hw_min;
@@ -376,6 +371,12 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 			break;
 		}
 	}
+	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
+	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
+		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid,
+		 (dev->link[0].ids.hwid & 0xff0000) >> 16,
+		 dev->link[0].ids.hwid & 0xffff);
+
 	stat = ddb_irq_init(dev);
 	if (stat < 0)
 		goto fail0;
