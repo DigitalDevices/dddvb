@@ -1653,7 +1653,11 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		return mod_set_attenuator(mod->port->dev, tvp->u.data);
 
 	case MODULATOR_INPUT_BITRATE:
+#ifdef KERNEL_DVB_CORE
+		return mod_set_ibitrate(mod, *(u64 *) &tvp->u.buffer.data[0]);
+#else
 		return mod_set_ibitrate(mod, tvp->u.data64);
+#endif
 
 	case MODULATOR_GAIN:
 		if (mod->port->dev->link[0].info->version == 2)
