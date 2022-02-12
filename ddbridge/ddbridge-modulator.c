@@ -169,11 +169,6 @@ static void mod_calc_rateinc(struct ddb_mod *mod)
 {
 	u32 ri;
 
-	dev_info(mod->port->dev->dev,
-		 "ibitrate %llu\n", mod->ibitrate);
-	dev_info(mod->port->dev->dev,
-		 "obitrate %llu\n", mod->obitrate);
-
 	if (mod->ibitrate != 0) {
 		u64 d = mod->obitrate - mod->ibitrate;
 
