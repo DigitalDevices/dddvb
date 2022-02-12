@@ -336,7 +336,7 @@ static int ddb_buffers_alloc(struct ddb *dev)
 				if (dma_alloc(dev->pdev,
 					      port->input[0]->dma, 0) < 0)
 					return -1;
-			/* fallthrough */
+			fallthrough;
 		case DDB_PORT_MOD:
 			if (port->output->dma)
 				if (dma_alloc(dev->pdev,
@@ -1451,35 +1451,35 @@ static void dvb_input_detach(struct ddb_input *input)
 	case 0x41:
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
-		/* fallthrough */
+		fallthrough;
 	case 0x40:
 		if (dvb->fe)
 			dvb_unregister_frontend(dvb->fe);
-		/* fallthrough */
+		fallthrough;
 	case 0x30:
 		dvb_frontend_detach(dvb->fe);
 		dvb->fe = NULL;
 		dvb->fe2 = NULL;
-		/* fallthrough */
+		fallthrough;
 	case 0x21:
 		if (input->port->dev->ns_num)
 			dvb_netstream_release(&dvb->dvbns);
-		/* fallthrough */
+		fallthrough;
 	case 0x20:
 		dvb_net_release(&dvb->dvbnet);
-		/* fallthrough */
+		fallthrough;
 	case 0x12:
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->hw_frontend);
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->mem_frontend);
-		/* fallthrough */
+		fallthrough;
 	case 0x11:
 		dvb_dmxdev_release(&dvb->dmxdev);
-		/* fallthrough */
+		fallthrough;
 	case 0x10:
 		dvb_dmx_release(&dvb->demux);
-		/* fallthrough */
+		fallthrough;
 	case 0x01:
 		break;
 	}
@@ -1720,7 +1720,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			osc24 = 0;
 		else
 			osc24 = 1;
-		/* fallthrough */
+		fallthrough;
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
@@ -1737,7 +1737,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		break;
 	case DDB_TUNER_DVBC2T2I_SONY:
 		osc24 = 1;
-		/* fallthrough */
+		fallthrough;
 	case DDB_TUNER_DVBCT2_SONY:
 	case DDB_TUNER_DVBC2T2_SONY:
 	case DDB_TUNER_ISDBT_SONY:
@@ -2184,7 +2184,7 @@ static int ddb_port_attach(struct ddb_port *port)
 		ret = ddb_ci_attach(port, ci_bitrate);
 		if (ret < 0)
 			break;
-		/* fallthrough */
+		fallthrough;
 	case DDB_PORT_LOOP:
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
@@ -2640,7 +2640,8 @@ static void ddb_ports_init(struct ddb *dev)
 					ddb_input_init(port, 4 + i, 1, 4 + i);
 					ddb_output_init(port, i);
 					break;
-				} /* fallthrough */
+				}
+				fallthrough;
 			case DDB_OCTONET:
 			case DDB_OCTOPUS:
 			case DDB_OCTOPRO:
@@ -4455,7 +4456,7 @@ int ddb_exit_ddbridge(int stage, int error)
 	default:
 	case 2:
 		destroy_workqueue(ddb_wq);
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		ddb_class_destroy();
 	}

@@ -786,7 +786,7 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 		default:
 			break;
 		}
-		/* fallthrough */
+		fallthrough;
 	case SYS_DVBS:
 		switch ((MXL_HYDRA_MODULATION_E)
 			regData[DMD_MODULATION_SCHEME_ADDR]) {
