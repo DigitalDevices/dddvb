@@ -1848,6 +1848,27 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		mod->pcr_correction = cp->pcr_correction;
 		break;
 	}
+	case IOCTL_DDB_MCI_CMD:
+	{
+		struct ddb_mci_msg *msg = 
+			(struct ddb_mci_msg __user *) parg;
+		struct ddb_link *link;
+
+		if (dev->link[0].ids.revision != 1)
+			break;
+
+ 		if (msg->link > 3) {
+			ret = -EFAULT;
+			break;
+		}
+		link = &dev->link[msg->link];
+		if (!link->mci_ok) {
+			ret = -EFAULT;
+			break;
+		}
+		ret = ddb_mci_cmd_link(link, &msg->cmd, &msg->res);
+		break;
+	}
 	default:
 		ret = -EINVAL;
 		break;
