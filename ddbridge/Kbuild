@@ -1,12 +1,16 @@
 EXTRA_CFLAGS += -DCONFIG_DVB_CXD2843 -DCONFIG_DVB_LNBP21 -DCONFIG_DVB_STV090x -DCONFIG_DVB_STV6110x -DCONFIG_DVB_DRXK -DCONFIG_DVB_STV0910 -DCONFIG_DVB_STV6111 -DCONFIG_DVB_LNBH25 -DCONFIG_DVB_MXL5XX -DCONFIG_DVB_CXD2099 -DCONFIG_DVB_NET
 
 ddbridge-objs = ddbridge-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-io.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
+
 octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridge-modulator.o ddbridge-core.o ddbridge-io.o ddbridge-ci.o ddbridge-max.o ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o dvb_netstream.o
 
 #mci-objs = ddbridge-mci.o ddbridge-sx8.o ddbridge-m4.o ddbridge-io.o
 
 obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o #mci.o
+
+ifneq ($(KERNEL_DVB_CORE),y)
 obj-$(CONFIG_DVB_OCTONET) += octonet.o
+endif
 
 #EXTRA_CFLAGS += -Idrivers/media/dvb/frontends -Idrivers/media/dvb-frontends
 #EXTRA_CFLAGS += -Idrivers/media/common/tuners

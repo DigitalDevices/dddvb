@@ -516,7 +516,7 @@ static int base_init(struct mci_base *mci_base)
 	return 0;
 }
 
-struct mci_cfg ddb_max_m4_cfg = {
+static struct mci_cfg ddb_max_m4_cfg = {
 	.type = 0,
 	.fe_ops = &m4_ops,
 	.base_size = sizeof(struct m4_base),
@@ -524,3 +524,8 @@ struct mci_cfg ddb_max_m4_cfg = {
 	.init = init,
 	.base_init = base_init,
 };
+
+struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner)
+{
+	return ddb_mci_attach(input, &ddb_max_m4_cfg, nr, tuner);
+}

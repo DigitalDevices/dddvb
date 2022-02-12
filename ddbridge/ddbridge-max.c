@@ -472,7 +472,8 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	tuner = demod & 3;
 	if (fmode >= 3)
 		tuner = 0;
-	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg, demod, tuner);
+	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg,
+			     demod, tuner, &dvb->set_input);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MXL5XX found!\n");
 		return -ENODEV;
@@ -490,13 +491,17 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
 	dvb->fe->ops.diseqc_send_burst = max_send_burst;
 	dvb->fe->sec_priv = input;
-	dvb->set_input = dvb->fe->ops.set_input;
+#ifndef KERNEL_DVB_CORE
 	dvb->fe->ops.set_input = max_set_input;
+#endif
 	dvb->input = tuner;
 	return 0;
 }
 
 /* MAX MCI related functions */
+struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
+				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
+struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner);
 
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
@@ -505,25 +510,23 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	struct ddb_port *port = input->port;
 	struct ddb_link *link = &dev->link[port->lnr];
 	int demod, tuner;
-	struct mci_cfg cfg;
 	int fm = fmode;
 
 	demod = input->nr;
 	tuner = demod & 3;
 	switch (type) {
 	case DDB_TUNER_MCI_SX8:
-		cfg = ddb_max_sx8_cfg;
 		if (fm >= 3)
 			tuner = 0;
+		dvb->fe = ddb_sx8_attach(input, demod, tuner, &dvb->set_input);
 		break;
 	case DDB_TUNER_MCI_M4:
 		fm = 0;
-		cfg = ddb_max_m4_cfg;
+		dvb->fe = ddb_m4_attach(input, demod, tuner);
 		break;
 	default:
 		return -EINVAL;
 	}
-	dvb->fe = ddb_mci_attach(input, &cfg, demod, tuner);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;
@@ -545,8 +548,9 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	case DDB_TUNER_MCI_M4:
 		break;
 	default:
-		dvb->set_input = dvb->fe->ops.set_input;
+#ifndef KERNEL_DVB_CORE
 		dvb->fe->ops.set_input = max_set_input;
+#endif
 		break;
 	}
 	dvb->input = tuner;

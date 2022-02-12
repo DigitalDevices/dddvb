@@ -23,8 +23,13 @@
 
 #include "ddbridge.h"
 #include "ddbridge-io.h"
+#include "ddbridge-ioctl.h"
 
+#ifdef KERNEL_DVB_CORE
+#include "../include/linux/dvb/mod.h"
+#else
 #include <linux/dvb/mod.h>
+#endif
 #include <linux/gcd.h>
 
 /****************************************************************************/

@@ -95,6 +95,70 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 /****************************************************************************/
 /****************************************************************************/
 
+/* copied from dvb-core/dvbdev.c because kernel version does not export it */
+
+int ddb_dvb_usercopy(struct file *file,
+		     unsigned int cmd, unsigned long arg,
+		     int (*func)(struct file *file,
+				 unsigned int cmd, void *arg))
+{
+	char    sbuf[128];
+	void    *mbuf = NULL;
+	void    *parg = NULL;
+	int     err  = -EINVAL;
+	
+	/*  Copy arguments into temp kernel buffer  */
+	switch (_IOC_DIR(cmd)) {
+	case _IOC_NONE:
+		/*
+		 * For this command, the pointer is actually an integer
+		 * argument.
+		 */
+		parg = (void *) arg;
+		break;
+	case _IOC_READ: /* some v4l ioctls are marked wrong ... */
+	case _IOC_WRITE:
+	case (_IOC_WRITE | _IOC_READ):
+		if (_IOC_SIZE(cmd) <= sizeof(sbuf)) {
+			parg = sbuf;
+		} else {
+			/* too big to allocate from stack */
+			mbuf = kmalloc(_IOC_SIZE(cmd), GFP_KERNEL);
+			if (NULL == mbuf)
+				return -ENOMEM;
+			parg = mbuf;
+		}
+
+		err = -EFAULT;
+		if (copy_from_user(parg, (void __user *)arg, _IOC_SIZE(cmd)))
+			goto out;
+		break;
+	}
+
+	/* call driver */
+	if ((err = func(file, cmd, parg)) == -ENOIOCTLCMD)
+		err = -ENOTTY;
+
+	if (err < 0)
+		goto out;
+
+	/*  Copy results into user buffer  */
+	switch (_IOC_DIR(cmd))
+	{
+	case _IOC_READ:
+	case (_IOC_WRITE | _IOC_READ):
+		if (copy_to_user((void __user *)arg, parg, _IOC_SIZE(cmd)))
+			err = -EFAULT;
+		break;
+	}
+
+out:
+	kfree(mbuf);
+	return err;
+}
+
+/****************************************************************************/
+
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data)
 {
@@ -998,7 +1062,7 @@ static struct dvb_device dvbdev_ci = {
 static long mod_ioctl(struct file *file,
 		      unsigned int cmd, unsigned long arg)
 {
-	return dvb_usercopy(file, cmd, arg, ddbridge_mod_do_ioctl);
+	return ddb_dvb_usercopy(file, cmd, arg, ddbridge_mod_do_ioctl);
 }
 
 static const struct file_operations mod_fops = {
@@ -2971,7 +3035,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 static long nsd_ioctl(struct file *file,
 		      unsigned int cmd, unsigned long arg)
 {
-	return dvb_usercopy(file, cmd, arg, nsd_do_ioctl);
+	return ddb_dvb_usercopy(file, cmd, arg, nsd_do_ioctl);
 }
 
 static const struct file_operations nsd_fops = {
