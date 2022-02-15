@@ -354,16 +354,27 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	    && dev->link[0].info->version == 2) {
 		u32 lic = ddbreadl(dev, 0x1c) & 7;
 
+		if (dev->link[0].ids.revision == 1)
+			lic = ddbreadl(dev, 0x260) >> 24;
+
 		switch (lic) {
 		case 0:
+		case 4:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0000);
 			break;
 		case 1:
+		case 8:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0003);
 			break;
+		case 2:
+		case 24:
+			dev->link[0].info =
+				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0001);
+			break;
 		case 3:
+		case 16:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0002);
 			break;
