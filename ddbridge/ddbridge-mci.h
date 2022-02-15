@@ -263,6 +263,9 @@
 #define MOD_QAM_ISDBC_64          (0x08)
 #define MOD_QAM_ISDBC_256         (0x09)
 
+#define CMD_GET_SERIALNUMBER    (0xF0)
+#define CMD_EXPORT_LICENSE      (0xF0)
+
 struct mod_setup_channels {
 	u8   flags;
 	u8   standard;
@@ -326,6 +329,7 @@ struct mci_command {
 	};
 	union {
 		u32 params[31];
+		u8  params8[31*4];
 		struct {
 			u8  flags; /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled,
 				      5: ChannelBonding, 6: FrequencyRange, 7: InputStreamID */
@@ -820,11 +824,34 @@ struct mci_result {
 		} sx8_bist;
 
 		struct {
+			u8   status;
+			u8   offset;
+			u8   length;
+			u8   rsvd2;
+			u32  rsvd3[2];
+			u8   data[96];
+		} SX8_packet_filter_status;
+
+		struct {
 			u8   version;  /* 0 = none, 1 = SX8 */
 			u8   flags;    /* Bit 0: 1 = Tuner Valid, Bit 1: 1 = Output Valid */
 			u8   tuner;
 			u8   output;
 		} extended_status;
+
+		struct {
+		        u8   reserved;
+		        u8   serial_number[17];
+		} serial_number;
+
+		struct {
+		        u8   flags;
+		        u8   serial_number[17];
+		        u16  code;
+		        u8   ID[8];
+		        u8   LK[24];
+		} license;
+
 	};
 	u32 version[3];
 	u8  version_rsvd;
