@@ -337,7 +337,7 @@ static int tune_sat(struct dddvb_fe *fe)
 			dbgprintf(DEBUG_DVB, "input = %u\n", input);
 			set_property(fe->fd, DTV_INPUT, input);
 		}
-		//diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
+		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
 		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
 		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, DDDVB_UNDEF);
 	}
