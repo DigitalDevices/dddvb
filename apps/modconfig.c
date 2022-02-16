@@ -276,7 +276,7 @@ int mci_cmd(int dev, struct mci_command *cmd)
 	memset(&msg, 0, sizeof(msg));
 	msg.link = 0;
 	memcpy(&msg.cmd, cmd, sizeof(msg.cmd));
-	dump((uint8_t *) &msg.cmd, sizeof(msg.cmd));
+	//dump((uint8_t *) &msg.cmd, sizeof(msg.cmd));
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
 		dprintf(2, "mci_cmd error %d\n", errno);
@@ -515,7 +515,7 @@ int main(int argc, char*argv[])
 		dprintf(2, "Could not open %s\n", fn);
 		return -1;
 	}
-	mci_lic(fd);
+	//mci_lic(fd);
 	mc.fd = fd;
 	parse(configname, "channels", (void *) &mc, channels_cb);
 	if (mc.set_channels) {
