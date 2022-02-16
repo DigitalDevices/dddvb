@@ -28,3 +28,7 @@ devices in any way.
 adapter_alloc=3 is rcommended when using redirect
 The ci device will then show up in the same adapter directory and most
 software will then assume it belongs to the frontend in the same directory.
+
+
+Redirect between cards in different IOMMU groups will not work!
+Disable IOMMU if you have this problem.

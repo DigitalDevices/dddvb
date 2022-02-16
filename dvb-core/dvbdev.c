@@ -79,13 +79,17 @@ static const char * const dnames[] = {
 static const u8 minor_type[] = {
        [DVB_DEVICE_VIDEO]      = 0,
        [DVB_DEVICE_AUDIO]      = 1,
-       [DVB_DEVICE_SEC]        = 2,
+       [DVB_DEVICE_SEC]        = 2, 
        [DVB_DEVICE_FRONTEND]   = 3,
        [DVB_DEVICE_DEMUX]      = 4,
        [DVB_DEVICE_DVR]        = 5,
        [DVB_DEVICE_CA]         = 6,
        [DVB_DEVICE_NET]        = 7,
        [DVB_DEVICE_OSD]        = 8,
+       [DVB_DEVICE_CI]         = 9,
+       [DVB_DEVICE_MOD]        = 10,
+       [DVB_DEVICE_NS]         = 11,
+       [DVB_DEVICE_NSD]        = 12,
 };
 
 #define nums2minor(num, type, id) \
@@ -248,6 +252,7 @@ static void dvb_media_device_free(struct dvb_device *dvbdev)
 
 	if (dvbdev->adapter->conn) {
 		media_device_unregister_entity(dvbdev->adapter->conn);
+		kfree(dvbdev->adapter->conn);
 		dvbdev->adapter->conn = NULL;
 		kfree(dvbdev->adapter->conn_pads);
 		dvbdev->adapter->conn_pads = NULL;
@@ -346,7 +351,7 @@ static int dvb_create_media_entity(struct dvb_device *dvbdev,
 	if (npads) {
 		dvbdev->pads = kcalloc(npads, sizeof(*dvbdev->pads),
 				       GFP_KERNEL);
-		if (!dvbdev->pads){
+		if (!dvbdev->pads) {
 			kfree(dvbdev->entity);
 			return -ENOMEM;
 		}
@@ -512,6 +517,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 			break;
 
 	if (minor == MAX_DVB_MINORS) {
+		list_del (&dvbdev->list_head);
 		kfree(dvbdevfops);
 		kfree(dvbdev);
 		up_write(&minor_rwsem);
@@ -532,6 +538,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 		      __func__);
 
 		dvb_media_device_free(dvbdev);
+		list_del (&dvbdev->list_head);
 		kfree(dvbdevfops);
 		kfree(dvbdev);
 		mutex_unlock(&dvbdev_register_lock);
@@ -546,6 +553,10 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 	if (IS_ERR(clsdev)) {
 		pr_err("%s: failed to create device dvb%d.%s%d (%ld)\n",
 		       __func__, adap->num, dnames[type], id, PTR_ERR(clsdev));
+		dvb_media_device_free(dvbdev);
+		list_del (&dvbdev->list_head);
+		kfree(dvbdevfops);
+		kfree(dvbdev);
 		return PTR_ERR(clsdev);
 	}
 	dprintk("DVB: register adapter%d/%s%d @ minor: %i (0x%02x)\n",
@@ -687,7 +698,7 @@ int dvb_create_media_graph(struct dvb_adapter *adap,
 		ret = media_device_register_entity(mdev, conn);
 		if (ret)
 			return ret;
-		
+
 		if (!ntuner) {
 			ret = media_create_pad_links(mdev,
 						     MEDIA_ENT_F_CONN_RF,
@@ -987,7 +998,7 @@ struct i2c_client *dvb_module_probe(const char *module_name,
 				    unsigned char addr,
 				    void *platform_data)
 {
- 	struct i2c_client *client;
+	struct i2c_client *client;
 	struct i2c_board_info *board_info;
 
 	board_info = kzalloc(sizeof(*board_info), GFP_KERNEL);

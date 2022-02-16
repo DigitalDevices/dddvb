@@ -188,49 +188,83 @@
 
 /********************************************************/
 
-#define MOD_SETUP_CHANNELS      (0x60)
-#define MOD_SETUP_OUTPUT        (0x61)
-#define MOD_SETUP_STREAM        (0x62)
-#define MOD_SET_STREAM_CHANNEL  (0x63)
+#define MOD_SETUP_CHANNELS        (0x60)
+#define MOD_SETUP_OUTPUT          (0x61)
+#define MOD_SETUP_STREAM          (0x62)
+#define MOD_SET_STREAM_CHANNEL    (0x63)
 
-#define MOD_SETUP_FLAG_FIRST    (0x01)
-#define MOD_SETUP_FLAG_LAST     (0x02)
-#define MOD_SETUP_FLAG_VALID    (0x80)
+#define MOD_SETUP_FLAG_FIRST      (0x01)
+#define MOD_SETUP_FLAG_LAST       (0x02)
+#define MOD_SETUP_FLAG_VALID      (0x80)
 
-#define MOD_STANDARD_GENERIC    (0x00)
-#define MOD_STANDARD_DVBT_8     (0x01)
-#define MOD_STANDARD_DVBT_7     (0x02)
-#define MOD_STANDARD_DVBT_6     (0x03)
-#define MOD_STANDARD_DVBT_5     (0x04)
+#define MOD_STANDARD_GENERIC      (0x00)
+#define MOD_STANDARD_DVBT_8       (0x01)
+#define MOD_STANDARD_DVBT_7       (0x02)
+#define MOD_STANDARD_DVBT_6       (0x03)
+#define MOD_STANDARD_DVBT_5       (0x04)
 
-#define MOD_CONNECTOR_OFF       (0x00)
-#define MOD_CONNECTOR_F         (0x01)
-#define MOD_CONNECTOR_SMA       (0x02)
+#define MOD_STANDARD_DVBC_8       (0x08)
+#define MOD_STANDARD_DVBC_7       (0x09)
+#define MOD_STANDARD_DVBC_6       (0x0A)
 
-#define MOD_UNIT_DBUV           (0x00)
-#define MOD_UNIT_DBM            (0x01)
+#define MOD_STANDARD_J83A_8       (MOD_STANDARD_DVBC_8)
+#define MOD_STANDARD_J83A_7       (MOD_STANDARD_DVBC_7)
+#define MOD_STANDARD_J83A_6       (MOD_STANDARD_DVBC_6)
 
-#define MOD_FORMAT_DEFAULT      (0x00)
-#define MOD_FORMAT_IQ16         (0x01)
-#define MOD_FORMAT_IQ8          (0x02)
-#define MOD_FORMAT_IDX8         (0x03)
-#define MOD_FORMAT_TS           (0x04)
+#define MOD_STANDARD_J83B_QAM64   (0x0B)
+#define MOD_STANDARD_J83B_QAM256  (0x0C)
 
-#define MOD_DVBT_FFT_8K         (0x01)
-#define MOD_DVBT_GI_1_32        (0x00)
-#define MOD_DVBT_GI_1_16        (0x01)
-#define MOD_DVBT_GI_1_8         (0x02)
-#define MOD_DVBT_GI_1_4         (0x03)
+#define MOD_STANDARD_ISDBC_QAM64  (0x0D)
+#define MOD_STANDARD_ISDBC_QAM256 (0x0E)
 
-#define MOD_DVBT_PR_1_2         (0x00)
-#define MOD_DVBT_PR_2_3         (0x01)
-#define MOD_DVBT_PR_3_4         (0x02)
-#define MOD_DVBT_PR_5_6         (0x03)
-#define MOD_DVBT_PR_7_8         (0x04)
+#define MOD_STANDARD_J83C_QAM64   (MOD_STANDARD_ISDBC_QAM64 )
+#define MOD_STANDARD_J83C_QAM256  (MOD_STANDARD_ISDBC_QAM256)
 
-#define MOD_DVBT_QPSK           (0x00)
-#define MOD_DVBT_16QAM          (0x01)
-#define MOD_DVBT_64QAM          (0x02)
+#define MOD_CONNECTOR_OFF         (0x00)
+#define MOD_CONNECTOR_F           (0x01)
+#define MOD_CONNECTOR_SMA         (0x02)
+
+#define MOD_UNIT_DBUV             (0x00)
+#define MOD_UNIT_DBM              (0x01)
+
+#define MOD_FORMAT_DEFAULT        (0x00)
+#define MOD_FORMAT_IQ16           (0x01)
+#define MOD_FORMAT_IQ8            (0x02)
+#define MOD_FORMAT_IDX8           (0x03)
+#define MOD_FORMAT_TS             (0x04)
+
+#define MOD_DVBT_FFT_8K           (0x01)
+#define MOD_DVBT_GI_1_32          (0x00)
+#define MOD_DVBT_GI_1_16          (0x01)
+#define MOD_DVBT_GI_1_8           (0x02)
+#define MOD_DVBT_GI_1_4           (0x03)
+
+#define MOD_DVBT_PR_1_2           (0x00)
+#define MOD_DVBT_PR_2_3           (0x01)
+#define MOD_DVBT_PR_3_4           (0x02)
+#define MOD_DVBT_PR_5_6           (0x03)
+#define MOD_DVBT_PR_7_8           (0x04)
+
+#define MOD_DVBT_QPSK             (0x00)
+#define MOD_DVBT_16QAM            (0x01)
+#define MOD_DVBT_64QAM            (0x02)
+
+#define MOD_QAM_DVBC_16           (0x00)
+#define MOD_QAM_DVBC_32           (0x01)
+#define MOD_QAM_DVBC_64           (0x02)
+#define MOD_QAM_DVBC_128          (0x03)
+#define MOD_QAM_DVBC_256          (0x04)
+
+#define MOD_QAM_J83B_64           (0x05)
+#define MOD_QAM_J83B_256          (0x06)
+
+#define MOD_QAM_GENERIC           (0x07)
+
+#define MOD_QAM_ISDBC_64          (0x08)
+#define MOD_QAM_ISDBC_256         (0x09)
+
+#define CMD_GET_SERIALNUMBER    (0xF0)
+#define CMD_EXPORT_LICENSE      (0xF0)
 
 struct mod_setup_channels {
 	u8   flags;
@@ -242,17 +276,29 @@ struct mod_setup_channels {
 	u32  bandwidth;         /* used only when Standard == 0 */
 };
 
+struct mod_ofdm_parameter {
+	u8   fft_size;           /* 0 = 2K, 1 = 8K  (2K not yet supported) */
+	u8   guard_interval;     /* 0 = 1/32, 1 = 1/16, 2 = 1/8, 3 = 1/4  (DVB-T Encoding) */
+	u8   puncture_rate;      /* 0 = 1/2, 1 = 2/3, 2 = 3/4, 3 = 5/6, 4 = 7/8  (DVB-T Encoding) */
+	u8   constellation;      /* MOD_DVBT_QPSK, MOD_DVBT_16QAM, MOD_DVBT_64QAM */
+	u8   rsvd2[2];           /* Reserved for DVB-T hierarchical */
+	u16  cell_identifier;
+};
+
+struct mod_qam_parameter {
+	u8   modulation;
+	u8   rolloff;           /* Legal values:  12,13,15,18 */
+};
+
 struct mod_setup_stream {
 	u8   standard;
 	u8   stream_format;
 	u8   rsvd1[2];
 	u32  symbol_rate;        /* only used when Standard doesn't define a fixed symbol rate */
-	u8   fft_size;           /* 0 = 2K, 1 = 8K  (2K yet supported) */
-	u8   guard_interval;     /* 0 = 1/32, 1 = 1/16, 2 = 1/8, 3 = 1/4  (DVB-T Encoding) */
-	u8   puncture_rate;      /* 0 = 1/2, 1 = 2/3, 2 = 3/4, 3 = 5/6, 4 = 7/8  (DVB-T Encoding) */
-	u8   constellation;
-	u8   rsvd2[2];           /* Reserved for DVB-T hierarchical */
-	u16  cell_identifier;
+	union {
+		struct mod_ofdm_parameter ofdm;
+		struct mod_qam_parameter qam;
+	};
 };
 
 struct mod_setup_output {
@@ -283,6 +329,7 @@ struct mci_command {
 	};
 	union {
 		u32 params[31];
+		u8  params8[31*4];
 		struct {
 			u8  flags; /* Bit 0: DVB-S Enabled, 1: DVB-S2 Enabled,
 				      5: ChannelBonding, 6: FrequencyRange, 7: InputStreamID */
@@ -614,8 +661,8 @@ struct mci_result {
 
 		struct {
 			u8   tps_info[7];
-			// uint16_t tps_cell_id;
-		} DVBT_TPSInfo;
+			// u16 tps_cell_id;
+		} dvbt_tps_info;
 
 		struct {
 			struct  {
@@ -644,7 +691,7 @@ struct mci_result {
 				u8 CurrentRFIndex;
 				u8 T2Version_PostScrambled_BaseLite_Rsvd[2]; // 4,1,1,4 bit
 				u8 CRC32[4];
-			} DVBT2_L1Pre;
+			} dvbt2_l1_pre;
 
 			struct  {
 				u8 SubSlicesPerFrame[2];
@@ -656,8 +703,8 @@ struct mci_result {
 				u8 FEFType;
 				u8 FEFLength[3];
 				u8 FEFInterval;
-			} DVBT2_L1Post;
-		} DVBT2_L1Info;
+			} dvbt2_l1_post;
+		} dvbt2_l1_info;
 
 		struct {
 			u8 PLPID;
@@ -677,7 +724,7 @@ struct mci_result {
 			u8 TimeILType;
 			u8 InBandAFlag;
 			u8 InBandBFlag_Rsvd1_Mode_StaticFlag_StaticPaddingFlag[2];  // 1,11,2,1,1
-		} DVBT2_PLPInfo;
+		} dvbt2_plp_info;
 
 		struct {
 			u8  NetworkID[2];
@@ -735,18 +782,18 @@ struct mci_result {
 		} DVBC2_PLPInfo;
 
 		struct {
-			u8  Valid;
-			u8  MATYPE_1;
-			u8  MATYPE_2;
-			u8  UPL[2];
-			u8  DFL[2];
-			u8  SYNC;
-			u8  SYNCD[2];
+			u8  valid;
+			u8  matype_1;
+			u8  matype_2;
+			u8  upl[2];
+			u8  dfl[2];
+			u8  sync;
+			u8  syncd[2];
 			u8  rsvd;
-			u8  ISSY[3];
+			u8  issy[3];
 			u8  min_input_stream_id;
 			u8  max_input_stream_id;
-		} BBHeader;
+		} bb_header;
 
 		struct {
 			u8  Mode;          // FFT Mode   1,2,3
@@ -777,11 +824,34 @@ struct mci_result {
 		} sx8_bist;
 
 		struct {
+			u8   status;
+			u8   offset;
+			u8   length;
+			u8   rsvd2;
+			u32  rsvd3[2];
+			u8   data[96];
+		} SX8_packet_filter_status;
+
+		struct {
 			u8   version;  /* 0 = none, 1 = SX8 */
 			u8   flags;    /* Bit 0: 1 = Tuner Valid, Bit 1: 1 = Output Valid */
 			u8   tuner;
 			u8   output;
 		} extended_status;
+
+		struct {
+		        u8   reserved;
+		        u8   serial_number[17];
+		} serial_number;
+
+		struct {
+		        u8   flags;
+		        u8   serial_number[17];
+		        u16  code;
+		        u8   ID[8];
+		        u8   LK[24];
+		} license;
+
 	};
 	u32 version[3];
 	u8  version_rsvd;
@@ -904,8 +974,6 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
 int mci_init(struct ddb_link *link);
 int mci_cmd_val(struct ddb_link *link, u32 cmd, u32 val);
 
-extern struct mci_cfg ddb_max_sx8_cfg;
-extern struct mci_cfg ddb_max_m4_cfg;
 #endif
 
 #endif

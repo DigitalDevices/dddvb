@@ -23,8 +23,13 @@
 
 #include "ddbridge.h"
 #include "ddbridge-io.h"
+#include "ddbridge-ioctl.h"
 
+#ifdef KERNEL_DVB_CORE
+#include "../include/linux/dvb/mod.h"
+#else
 #include <linux/dvb/mod.h>
+#endif
 #include <linux/gcd.h>
 
 /****************************************************************************/
@@ -163,11 +168,6 @@ static void mod_set_rateinc(struct ddb *dev, u32 chan)
 static void mod_calc_rateinc(struct ddb_mod *mod)
 {
 	u32 ri;
-
-	dev_info(mod->port->dev->dev,
-		 "ibitrate %llu\n", mod->ibitrate);
-	dev_info(mod->port->dev->dev,
-		 "obitrate %llu\n", mod->obitrate);
 
 	if (mod->ibitrate != 0) {
 		u64 d = mod->obitrate - mod->ibitrate;
@@ -322,14 +322,21 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 		  CHANNEL_CONTROL(output->nr));
 	udelay(10);
 	ddbwritel(dev, mod->Control, CHANNEL_CONTROL(output->nr));
-
-	if (dev->link[0].info->version == 2) {
+	switch (dev->link[0].info->version) {
+	case 2:
+	{
 		u32 Output = (mod->frequency - 114000000) / 8000000;
 		u32 KF = Symbolrate;
 		u32 LF = 9000000UL;
 		u32 d = gcd(KF, LF);
 		u32 checkLF;
-
+#if 0
+		if (dev->link[0].ids.revision == 1) {
+			mod->Control |= CHANNEL_CONTROL_ENABLE_DVB;
+				return -EINVAL;
+			break;
+		}
+#endif
 		ddbwritel(dev, mod->modulation - 1, CHANNEL_SETTINGS(Channel));
 		ddbwritel(dev, Output, CHANNEL_SETTINGS2(Channel));
 
@@ -356,16 +363,21 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 					   CHANNEL_CONTROL_CMD_SETUP))
 			return -EINVAL;
 		mod->Control |= CHANNEL_CONTROL_ENABLE_DVB;
-	} else if (dev->link[0].info->version <= 1) {
+		break;
+	}
+	case 0:
+	case 1:
 		/* QAM: 600 601 602 903 604 = 16 32 64 128 256 */
 		/* ddbwritel(dev, 0x604, CHANNEL_SETTINGS(output->nr)); */
 		ddbwritel(dev, qamtab[mod->modulation],
 			  CHANNEL_SETTINGS(output->nr));
 		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ |
 				 CHANNEL_CONTROL_ENABLE_DVB);
-	} else if (dev->link[0].info->version >= 16) {
+		break;
+	default:
 		mod->Control |= (CHANNEL_CONTROL_ENABLE_IQ |
 				 CHANNEL_CONTROL_ENABLE_DVB);
+		break;
 	}
 	if (dev->link[0].info->version < 16) {
 		mod_set_rateinc(dev, output->nr);
@@ -1653,7 +1665,11 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		return mod_set_attenuator(mod->port->dev, tvp->u.data);
 
 	case MODULATOR_INPUT_BITRATE:
+#ifdef KERNEL_DVB_CORE
+		return mod_set_ibitrate(mod, *(u64 *) &tvp->u.buffer.data[0]);
+#else
 		return mod_set_ibitrate(mod, tvp->u.data64);
+#endif
 
 	case MODULATOR_GAIN:
 		if (mod->port->dev->link[0].info->version == 2)
@@ -1844,12 +1860,45 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		mod->pcr_correction = cp->pcr_correction;
 		break;
 	}
+	case IOCTL_DDB_MCI_CMD:
+	{
+		struct ddb_mci_msg *msg = 
+			(struct ddb_mci_msg __user *) parg;
+		struct ddb_link *link;
+
+		if (dev->link[0].ids.revision != 1)
+			break;
+
+ 		if (msg->link > 3) {
+			ret = -EFAULT;
+			break;
+		}
+		link = &dev->link[msg->link];
+		if (!link->mci_ok) {
+			ret = -EFAULT;
+			break;
+		}
+		ret = ddb_mci_cmd_link(link, &msg->cmd, &msg->res);
+		break;
+	}
 	default:
 		ret = -EINVAL;
 		break;
 	}
 	mutex_unlock(&dev->ioctl_mutex);
 	return ret;
+}
+
+static int mod_init_2_1(struct ddb *dev, u32 Frequency)
+{
+	int i, streams = dev->link[0].info->port_num;
+
+	dev->mod_base.frequency = Frequency;
+	for (i = 0; i < streams; i++) {
+		struct ddb_mod *mod = &dev->mod[i];
+		mod->port = &dev->port[i];
+	}
+	return 0;
 }
 
 static int mod_init_2(struct ddb *dev, u32 Frequency)
@@ -1863,8 +1912,6 @@ static int mod_init_2(struct ddb *dev, u32 Frequency)
 		dev_err(dev->dev, "FSM setup failed!\n");
 		return -1;
 	}
-	if (dev->link[0].ids.revision == 1)
-		return 0;
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 
@@ -2031,8 +2078,6 @@ static int mod_init_sdr_iq(struct ddb *dev)
 	
 	ddbwritel(dev, 0x01, 0x240);
 
-	if (dev->link[0].ids.revision == 1)
-		return 0;
 
 	//mod3_set_base_frequency(dev, 602000000);
 	dev->mod_base.frequency = 570000000;
@@ -2040,9 +2085,11 @@ static int mod_init_sdr_iq(struct ddb *dev)
 		struct ddb_mod *mod = &dev->mod[i];
 
 		mod->port = &dev->port[i];
-		ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
+		if (dev->link[0].ids.revision != 1)
+			ddbwritel(dev, 0x00, SDR_CHANNEL_CONTROL(i));
 	}
-
+	if (dev->link[0].ids.revision == 1)
+		return ret;
 	mod_set_sdr_attenuator(dev, 0);
 	udelay(10);
 	mod_set_sdr_gain(dev, 120);

@@ -309,20 +309,22 @@ int main(int argc, char **argv)
 			{"tscheck", no_argument, 0, 't'},
 			{"tscheck_l", required_argument, 0, 'a'},
 			{"nodvr", no_argument , 0, 'q'},
-			{"pam", no_argument , 0, 'a'},
+			{"pam", no_argument , 0, 'P'},
+			{"pam_color", no_argument , 0, 'e'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:q",
+				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:qP",
 				long_options, &option_index);
 		if (c==-1)
  			break;
 		
 		switch (c) {
 		case 'e':
-		        odvr = 2;
 		        color = strtoul(optarg, NULL, 0);
+		case 'P':
+		        odvr = 2;
 			break;
 		case 'o':
 		        fout = stderr;
@@ -342,7 +344,7 @@ int main(int argc, char **argv)
 			    break;
 			}
 		        fprintf(fout,"performing continuity check\n");
-		        odvr = 2;
+		        odvr = 3;
 			break;
 		case 'c':
 		        config = strdup(optarg);
@@ -436,7 +438,10 @@ int main(int argc, char **argv)
 			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
 			       "      [-o (write dvr to stdout)]\n"
 			       "      [-l (tuner source for unicable)]\n"
-			       "      [-t [display line](continuity check)]\n"
+			       "      [-t (continuity check)]\n"
+			       "      [-a [display line] (display continuity check in line)]\n"
+			       "      [-P (output IQ diagram as pam)]\n"
+			       "      [-e [color] (use color for pam 0=green)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
 			       "      polarity        = h/H,v/V\n"
@@ -507,8 +512,8 @@ int main(int argc, char **argv)
 			str = dddvb_get_strength(fe);
 			cnr = dddvb_get_cnr(fe);
 			
-			printf("stat=%02x, str=%" PRId64 ".%03udBm, "
-			       "snr=%" PRId64 ".%03uddB \n",
+			printf("stat=%02x, str=%" PRId64 ".%03u dBm, "
+			       "snr=%" PRId64 ".%03u dB\n",
 			       stat, str/1000, abs(str%1000),
 			       cnr/1000, abs(cnr%1000));
 		sleep(1);
@@ -540,29 +545,28 @@ int main(int argc, char **argv)
 		if ((fd = open(filename ,O_RDONLY)) < 0){
 		    fprintf(stderr,"Error opening input file:%s\n",filename);
 		}
-		if (odvr > 0){
-		    switch (odvr){
-		    case 1:
-			while(1){
-			    read(fd,buf,BUFFSIZE);
-			    write(fileno(stdout),buf,BUFFSIZE);
-			}
-			break;
-		    case 2:
-                        fprintf(stderr,"writing pamdata\n");
-                        init_pamdata(&iq,color);
-                        while(1){
-                            pam_read_data(fd, &iq);
-                            pam_write(STDOUT_FILENO, &iq);
-                        }
-                        break;
+		switch (odvr){
+		case 1:
+		    while(1){
+			read(fd,buf,BUFFSIZE);
+			write(fileno(stdout),buf,BUFFSIZE);
 		    }
-		} else {
+		    break;
+		case 2:
+		    fprintf(stderr,"writing pamdata\n");
+		    init_pamdata(&iq,color);
+		    while(1){
+			pam_read_data(fd, &iq);
+			pam_write(STDOUT_FILENO, &iq);
+		    }
+		    break;
+		case 3:
 		    if( line >= 0 && line < 64 ){
 			snprintf(line_start,sizeof(line_start)-1,"\0337\033[%d;0H",line);
 			strncpy(line_end,"\0338",sizeof(line_end)-1);
 		    }
 		    tscheck(fd);
+		    break;
 		}
 	}
 }

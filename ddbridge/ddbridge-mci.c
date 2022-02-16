@@ -221,21 +221,6 @@ int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
 	return ddb_mci_cmd_raw(mci, &cmd, 1, res, 1);
 }
 
-static void ddb_mci_print_info(struct mci *mci)
-{
-	struct ddb_link *link = mci->base->link;
-	const struct ddb_regmap *regmap = link->info->regmap;
-	struct mci_command cmd;
-	struct mci_result res;
-	
-	cmd.command = 0x0f;
-	if (ddb_mci_cmd_raw(mci, &cmd, 1, &res, 1) < 0)
-		return;
-	print_hex_dump(KERN_INFO, "", DUMP_PREFIX_OFFSET, 16, 1,
-		       link->dev->regs + regmap->mci_buf->base + MCI_COMMAND_SIZE,
-		       16, false);
-}
-
 int ddb_mci_get_snr(struct dvb_frontend *fe)
 {
 	struct mci *mci = fe->demodulator_priv;

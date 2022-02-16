@@ -315,6 +315,7 @@ static const struct ddb_regmap octopus_mod_2_map = {
 	.irq_version = 2,
 	.irq_base_odma = 64,
 	.irq_base_rate = 32,
+	.irq_base_mci = 10,
 	.output = &octopus_output,
 	.odma = &octopus_mod_2_odma,
 	.odma_buf = &octopus_mod_2_odma_buf,

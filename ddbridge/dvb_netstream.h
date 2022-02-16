@@ -36,7 +36,7 @@
 #include <linux/socket.h>
 #include <linux/in.h>
 #include <asm/uaccess.h>
-#include <linux/dvb/ns.h>
+#include "ns.h"
 
 #include <media/dvbdev.h>
 

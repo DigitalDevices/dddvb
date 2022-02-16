@@ -1566,7 +1566,7 @@ static int SetOperationMode(struct drxk_state *state, enum OperationMode oMode)
 			case OM_QAM_ITU_B:
 				status = -1;
 				break;
-			case OM_QAM_ITU_A: /* fallthrough */
+			case OM_QAM_ITU_A: 
 			case OM_QAM_ITU_C:
 				CHK_ERROR(MPEGTSStop(state));
 				CHK_ERROR(PowerDownQAM(state));
@@ -1589,7 +1589,7 @@ static int SetOperationMode(struct drxk_state *state, enum OperationMode oMode)
 			case OM_QAM_ITU_B:
 				status = -1;
 				break;
-			case OM_QAM_ITU_A:        /* fallthrough */
+			case OM_QAM_ITU_A:
 			case OM_QAM_ITU_C:
 				state->m_OperationMode = oMode;
 				CHK_ERROR(SetQAMStandard(state,oMode));
@@ -1765,7 +1765,7 @@ static int MPEGTSDtoSetup(struct drxk_state *state, enum OperationMode oMode)
 			fecOcRcnCtlRate = 0xC00000;
 			staticCLK = state->m_DVBTStaticCLK;
 			break;
-		case OM_QAM_ITU_A: /* fallthrough */
+		case OM_QAM_ITU_A:
 		case OM_QAM_ITU_C:
 			fecOcTmdMode = 0x0004;
 			fecOcRcnCtlRate = 0xD2B4EE; /* good for >63 Mb/s */
@@ -2804,12 +2804,12 @@ static int DVBTScCommand(struct drxk_state *state,
 	case OFDM_SC_RA_RAM_CMD_PROGRAM_PARAM:
 		status = Write16_0(state, OFDM_SC_RA_RAM_PARAM1__A, param1);
 		/* All commands using 1 parameters */
-		/* fall through */
+		fallthrough;
 	case OFDM_SC_RA_RAM_CMD_SET_ECHO_TIMING:
 	case OFDM_SC_RA_RAM_CMD_USER_IO:
 		status = Write16_0(state, OFDM_SC_RA_RAM_PARAM0__A, param0);
 		/* All commands using 0 parameters */
-		/* fall through */
+		fallthrough;
 	case OFDM_SC_RA_RAM_CMD_GET_OP_PARAM:
 	case OFDM_SC_RA_RAM_CMD_NULL:
 		/* Write command */
@@ -3218,7 +3218,7 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 		default:
 			operationMode |= OFDM_SC_RA_RAM_OP_AUTO_MODE__M;
 			/* try first guess DRX_FFTMODE_8K */
-			/* fall through */
+			fallthrough;
 		case TRANSMISSION_MODE_8K:
 			transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_MODE_8K;
 			break;
@@ -3237,7 +3237,7 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 		case GUARD_INTERVAL_AUTO:
 			operationMode |= OFDM_SC_RA_RAM_OP_AUTO_GUARD__M;
 			/* try first guess DRX_GUARD_1DIV4 */
-			/* fall through */
+			fallthrough;
 		case GUARD_INTERVAL_1_4:
 			transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_GUARD_4;
 			break;
@@ -3265,7 +3265,7 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 			/* try first guess SC_RA_RAM_OP_PARAM_HIER_NO */
 			//	transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_HIER_NO;
 			//break;
-			/* fall through */
+			fallthrough;
 		case 	HIERARCHY_1:
 			transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_HIER_A1;
 			break;
@@ -3288,7 +3288,7 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 		default:
 			operationMode |= OFDM_SC_RA_RAM_OP_AUTO_CONST__M;
 			/* try first guess DRX_CONSTELLATION_QAM64 */
-			/* fall through */
+			fallthrough;
 		case QAM_64:
 			transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_CONST_QAM64;
 			break;
@@ -3311,8 +3311,8 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 	     transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_PRIO_HI;
 	     WR16(devAddr, OFDM_EC_SB_PRIOR__A,   OFDM_EC_SB_PRIOR_HI));
 	     break;
-	  case DRX_PRIORITY_UNKNOWN : /* fall through */
-	  default:
+	  case DRX_PRIORITY_UNKNOWN:
+		default:
 	     return (DRX_STS_INVALID_ARG);
 	     break;
        }
@@ -3332,7 +3332,7 @@ static int SetDVBT (struct drxk_state *state,u16 IntermediateFreqkHz, s32 tunerF
 		default:
 			operationMode |= OFDM_SC_RA_RAM_OP_AUTO_RATE__M;
 			/* try first guess DRX_CODERATE_2DIV3 */
-			/* fall through */
+			fallthrough;
 		case FEC_2_3  :
 			transmissionParams |= OFDM_SC_RA_RAM_OP_PARAM_RATE_2_3;
 			break;

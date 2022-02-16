@@ -23,12 +23,15 @@ struct mxl5xx_cfg {
 
 extern struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 					  struct mxl5xx_cfg *cfg,
-					  u32 demod, u32 tuner);
+					  u32 demod, u32 tuner,
+					  int (**fn_set_input)(struct dvb_frontend *, int));
+
 #else
 
 static inline struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 						 struct mxl5xx_cfg *cfg,
-						 u32 demod, u32 tuner)
+						 u32 demod, u32 tuner,
+						 int (**fn_set_input)(struct dvb_frontend *, int))
 {
 	pr_warn("%s: driver disabled by Kconfig\n", __func__);
 	return NULL;

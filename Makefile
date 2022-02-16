@@ -6,8 +6,11 @@ MODDEFS := CONFIG_DVB_CORE=m CONFIG_DVB_DDBRIDGE=m CONFIG_DVB_DRXK=m CONFIG_DVB_
 
 KBUILD_EXTMOD = $(PWD)
 
-DDDVB_INC = "-I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/include/linux -I$(KBUILD_EXTMOD)/frontends"
-
+ifeq ($(KERNEL_DVB_CORE),y)
+DDDVB_INC = "--include=$(KBUILD_EXTMOD)/include/dd_compat.h -I$(KBUILD_EXTMOD)/frontends -I$(KBUILD_EXTMOD) -DKERNEL_DVB_CORE=y"
+else
+DDDVB_INC = "--include=$(KBUILD_EXTMOD)/include/dd_compat.h -I$(KBUILD_EXTMOD)/frontends -I$(KBUILD_EXTMOD)/include -I$(KBUILD_EXTMOD)/include/linux"
+endif
 
 all: 
 	$(MAKE) -C $(KDIR) KBUILD_EXTMOD=$(PWD) $(MODDEFS) modules NOSTDINC_FLAGS=$(DDDVB_INC)

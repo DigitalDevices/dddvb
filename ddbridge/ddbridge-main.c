@@ -309,7 +309,6 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
 					 id->subvendor, pdev->subsystem_device);
-	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
@@ -329,10 +328,6 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
-	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
-		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid,
-		 (dev->link[0].ids.hwid & 0xff0000) >> 16,
-		 dev->link[0].ids.hwid & 0xffff);
 	if ((dev->link[0].ids.hwid & 0xffffff) <
 	    dev->link[0].info->hw_min) {
 		u32 min = dev->link[0].info->hw_min;
@@ -359,16 +354,27 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	    && dev->link[0].info->version == 2) {
 		u32 lic = ddbreadl(dev, 0x1c) & 7;
 
+		if (dev->link[0].ids.revision == 1)
+			lic = ddbreadl(dev, 0x260) >> 24;
+
 		switch (lic) {
 		case 0:
+		case 4:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0000);
 			break;
 		case 1:
+		case 8:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0003);
 			break;
+		case 2:
+		case 24:
+			dev->link[0].info =
+				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0001);
+			break;
 		case 3:
+		case 16:
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0002);
 			break;
@@ -376,6 +382,12 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 			break;
 		}
 	}
+	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
+	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
+		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid,
+		 (dev->link[0].ids.hwid & 0xff0000) >> 16,
+		 dev->link[0].ids.hwid & 0xffff);
+
 	stat = ddb_irq_init(dev);
 	if (stat < 0)
 		goto fail0;
@@ -399,6 +411,12 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
+
+#ifndef PCI_DEVICE_SUB
+#define PCI_DEVICE_SUB(vend, dev, subvend, subdev) \
+	.vendor = (vend), .device = (dev), \
+		.subvendor = (subvend), .subdevice = (subdev)
+#endif
 
 #define DDB_DEVICE_ANY(_device) \
 	{ PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID) }

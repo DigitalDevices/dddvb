@@ -95,6 +95,70 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 /****************************************************************************/
 /****************************************************************************/
 
+/* copied from dvb-core/dvbdev.c because kernel version does not export it */
+
+int ddb_dvb_usercopy(struct file *file,
+		     unsigned int cmd, unsigned long arg,
+		     int (*func)(struct file *file,
+				 unsigned int cmd, void *arg))
+{
+	char    sbuf[128];
+	void    *mbuf = NULL;
+	void    *parg = NULL;
+	int     err  = -EINVAL;
+	
+	/*  Copy arguments into temp kernel buffer  */
+	switch (_IOC_DIR(cmd)) {
+	case _IOC_NONE:
+		/*
+		 * For this command, the pointer is actually an integer
+		 * argument.
+		 */
+		parg = (void *) arg;
+		break;
+	case _IOC_READ: /* some v4l ioctls are marked wrong ... */
+	case _IOC_WRITE:
+	case (_IOC_WRITE | _IOC_READ):
+		if (_IOC_SIZE(cmd) <= sizeof(sbuf)) {
+			parg = sbuf;
+		} else {
+			/* too big to allocate from stack */
+			mbuf = kmalloc(_IOC_SIZE(cmd), GFP_KERNEL);
+			if (NULL == mbuf)
+				return -ENOMEM;
+			parg = mbuf;
+		}
+
+		err = -EFAULT;
+		if (copy_from_user(parg, (void __user *)arg, _IOC_SIZE(cmd)))
+			goto out;
+		break;
+	}
+
+	/* call driver */
+	if ((err = func(file, cmd, parg)) == -ENOIOCTLCMD)
+		err = -ENOTTY;
+
+	if (err < 0)
+		goto out;
+
+	/*  Copy results into user buffer  */
+	switch (_IOC_DIR(cmd))
+	{
+	case _IOC_READ:
+	case (_IOC_WRITE | _IOC_READ):
+		if (copy_to_user((void __user *)arg, parg, _IOC_SIZE(cmd)))
+			err = -EFAULT;
+		break;
+	}
+
+out:
+	kfree(mbuf);
+	return err;
+}
+
+/****************************************************************************/
+
 struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data)
 {
@@ -336,7 +400,7 @@ static int ddb_buffers_alloc(struct ddb *dev)
 				if (dma_alloc(dev->pdev,
 					      port->input[0]->dma, 0) < 0)
 					return -1;
-			/* fallthrough */
+			fallthrough;
 		case DDB_PORT_MOD:
 			if (port->output->dma)
 				if (dma_alloc(dev->pdev,
@@ -457,10 +521,11 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 	*con2 = (nco << 16) | gap;
 }
 
-static void ddb_output_start_unlocked(struct ddb_output *output)
+static int ddb_output_start_unlocked(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 	u32 con = 0x11c, con2 = 0;
+	int err = 0;
 
 	if (output->dma) {
 		output->dma->cbuf = 0;
@@ -469,7 +534,7 @@ static void ddb_output_start_unlocked(struct ddb_output *output)
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class == DDB_PORT_MOD) {
-		ddbridge_mod_output_start(output);
+		err = ddbridge_mod_output_start(output);
 	} else {
 		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
 			con = (1UL << 13) | 0x14;
@@ -492,17 +557,21 @@ static void ddb_output_start_unlocked(struct ddb_output *output)
 		ddbwritel(dev, con | 1, TS_CONTROL(output));
 	if (output->dma)
 		output->dma->running = 1;
+	return err;
 }
 
-static void ddb_output_start(struct ddb_output *output)
+static int ddb_output_start(struct ddb_output *output)
 {
+	int err;
+
 	if (output->dma) {
 		spin_lock_irq(&output->dma->lock);
-		ddb_output_start_unlocked(output);
+		err = ddb_output_start_unlocked(output);
 		spin_unlock_irq(&output->dma->lock);
 	} else {
-		ddb_output_start_unlocked(output);
+		err = ddb_output_start_unlocked(output);
 	}
+	return err;
 }
 
 static void ddb_output_stop_unlocked(struct ddb_output *output)
@@ -934,7 +1003,7 @@ static int ts_open(struct inode *inode, struct file *file)
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY)
 		ddb_input_start(input);
 	else if ((file->f_flags & O_ACCMODE) == O_WRONLY)
-		ddb_output_start(output);
+		err = ddb_output_start(output);
 	return err;
 }
 
@@ -993,7 +1062,7 @@ static struct dvb_device dvbdev_ci = {
 static long mod_ioctl(struct file *file,
 		      unsigned int cmd, unsigned long arg)
 {
-	return dvb_usercopy(file, cmd, arg, ddbridge_mod_do_ioctl);
+	return ddb_dvb_usercopy(file, cmd, arg, ddbridge_mod_do_ioctl);
 }
 
 static const struct file_operations mod_fops = {
@@ -1446,35 +1515,35 @@ static void dvb_input_detach(struct ddb_input *input)
 	case 0x41:
 		if (dvb->fe2)
 			dvb_unregister_frontend(dvb->fe2);
-		/* fallthrough */
+		fallthrough;
 	case 0x40:
 		if (dvb->fe)
 			dvb_unregister_frontend(dvb->fe);
-		/* fallthrough */
+		fallthrough;
 	case 0x30:
 		dvb_frontend_detach(dvb->fe);
 		dvb->fe = NULL;
 		dvb->fe2 = NULL;
-		/* fallthrough */
+		fallthrough;
 	case 0x21:
 		if (input->port->dev->ns_num)
 			dvb_netstream_release(&dvb->dvbns);
-		/* fallthrough */
+		fallthrough;
 	case 0x20:
 		dvb_net_release(&dvb->dvbnet);
-		/* fallthrough */
+		fallthrough;
 	case 0x12:
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->hw_frontend);
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
 					      &dvb->mem_frontend);
-		/* fallthrough */
+		fallthrough;
 	case 0x11:
 		dvb_dmxdev_release(&dvb->dmxdev);
-		/* fallthrough */
+		fallthrough;
 	case 0x10:
 		dvb_dmx_release(&dvb->demux);
-		/* fallthrough */
+		fallthrough;
 	case 0x01:
 		break;
 	}
@@ -1715,7 +1784,7 @@ static int dvb_input_attach(struct ddb_input *input)
 			osc24 = 0;
 		else
 			osc24 = 1;
-		/* fallthrough */
+		fallthrough;
 	case DDB_TUNER_DVBCT2_SONY_P:
 	case DDB_TUNER_DVBC2T2_SONY_P:
 	case DDB_TUNER_ISDBT_SONY_P:
@@ -1732,7 +1801,7 @@ static int dvb_input_attach(struct ddb_input *input)
 		break;
 	case DDB_TUNER_DVBC2T2I_SONY:
 		osc24 = 1;
-		/* fallthrough */
+		fallthrough;
 	case DDB_TUNER_DVBCT2_SONY:
 	case DDB_TUNER_DVBC2T2_SONY:
 	case DDB_TUNER_ISDBT_SONY:
@@ -2011,14 +2080,14 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (port->nr == 1 && dev->link[l].info->type == DDB_OCTOPUS_CI &&
+	if (port->nr == 1 && link->info->type == DDB_OCTOPUS_CI &&
 	    link->info->i2c_mask == 1) {
 		port->name = "NO TAB";
 		port->class = DDB_PORT_NONE;
 		return;
 	}
 
-	if (dev->link[l].info->type == DDB_MOD) {
+	if (link->info->type == DDB_MOD) {
 		port->name = "MOD";
 		port->class = DDB_PORT_MOD;
 		return;
@@ -2034,9 +2103,8 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (link->info->type == DDB_OCTOPUS_MCI) {
-		if (port->nr >= link->info->mci_ports)
-			return;
+	if ((link->info->type == DDB_OCTOPUS_MCI) &&
+	    (port->nr < link->info->mci_ports)) {
 		port->name = "DUAL MCI";
 		port->type_name = "MCI";
 		port->class = DDB_PORT_TUNER;
@@ -2180,7 +2248,7 @@ static int ddb_port_attach(struct ddb_port *port)
 		ret = ddb_ci_attach(port, ci_bitrate);
 		if (ret < 0)
 			break;
-		/* fallthrough */
+		fallthrough;
 	case DDB_PORT_LOOP:
 		ret = dvb_register_device(port->dvb[0].adap,
 					  &port->dvb[0].dev,
@@ -2580,7 +2648,7 @@ static void ddb_ports_init(struct ddb *dev)
 		if (!rm)
 			continue;
 		ports = info->port_num;
-		if ((l == 0) && (dev->link[l].info->type == DDB_MOD) &&
+		if ((l == 0) && (info->type == DDB_MOD) &&
 		    (dev->link[0].ids.revision == 1)) {
 			ports = ddbreadl(dev, 0x260) >> 24;
 		}
@@ -2606,6 +2674,7 @@ static void ddb_ports_init(struct ddb *dev)
 				port->class = DDB_PORT_CI;
 				port->type = DDB_CI_EXTERNAL_XO2_B;
 				port->name = "DuoFlex CI_B";
+				port->type_name = "CI_XO2_B";
 				port->i2c = dev->port[p - 1].i2c;
 			}
 			dev_info(dev->dev, "Port %u: Link %u, Link Port %u (TAB %u): %s\n",
@@ -2627,15 +2696,16 @@ static void ddb_ports_init(struct ddb *dev)
 			}
 			if (port->class == DDB_PORT_NONE)
 				continue;
-
-			switch (dev->link[l].info->type) {
+			
+			switch (info->type) {
 			case DDB_OCTOPUS_CI:
 				if (i >= 2) {
 					ddb_input_init(port, 2 + i, 0, 2 + i);
 					ddb_input_init(port, 4 + i, 1, 4 + i);
 					ddb_output_init(port, i);
 					break;
-				} /* fallthrough */
+				}
+				fallthrough;
 			case DDB_OCTONET:
 			case DDB_OCTOPUS:
 			case DDB_OCTOPRO:
@@ -2965,7 +3035,7 @@ static int nsd_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 static long nsd_ioctl(struct file *file,
 		      unsigned int cmd, unsigned long arg)
 {
-	return dvb_usercopy(file, cmd, arg, nsd_do_ioctl);
+	return ddb_dvb_usercopy(file, cmd, arg, nsd_do_ioctl);
 }
 
 static const struct file_operations nsd_fops = {
@@ -3623,19 +3693,23 @@ static ssize_t snr_show(struct device *device,
 	struct ddb *dev = dev_get_drvdata(device);
 	char snr[32];
 	int num = attr->attr.name[3] - 0x30;
+	struct ddb_port *port = &dev->port[num];
+	struct i2c_adapter *i2c = &port->i2c->adap;
 
-	if (dev->port[num].type >= DDB_TUNER_XO2) {
-		if (i2c_read_regs(&dev->i2c[num].adap, 0x10, 0x10, snr, 16) < 0)
+	switch (port->type) {
+	case DDB_CI_EXTERNAL_XO2:
+	case DDB_TUNER_XO2 ... DDB_TUNER_DVBC2T2I_SONY:
+		if (i2c_read_regs(i2c, 0x10, 0x10, snr, 16) < 0)
 			return sprintf(buf, "NO SNR\n");
 		snr[16] = 0;
-	} else {
+		break;
+	default:
 		/* serial number at 0x100-0x11f */
-		if (i2c_read_regs16(&dev->i2c[num].adap,
-				    0x57, 0x100, snr, 32) < 0)
-			if (i2c_read_regs16(&dev->i2c[num].adap,
-					    0x50, 0x100, snr, 32) < 0)
+		if (i2c_read_regs16(i2c, 0x57, 0x100, snr, 32) < 0)
+			if (i2c_read_regs16(i2c, 0x50, 0x100, snr, 32) < 0)
 				return sprintf(buf, "NO SNR\n");
 		snr[31] = 0; /* in case it is not terminated on EEPROM */
+		break;
 	}
 	return sprintf(buf, "%s\n", snr);
 }
@@ -3646,15 +3720,17 @@ static ssize_t snr_store(struct device *device, struct device_attribute *attr,
 	struct ddb *dev = dev_get_drvdata(device);
 	int num = attr->attr.name[3] - 0x30;
 	u8 snr[34] = { 0x01, 0x00 };
+	struct ddb_port *port = &dev->port[num];
+	struct i2c_adapter *i2c = &port->i2c->adap;
 
 	return 0; /* NOE: remove completely? */
 	if (count > 31)
 		return -EINVAL;
-	if (dev->port[num].type >= DDB_TUNER_XO2)
+	if (port->type >= DDB_TUNER_XO2)
 		return -EINVAL;
 	memcpy(snr + 2, buf, count);
-	i2c_write(&dev->i2c[num].adap, 0x57, snr, 34);
-	i2c_write(&dev->i2c[num].adap, 0x50, snr, 34);
+	i2c_write(i2c, 0x57, snr, 34);
+	i2c_write(i2c, 0x50, snr, 34);
 	return count;
 }
 
@@ -4348,7 +4424,9 @@ static int ddb_init_boards(struct ddb *dev)
 		if (info->regmap->mci) {
 			if (link->info->type == DDB_OCTOPUS_MCI ||
 			    ((link->info->type == DDB_MOD) &&
-			     (link->ids.regmapid & 0xfff0)))
+			     (link->ids.regmapid & 0xfff0)) ||
+			    ((link->info->type == DDB_MOD) &&
+			     (link->ids.revision == 1)))
 				mci_init(link);
 		}
 	}
@@ -4445,7 +4523,7 @@ int ddb_exit_ddbridge(int stage, int error)
 	default:
 	case 2:
 		destroy_workqueue(ddb_wq);
-		/* fallthrough */
+		fallthrough;
 	case 1:
 		ddb_class_destroy();
 	}

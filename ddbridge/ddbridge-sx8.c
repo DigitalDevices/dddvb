@@ -23,7 +23,6 @@
 
 #include "ddbridge.h"
 #include "ddbridge-io.h"
-#include "ddbridge-i2c.h"
 #include "ddbridge-mci.h"
 
 static int default_mod = 3;
@@ -556,7 +555,10 @@ static int set_input(struct dvb_frontend *fe, int input)
 	mutex_lock(&state->lock);
 	stop_iq(fe);
 	stop(fe);
-	state->mci.tuner = p->input = input;
+	state->mci.tuner = input;
+#ifndef KERNEL_DVB_CORE
+	p->input = input;
+#endif
 	mutex_unlock(&state->lock);
 	return 0;
 }
@@ -582,7 +584,6 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 
 static struct dvb_frontend_ops sx8_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2 },
-	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.info = {
 		.name = "DVB-S/S2X",
 		.frequency_min_hz	= 950000000,
@@ -602,7 +603,10 @@ static struct dvb_frontend_ops sx8_ops = {
 	.tune                           = tune,
 	.release                        = release,
 	.read_status                    = read_status,
+#ifndef KERNEL_DVB_CORE
+	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.set_input                      = set_input,
+#endif
 	.set_lna                        = set_lna,
 	.sleep                          = sleep,
 };
@@ -612,8 +616,10 @@ static int init(struct mci *mci)
 	struct sx8 *state = (struct sx8 *) mci;
 
 	state->mci.demod = SX8_DEMOD_NONE;
+#ifndef KERNEL_DVB_CORE
 	mci->fe.ops.xbar[1] = mci->nr;
 	mci->fe.dtv_property_cache.input = mci->tuner;
+#endif
 	mutex_init(&state->lock);
 	return 0;
 }
@@ -625,7 +631,7 @@ static int base_init(struct mci_base *mci_base)
 	return 0;
 }
 
-struct mci_cfg ddb_max_sx8_cfg = {
+static struct mci_cfg ddb_max_sx8_cfg = {
 	.type = 0,
 	.fe_ops = &sx8_ops,
 	.base_size = sizeof(struct sx8_base),
@@ -633,3 +639,10 @@ struct mci_cfg ddb_max_sx8_cfg = {
 	.init = init,
 	.base_init = base_init,
 };
+
+struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
+				    int (**fn_set_input)(struct dvb_frontend *fe, int input))
+{
+	*fn_set_input = set_input;
+	return ddb_mci_attach(input, &ddb_max_sx8_cfg, nr, tuner);
+}
