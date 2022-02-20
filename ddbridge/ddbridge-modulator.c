@@ -634,7 +634,26 @@ static int mod_set_attenuator(struct ddb *dev, u32 Value)
 {
 	if (Value > 31)
 		return -EINVAL;
-	ddbwritel(dev, Value, RF_ATTENUATOR);
+	if (dev->link[0].ids.revision == 1) {
+		struct ddb_link *link = &dev->link[0];
+		struct mci_result res;
+		struct mci_command cmd = {
+			.mod_command = MOD_SETUP_OUTPUT,
+			.mod_channel = 0,
+			.mod_stream = 0,
+			.mod_setup_output = {
+				.connector = MOD_CONNECTOR_F,
+				.num_channels = 24,
+				.unit = MOD_UNIT_DBUV,
+				.channel_power = 9000 - Value * 100,
+			},
+		};
+		if (!link->mci_ok) {
+			return -EFAULT;
+		}
+		return ddb_mci_cmd_link(link, &cmd, &res);
+	} else
+		ddbwritel(dev, Value, RF_ATTENUATOR);
 	return 0;
 }
 
