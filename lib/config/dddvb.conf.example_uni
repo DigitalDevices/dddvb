@@ -1,0 +1,37 @@
+[CA]
+family=unix
+[scif]
+# SCIF Settings
+#   Manufacturer = nn : Index to selected manaufacturer (only used in config webpage)
+#   Unit         = nn : Index to selected unit (only used in config webpage)
+#   Type         = nn : Type of unit:  1: EN 50494, 2: TS 50607
+#   TunerN       = Slot,Frequency[,Pin]  Slot = 1..nn, Frequency = 950..2150, Pin = 0-255
+#                                        Slot = 0 (no SCIF)
+#                                        Slot = 1..8 for EN 50494, 1..32 for TS 50607
+Manufacturer=0
+Unit=8
+Type=2
+Tuner1=1,1210
+Tuner2=2,1420
+Tuner3=3,1680
+Tuner4=4,2040
+Tuner5=5,984
+Tuner6=6,1020
+Tuner7=7,1056
+Tuner8=8,1092
+Tuner9=9,1128
+Tuner10=10,1164
+Tuner11=11,1256
+Tuner12=12,1292
+Tuner13=13,1328
+Tuner14=14,1364
+Tuner15=15,1458
+Tuner16=16,1494
+Tuner17=17,1530
+Tuner18=18,1566
+Tuner19=19,1602
+Tuner20=20,1638
+Tuner21=21,1716
+Tuner22=22,1752
+Tuner23=23,1788
+Tuner24=24,1824

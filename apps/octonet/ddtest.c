@@ -405,6 +405,9 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SPANSION_S25FL132K: SectorSize = 4096; FlashSize = 0x400000; break;
         case SPANSION_S25FL164K: SectorSize = 4096; FlashSize = 0x800000; break;
 	case WINBOND_W25Q16JV: SectorSize = 4096; FlashSize = 0x200000; break;
+	case WINBOND_W25Q32JV: SectorSize = 4096; FlashSize = 0x400000; break;
+	case WINBOND_W25Q64JV: SectorSize = 4096; FlashSize = 0x800000; break;
+	case WINBOND_W25Q128JV: SectorSize = 4096; FlashSize = 0x1000000; break;
 	}
 	if (SectorSize == 0) 
 		return 0;
@@ -575,6 +578,9 @@ int FlashProg(int dev,int argc, char* argv[],uint32_t Flags)
         case SPANSION_S25FL132K: 
         case SPANSION_S25FL164K: 
 	case WINBOND_W25Q16JV:
+	case WINBOND_W25Q32JV:
+	case WINBOND_W25Q64JV:
+	case WINBOND_W25Q128JV:
 		err = FlashWritePageMode(dev,FlashOffset,Buffer,BufferSize,0x1C); break;
 	}
 	
@@ -1331,6 +1337,9 @@ int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 	
 	switch(Flash) {
 	case WINBOND_W25Q16JV:
+	case WINBOND_W25Q32JV:
+	case WINBOND_W25Q64JV:
+	case WINBOND_W25Q128JV:
 		read_winbd(dev, Id);
 		len = 8;
 		break;
