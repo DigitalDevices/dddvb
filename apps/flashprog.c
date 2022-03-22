@@ -275,6 +275,7 @@ int main(int argc, char **argv)
         case SPANSION_S25FL116K:
         case SPANSION_S25FL164K:
 	case WINBOND_W25Q16JV:
+	case WINBOND_W25Q32JV:
 		err = FlashWritePageMode(ddb,FlashOffset,buffer,BufferSize,0x1C);
 		break;            
 	}
