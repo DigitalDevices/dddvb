@@ -182,6 +182,15 @@ static int diseqc(int fd, int sat, int hor, int band)
 	return 0;
 }
 
+static int set_vol_tone(int fd, int hor, int band)
+{
+	if (ioctl(fd, FE_SET_TONE, band ? SEC_TONE_ON : SEC_TONE_OFF))
+		perror("FE_SET_TONE failed");
+	if (ioctl(fd, FE_SET_VOLTAGE, hor ? SEC_VOLTAGE_18 : SEC_VOLTAGE_13) == -1)
+		perror("FE_SET_VOLTAGE failed");
+	dbgprintf(DEBUG_DVB, "set_vol_tone hor=%u, band=%u\n", hor, band);
+}
+
 static int set_en50494(struct dddvb_fe *fe, uint32_t freq_khz, uint32_t sr, 
 		       int sat, int hor, int band, 
 		       uint32_t slot, uint32_t ubfreq,
@@ -337,9 +346,11 @@ static int tune_sat(struct dddvb_fe *fe)
 			dbgprintf(DEBUG_DVB, "input = %u\n", input);
 			set_property(fe->fd, DTV_INPUT, input);
 		}
-		diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
+		if (fe->scif_type == 3)
+			set_vol_tone(fe->fd, fe->param.param[PARAM_POL], hi);
+		else
+			diseqc(fe->fd, lnb, fe->param.param[PARAM_POL], hi);
 		set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, input);
-		//set_fe_input(fe, freq, fe->param.param[PARAM_SR], ds, DDDVB_UNDEF);
 	}
 }
 
