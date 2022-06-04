@@ -1787,7 +1787,8 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 		(struct dtv_properties __user *) parg;
 	int i, ret = 0;
 
-	if (dev->link[0].info->version >= 16 && cmd != FE_SET_PROPERTY)
+	if (dev->link[0].info->version >= 16 &&
+	    (cmd != FE_SET_PROPERTY && cmd != IOCTL_DDB_MCI_CMD))
 		return -EINVAL;
 	mutex_lock(&dev->ioctl_mutex);
 	switch (cmd) {
