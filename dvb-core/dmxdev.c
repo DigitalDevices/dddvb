@@ -480,6 +480,9 @@ static int dvb_dmxdev_ts_callback(const u8 *buffer1, size_t buffer1_len,
 {
 	struct dmxdev_filter *dmxdevfilter = feed->priv;
 	struct dvb_ringbuffer *buffer;
+#ifdef CONFIG_DVB_MMAP
+	struct dvb_vb2_ctx *ctx = NULL;
+#endif
 	int ret;
 
 	spin_lock(&dmxdevfilter->dev->lock);
