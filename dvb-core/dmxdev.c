@@ -479,6 +479,9 @@ static int dvb_dmxdev_ts_callback(const u8 *buffer1, size_t buffer1_len,
 				       u32 *buffer_flags)
 {
 	struct dmxdev_filter *dmxdevfilter = feed->priv;
+#ifdef CONFIG_DVB_MMAP
+	struct dvb_vb2_ctx *ctx;
+#endif
 	struct dvb_ringbuffer *buffer;
 	int ret;
 
