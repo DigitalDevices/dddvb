@@ -34,6 +34,9 @@ setmod3: setmod3.c
 modconfig: modconfig.c
 	$(CC) -o modconfig modconfig.c -I../include/
 
+clean:
+	rm cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq
+
 %: %.c
 	$(CC) $(CFLAGS) -I../ddbridge  -I../include/ $< -o $@
 
