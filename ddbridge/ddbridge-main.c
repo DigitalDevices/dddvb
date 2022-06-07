@@ -339,7 +339,7 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 		u32 min = dev->link[0].info->hw_min;
 
 		dev_err(dev->dev, "Update firmware to at least version %u.%u to ensure full functionality!\n",
-			 (min & 0xff0000) >> 16, min & 0xffff);
+			(min & 0xff0000) >> 16, min & 0xffff);
 	}
 
 	if (dev->link[0].info->ns_num) {
@@ -350,14 +350,14 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (dev->link[0].info->type != DDB_MOD)
 		ddbwritel(dev, 0, DMA_BASE_WRITE);
 
-	if (dev->link[0].info->type == DDB_MOD
-	    && dev->link[0].info->version <= 1) {
+	if (dev->link[0].info->type == DDB_MOD &&
+	    dev->link[0].info->version <= 1) {
 		if (ddbreadl(dev, 0x1c) == 4)
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0201, 0xdd01, 0x0004);
 	}
-	if (dev->link[0].info->type == DDB_MOD
-	    && dev->link[0].info->version == 2) {
+	if (dev->link[0].info->type == DDB_MOD &&
+	    dev->link[0].info->version == 2) {
 		u32 lic = ddbreadl(dev, 0x1c) & 7;
 
 		if (dev->link[0].ids.revision == 1)
@@ -458,7 +458,6 @@ static const struct pci_device_id ddb_id_table[] __devinitconst = {
 };
 MODULE_DEVICE_TABLE(pci, ddb_id_table);
 
-
 static pci_ers_result_t ddb_pci_slot_reset(struct pci_dev *dev)
 {
 	pr_info("pci_slot_reset\n");
@@ -497,7 +496,6 @@ static const struct pci_error_handlers ddb_error = {
 	.slot_reset = ddb_pci_slot_reset,
 	.resume = ddb_pci_resume,
 };
-
 
 static struct pci_driver ddb_pci_driver = {
 	.name        = "ddbridge",
