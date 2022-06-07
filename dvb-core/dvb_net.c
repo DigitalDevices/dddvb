@@ -1282,8 +1282,11 @@ static int dvb_net_set_mac (struct net_device *dev, void *p)
 	struct dvb_net_priv *priv = netdev_priv(dev);
 	struct sockaddr *addr=p;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
 	memcpy(dev->dev_addr, addr->sa_data, dev->addr_len);
-
+#else
+	eth_hw_addr_set(dev, addr->sa_data);
+#endif
 	if (netif_running(dev))
 		schedule_work(&priv->restart_net_feed_wq);
 
@@ -1381,8 +1384,11 @@ static int dvb_net_add_if(struct dvb_net *dvbnet, u16 pid, u8 feedtype)
 			 dvbnet->dvbdev->adapter->num, if_num);
 
 	net->addr_len = 6;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
 	memcpy(net->dev_addr, dvbnet->dvbdev->adapter->proposed_mac, 6);
-
+#else
+	eth_hw_addr_set(net, dvbnet->dvbdev->adapter->proposed_mac);
+#endif
 	dvbnet->device[if_num] = net;
 
 	priv = netdev_priv(net);
