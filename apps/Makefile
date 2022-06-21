@@ -1,4 +1,4 @@
-TARGETS = cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq modtest
+TARGETS = cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq modtest test.ts
 
 all: $(TARGETS) 
 
@@ -10,7 +10,7 @@ modtest: modtest.c
 
 test.ts:
 ifndef FFMPEG
-	$(error "ffmpeg is not available please install to create test stream")
+	$(error "ffmpeg is not available please install to create test.ts")
 endif
 	ffmpeg -f lavfi -i testsrc=duration=10:size=1280x720:rate=30  \
 	-f lavfi -i sine=f=440:b=4  -shortest   -metadata \
@@ -42,7 +42,7 @@ modconfig: modconfig.c
 
 
 clean:
-	for f in $(TARGETS) *.o *~ test.ts; do \
+	for f in $(TARGETS) *.o *~ ; do \
 		if [ -e "$$f" ]; then \
 			rm "$$f" || exit 1; \
 		fi \
