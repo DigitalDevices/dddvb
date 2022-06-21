@@ -279,7 +279,7 @@ int mci_cmd(int dev, struct mci_command *cmd)
 	//dump((uint8_t *) &msg.cmd, sizeof(msg.cmd));
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
-		dprintf(2, "mci_cmd error %d\n", errno);
+	    dprintf(2, "mci_cmd error %d (%s)\n", errno, strerror(errno));
 		return ret;
 	}
 	status = msg.res.status;
@@ -486,7 +486,7 @@ int main(int argc, char*argv[])
 			{"help", no_argument, 0, 'h'},
 			{0, 0, 0, 0}
 		};
-								c = getopt_long(argc, argv, "d:c:",
+		c = getopt_long(argc, argv, "d:c:",
 				long_options, &option_index);
 		if (c == -1)
 			break;

@@ -1,4 +1,20 @@
-all: cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq
+TARGETS = cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq modtest
+
+all: $(TARGETS) 
+
+CFLAGS =  -g -Wall -Wno-unused  -Wno-format
+FFMPEG := $(shell command -v ffmpeg 2> /dev/null)
+
+modtest: modtest.c
+	$(CC) -o modtest modtest.c -I../include/ -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE
+
+test.ts:
+ifndef FFMPEG
+	$(error "ffmpeg is not available please install to create test stream")
+endif
+	ffmpeg -f lavfi -i testsrc=duration=10:size=1280x720:rate=30  \
+	-f lavfi -i sine=f=440:b=4  -shortest   -metadata \
+	service_provider="DD"      -metadata service_name="Test" test.ts
 
 cit: cit.c
 	$(CC) -o cit cit.c -lpthread
@@ -24,3 +40,10 @@ modconfig: modconfig.c
 %.o: %.c
 	$(CC) $(CFLAGS) -I../ddbridge -o $@ $<
 
+
+clean:
+	for f in $(TARGETS) *.o *~ test.ts; do \
+		if [ -e "$$f" ]; then \
+			rm "$$f" || exit 1; \
+		fi \
+	done
