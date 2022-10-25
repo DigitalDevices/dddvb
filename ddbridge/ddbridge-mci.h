@@ -101,6 +101,8 @@
 
 #define MCI_STATUS_OK                 (0x00)
 #define MCI_STATUS_UNSUPPORTED        (0x80)
+#define MCI_STATUS_BUSY               (0xFA)
+#define MCI_STATUS_HARDWARE_ERROR     (0xFB)
 #define MCI_STATUS_INVALID_PARAMETER  (0xFC)
 #define MCI_STATUS_RETRY              (0xFD)
 #define MCI_STATUS_NOT_READY          (0xFE)
