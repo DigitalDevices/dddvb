@@ -370,7 +370,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 			if (!dma->vbuf[i])
 				return -ENOMEM;
 		}
-		if (((u64)dma->vbuf[i] & 0xfff))
+		if (((uintptr_t) dma->vbuf[i] & 0xfff))
 			dev_err(&pdev->dev, "DMA memory at %px not aligned!\n", dma->vbuf[i]);
 	}
 	return 0;
