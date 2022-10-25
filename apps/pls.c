@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 	if (gold != 0xffffffff) {
 		if (gold < 0x3ffff) {
 			root = gold2root(gold);
-			printf("gold = %llu (0x%05x)   root = %llu (0x%05x)\n",
+			printf("gold = %u (0x%05x)   root = %u (0x%05x)\n",
 			       gold, gold, root, root);
 		} else
 			printf("Invalid gold code specified.\n");
