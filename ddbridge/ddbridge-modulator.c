@@ -1909,6 +1909,7 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 	return ret;
 }
 
+#if 0
 static int mod_init_2_1(struct ddb *dev, u32 Frequency)
 {
 	int i, streams = dev->link[0].info->port_num;
@@ -1920,6 +1921,7 @@ static int mod_init_2_1(struct ddb *dev, u32 Frequency)
 	}
 	return 0;
 }
+#endif
 
 static int mod_init_2(struct ddb *dev, u32 Frequency)
 {
