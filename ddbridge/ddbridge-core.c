@@ -370,7 +370,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 			if (!dma->vbuf[i])
 				return -ENOMEM;
 		}
-		if (((u64)dma->vbuf[i] & 0xfff))
+		if (((uintptr_t) dma->vbuf[i] & 0xfff))
 			dev_err(&pdev->dev, "DMA memory at %px not aligned!\n", dma->vbuf[i]);
 	}
 	return 0;
@@ -534,7 +534,9 @@ static int ddb_output_start_unlocked(struct ddb_output *output)
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
 	}
 	if (output->port->class == DDB_PORT_MOD) {
+#ifndef CONFIG_MACH_OCTONET
 		err = ddbridge_mod_output_start(output);
+#endif
 	} else {
 		if (output->port->input[0]->port->class == DDB_PORT_LOOP)
 			con = (1UL << 13) | 0x14;
@@ -578,9 +580,11 @@ static void ddb_output_stop_unlocked(struct ddb_output *output)
 {
 	struct ddb *dev = output->port->dev;
 
+#ifndef CONFIG_MACH_OCTONET
 	if (output->port->class == DDB_PORT_MOD)
 		ddbridge_mod_output_stop(output);
 	else
+#endif
 		ddbwritel(dev, 0, TS_CONTROL(output));
 	if (output->dma) {
 		ddbwritel(dev, 0, DMA_BUFFER_CONTROL(output->dma));
@@ -1062,8 +1066,12 @@ static struct dvb_device dvbdev_ci = {
 static long mod_ioctl(struct file *file,
 		      unsigned int cmd, unsigned long arg)
 {
+#ifndef CONFIG_MACH_OCTONET
 	return ddb_dvb_usercopy(file, cmd, arg, ddbridge_mod_do_ioctl);
-}
+#else
+	return 0;
+#endif
+	}
 
 static const struct file_operations mod_fops = {
 	.owner   = THIS_MODULE,
@@ -1228,6 +1236,7 @@ static int demod_attach_stv0367dd(struct ddb_input *input)
 	return 0;
 }
 
+#ifdef CONFIG_DVB_DRXK
 static int tuner_attach_tda18271(struct ddb_input *input)
 {
 	struct i2c_adapter *i2c = &input->port->i2c->adap;
@@ -1246,6 +1255,7 @@ static int tuner_attach_tda18271(struct ddb_input *input)
 	}
 	return 0;
 }
+#endif
 
 static int tuner_attach_tda18212dd(struct ddb_input *input)
 {
@@ -1530,7 +1540,9 @@ static void dvb_input_detach(struct ddb_input *input)
 			dvb_netstream_release(&dvb->dvbns);
 		fallthrough;
 	case 0x20:
+#ifdef CONFIG_DVB_NET
 		dvb_net_release(&dvb->dvbnet);
+#endif
 		fallthrough;
 	case 0x12:
 		dvbdemux->dmx.remove_frontend(&dvbdemux->dmx,
@@ -1709,9 +1721,11 @@ static int dvb_input_attach(struct ddb_input *input)
 		return ret;
 	dvb->attached = 0x12;
 
+#ifdef CONFIG_DVB_NET
 	ret = dvb_net_init(adap, &dvb->dvbnet, dvb->dmxdev.demux);
 	if (ret < 0)
 		return ret;
+#endif
 	dvb->attached = 0x20;
 
 	if (input->port->dev->ns_num) {
@@ -2720,10 +2734,12 @@ static void ddb_ports_init(struct ddb *dev)
 				ddb_input_init(port, 2 * i + 1, 1, 2 * p + 1);
 				break;
 			case DDB_MOD:
+#ifndef CONFIG_MACH_OCTONET
 				ddb_output_init(port, i);
 				ddb_irq_set(dev, 0, i + rm->irq_base_rate,
 					    &ddbridge_mod_rate_handler,
 					    &dev->output[i]);
+#endif
 				break;
 			default:
 				break;
@@ -4455,8 +4471,10 @@ int ddb_init(struct ddb *dev)
 	if (ddb_i2c_init(dev) < 0)
 		goto fail;
 	ddb_ports_init(dev);
+#ifndef CONFIG_MACH_OCTONET
 	if (dev->link[0].info->type == DDB_MOD)
 		ddbridge_mod_init(dev);
+#endif
 	if (ddb_buffers_alloc(dev) < 0) {
 		dev_info(dev->dev,
 			 "Could not allocate buffer memory\n");

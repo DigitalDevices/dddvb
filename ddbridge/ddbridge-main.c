@@ -84,7 +84,7 @@ int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 /****************************************************************************/
 /****************************************************************************/
 
-static void __devexit ddb_irq_disable(struct ddb *dev)
+static void ddb_irq_disable(struct ddb *dev)
 {
 	if (dev->link[0].info->regmap->irq_version == 2) {
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
@@ -114,7 +114,7 @@ static void __devexit ddb_msi_exit(struct ddb *dev)
 #endif
 }
 
-static void __devexit ddb_irq_exit(struct ddb *dev)
+static void ddb_irq_exit(struct ddb *dev)
 {
 	ddb_irq_disable(dev);
 	if (dev->msi == 2)
