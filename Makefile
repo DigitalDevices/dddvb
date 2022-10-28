@@ -30,7 +30,7 @@ dep:
 	DIR=`pwd`; (cd $(TOPDIR); make KBUILD_EXTMOD=$$DIR dep)
 
 install: all
-	$(MAKE) -C $(KDIR) KBUILD_EXTMOD=$(PWD) INSTALL_MOD_PATH=$(MDIR) modules_install
+	$(MAKE) -C $(KDIR) KBUILD_EXTMOD=$(PWD) modules_install
 	depmod $(kernelver)
 
 clean:
