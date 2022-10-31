@@ -570,6 +570,17 @@ static const struct ddb_info ddb_mod_fsm_4 = {
 	.lostlock_irq = 9,
 };
 
+static const struct ddb_info ddb_mod_fsm = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVB-C FSM",
+	.version  = 2,
+	.regmap   = &octopus_mod_2_map,
+	.port_num = 0,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+	.lostlock_irq = 9,
+};
+
 static const struct ddb_info ddb_sdr_atv = {
 	.type     = DDB_MOD,
 	.name     = "Digital Devices SDR ATV",
@@ -873,6 +884,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0201, 0x0002, ddb_mod),
 	DDB_DEVID(0x0201, 0x0004, ddb_mod_4),  /* dummy entry ! */
 	DDB_DEVID(0x0203, 0x0001, ddb_mod),
+	DDB_DEVID(0x0210, 0x0004, ddb_mod_fsm), /* dummy entry ! */
 	DDB_DEVID(0x0210, 0x0000, ddb_mod_fsm_4), /* dummy entry ! */
 	DDB_DEVID(0x0210, 0x0001, ddb_mod_fsm_24),
 	DDB_DEVID(0x0210, 0x0002, ddb_mod_fsm_16),

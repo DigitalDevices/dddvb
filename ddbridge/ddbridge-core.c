@@ -2662,10 +2662,6 @@ static void ddb_ports_init(struct ddb *dev)
 		if (!rm)
 			continue;
 		ports = info->port_num;
-		if ((l == 0) && (info->type == DDB_MOD) &&
-		    (dev->link[0].ids.revision == 1)) {
-			ports = ddbreadl(dev, 0x260) >> 24;
-		}
 		for (i = 0; i < ports; i++, p++) {
 			port = &dev->port[p];
 			port->dev = dev;
@@ -4444,6 +4440,41 @@ static int ddb_init_boards(struct ddb *dev)
 			    ((link->info->type == DDB_MOD) &&
 			     (link->ids.revision == 1)))
 				mci_init(link);
+		}
+		if (l)
+			continue;
+		if (dev->link[0].info->type == DDB_MOD &&
+		    dev->link[0].info->version == 2) {
+			u32 lic = ddbreadl(dev, 0x1c) & 7;
+
+			if (dev->link[0].ids.revision == 1)
+				lic = ddbreadl(dev, 0x260) >> 24;
+
+			switch (lic) {
+			case 0:
+			case 4:
+				dev->link[0].info =
+					get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0000);
+				break;
+			case 1:
+			case 8:
+				dev->link[0].info =
+					get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0003);
+				break;
+			case 2:
+			case 24:
+				dev->link[0].info =
+					get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0001);
+				break;
+			case 3:
+			case 16:
+				dev->link[0].info =
+					get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0002);
+				break;
+			default:
+				break;
+			}
+			dev_info(dev->dev, "Modulator channels: %u\n", dev->link[0].info->port_num);
 		}
 	}
 	return 0;
