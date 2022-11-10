@@ -1,4 +1,4 @@
-TARGETS = cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq modtest test.ts
+TARGETS = cit citin flashprog modt ddtest setmod ddflash setmod2 pls setmod3 modconfig ddinfo getiq modtest
 
 all: $(TARGETS) 
 
