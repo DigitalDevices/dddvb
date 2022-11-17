@@ -303,6 +303,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 			mci->signal_info.dvbs2_signal_info.pls_code;
 		p->frequency =
 			mci->signal_info.dvbs2_signal_info.frequency / 1000;
+		p->symbol_rate =
+			mci->signal_info.dvbs2_signal_info.symbol_rate;
 		p->delivery_system =
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
