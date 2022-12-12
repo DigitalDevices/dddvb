@@ -356,10 +356,14 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0201, 0xdd01, 0x0004);
 	}
+
 	if (dev->link[0].info->type == DDB_MOD &&
-	    dev->link[0].info->version == 2)
-		dev->link[0].info =
-			get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0004);
+	    dev->link[0].info->version == 2) {
+		if (dev->link[0].ids.revision == 1)
+			dev->link[0].info = get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0004);
+		else if ((ddbreadl(dev, 0x1c) & 7) != 7)
+			dev->link[0].info = get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0004);
+	}
 
 	dev_info(dev->dev, "%s\n", dev->link[0].info->name);
 	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
