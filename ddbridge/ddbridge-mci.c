@@ -134,6 +134,8 @@ int ddb_mci_cmd_link(struct ddb_link *link,
 	struct mci_result res;
 	int stat;
 
+	if (!link->mci_ok)
+		return -EFAULT;
 	if (!result)
 		result = &res;
 	mutex_lock(&link->mci_lock);
