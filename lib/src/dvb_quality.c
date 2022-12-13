@@ -329,7 +329,7 @@ static void calc_lq(struct dddvb_fe *fe)
 {
 	struct dtv_fe_stats st;
 	int64_t str, snr;
-	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0, quality = 0, freq;
+	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0, quality = 0, freq, rate;
 	
 	get_property(fe->fd, DTV_TRANSMISSION_MODE, &fe->pls_code);
 	dbgprintf(DEBUG_DVB, "fe%d: pls=0x%02x\n", fe->nr, fe->pls_code);
@@ -362,15 +362,15 @@ static void calc_lq(struct dddvb_fe *fe)
 	dbgprintf(DEBUG_DVB, "fe%d: snr=%lld ber=%llu/%llu\n",
 		  fe->nr, snr, ber_num, ber_den);
 	dbgprintf(DEBUG_DVB, "fe%d: fec=%u mod=%u\n", fe->nr, fec, mod);
+	get_property(fe->fd, DTV_FREQUENCY, &freq);
+	dbgprintf(DEBUG_DVB, "fe%d: actual frequency=%u\n", fe->nr, freq);
+	get_property(fe->fd, DTV_SYMBOL_RATE, &rate);
+	dbgprintf(DEBUG_DVB, "fe%d: actual symbol rate=%u\n", fe->nr, rate);
 	switch (fe->n_param.param[PARAM_MSYS]) {
 	case SYS_DVBS:
-		get_property(fe->fd, DTV_FREQUENCY, &freq);
-		dbgprintf(DEBUG_DVB, "fe%d: actual frequency=%u\n", fe->nr, freq);
 		quality = dvbsq(snr, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBS2:
-		get_property(fe->fd, DTV_FREQUENCY, &freq);
-		dbgprintf(DEBUG_DVB, "fe%d: actual frequency=%u\n", fe->nr, freq);
 		quality = dvbs2q(snr, fec, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBC_ANNEX_A:
