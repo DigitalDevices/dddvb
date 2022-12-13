@@ -134,6 +134,8 @@ int ddb_mci_cmd_link(struct ddb_link *link,
 	struct mci_result res;
 	int stat;
 
+	if (!link->mci_ok)
+		return -EFAULT;
 	if (!result)
 		result = &res;
 	mutex_lock(&link->mci_lock);
@@ -294,6 +296,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 
 	p->frequency =
 		mci->signal_info.dvbs2_signal_info.frequency;
+	p->symbol_rate =
+		mci->signal_info.dvbs2_signal_info.symbol_rate;
 	switch (p->delivery_system) {
 	default:
 	case SYS_DVBS:
@@ -303,8 +307,6 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 			mci->signal_info.dvbs2_signal_info.pls_code;
 		p->frequency =
 			mci->signal_info.dvbs2_signal_info.frequency / 1000;
-		p->symbol_rate =
-			mci->signal_info.dvbs2_signal_info.symbol_rate;
 		p->delivery_system =
 			(mci->signal_info.dvbs2_signal_info.standard == 2)  ?
 			SYS_DVBS2 : SYS_DVBS;
@@ -340,6 +342,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 		break;
 	}
 	case SYS_DVBC_ANNEX_A:
+		p->modulation =
+			mci->signal_info.dvbc_signal_info.constellation + 1;
 		break;
 	case SYS_DVBT:
 		break;

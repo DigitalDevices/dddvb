@@ -626,12 +626,14 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 		input->dma->running = 0;
 		if (input->dma->stall_count)
 			dev_warn(input->port->dev->dev,
-				 "DMA stalled %u times!\n",
+				 "l%ui%u: DMA stalled %u times!\n",
+				 input->port->lnr, input->nr,
 				 input->dma->stall_count);
 		update_loss(input->dma);
 		if (input->dma->packet_loss > 1)
 			dev_warn(input->port->dev->dev,
-				 "%u packets lost due to low DMA performance!\n",
+				 "l%ui%u: %u packets lost due to low DMA performance!\n",
+				 input->port->lnr, input->nr,
 				 input->dma->packet_loss);
 	}
 }
@@ -1122,13 +1124,19 @@ static void dummy_release(struct dvb_frontend *fe)
 	kfree(fe);
 }
 
+static enum dvbfe_algo dummy_algo(struct dvb_frontend *fe)
+{
+	return DVBFE_ALGO_HW;
+}
+
 static struct dvb_frontend_ops dummy_ops = {
-	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBS, SYS_DVBS2 },
+	.delsys = { SYS_DVBC_ANNEX_A },
 	.info = {
-		.name = "DUMMY DVB-C/C2 DVB-T/T2",
-		.frequency_stepsize_hz = 166667,	/* DVB-T only */
-		.frequency_min_hz = 47000000,	/* DVB-T: 47125000 */
-		.frequency_max_hz = 865000000,	/* DVB-C: 862000000 */
+		.name = "DUMMY DVB-C",
+		.frequency_stepsize_hz = 0,
+		.frequency_tolerance_hz	= 0,
+		.frequency_min_hz = 47000000,
+		.frequency_max_hz = 865000000,
 		.symbol_rate_min = 870000,
 		.symbol_rate_max = 11700000,
 		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
@@ -1141,6 +1149,7 @@ static struct dvb_frontend_ops dummy_ops = {
 		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
 		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
 	},
+	.get_frontend_algo = dummy_algo,
 	.release = dummy_release,
 	.read_status = dummy_read_status,
 };
