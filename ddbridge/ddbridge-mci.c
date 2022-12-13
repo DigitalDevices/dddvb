@@ -342,6 +342,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 		break;
 	}
 	case SYS_DVBC_ANNEX_A:
+		p->modulation =
+			mci->signal_info.dvbc_signal_info.constellation + 1;
 		break;
 	case SYS_DVBT:
 		break;
