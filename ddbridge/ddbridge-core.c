@@ -626,12 +626,14 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 		input->dma->running = 0;
 		if (input->dma->stall_count)
 			dev_warn(input->port->dev->dev,
-				 "DMA stalled %u times!\n",
+				 "l%ui%u: DMA stalled %u times!\n",
+				 input->port->lnr, input->nr,
 				 input->dma->stall_count);
 		update_loss(input->dma);
 		if (input->dma->packet_loss > 1)
 			dev_warn(input->port->dev->dev,
-				 "%u packets lost due to low DMA performance!\n",
+				 "l%ui%u: %u packets lost due to low DMA performance!\n",
+				 input->port->lnr, input->nr,
 				 input->dma->packet_loss);
 	}
 }
