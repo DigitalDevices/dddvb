@@ -798,6 +798,9 @@ static int dddvb_fe_init(struct dddvb *dd, int a, int f, int fd)
 	int r;
 	uint32_t i, ds;
 
+	if (dd->dvbfe_num >= DDDVB_MAX_DVB_FE)
+		return -1;
+
 	fe = &dd->dvbfe[dd->dvbfe_num];
 
 	r = snprintf(fe->name, sizeof(fe->name), "/dev/dvb/adapter%d/frontend%d", a, f);
