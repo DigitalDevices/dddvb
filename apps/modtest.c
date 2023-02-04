@@ -1156,12 +1156,12 @@ static void usage(char *progname)
 {
     printf ("usage: %s [options] <input files>\n\n",progname);
     printf ("options:\n");
-    printf ("  --adapter <n>, -a <n>  :  adapter number <n> of modulator card\n");
-    printf ("  --mods <n>,    -m <n>  :  number <n> of modulators to use\n");
-    printf ("  --file,        -i      :  input filename(default test.ts)\n");
-    printf ("  --frequency,   -f      :   start frequency in MHz( default DVB_C 114MHz, DVB-T 474MHz)\n"); 
-    printf ("  --dvbt,        -t      :  modulator is  DVB-T\n");
-    printf ("  --NIT,         -n      :  write a minimal NIT for fatser scan\n");
+    printf ("  --adapter <n>, -a <n>  :  adapter number <n> of modulator card (defaults to first found)\n");
+    printf ("  --mods <n>,    -m <n>  :  number <n> of modulators to use (default all)\n");
+    printf ("  --file,        -i      :  input filename (default test.ts)\n");
+    printf ("  --frequency,   -f      :  start frequency in MHz (default DVB_C 114MHz, DVB-T 474MHz)\n"); 
+    printf ("  --dvbt,        -t      :  modulator is DVB-T\n");
+    printf ("  --NIT,         -n      :  write a minimal NIT for faster scan\n");
     printf ("  --help,        -h      :  print help message\n");
     printf ("\n");
     printf ("\n");
