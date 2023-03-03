@@ -616,7 +616,7 @@ static const struct ddb_info ddb_sdr_dvbt = {
 	.name     = "Digital Devices DVBT",
 	.version  = 18,
 	.regmap   = &octopus_sdr_map,
-	.port_num = 16,
+	.port_num = 14,
 	.temp_num = 1,
 	.tempmon_irq = 8,
 };
