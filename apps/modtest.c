@@ -1029,8 +1029,8 @@ void set_dvbt_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
 	wd->tp[i].code_rate = 4;
 	wd->tp[i].trans_mode = MOD_STANDARD_DVBT_8;
 	
- 	device = malloc(sizeof(char)*25);
-	snprintf(device,24,"/dev/dvb/adapter%d/mod%d",adapt,i);
+ 	device = malloc(sizeof(char)*40);
+	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,i);
 	fd = open(device, O_RDWR);
 	if( fd < 0 )
 	{
@@ -1109,8 +1109,8 @@ void set_dvbc_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
 	wd->tp[i].code_rate = 0;
 	wd->tp[i].trans_mode = 0;
 	
-	device = malloc(sizeof(char)*25);
-	snprintf(device,24,"/dev/dvb/adapter%d/mod%d",adapt,i);
+	device = malloc(sizeof(char)*40);
+	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,i);
 	fd = open(device, O_RDWR);
 	if( fd < 0 )
 	{
@@ -1156,19 +1156,20 @@ static void usage(char *progname)
 {
     printf ("usage: %s [options] <input files>\n\n",progname);
     printf ("options:\n");
-    printf ("  --adapter,     -a    :  adapter number of modulator card\n");
-    printf ("  --file,        -i    :  input filename(default test.ts)\n");
-    printf ("  --frequency,   -f    :  start frequency in MHz( default DVB_C 114MHz, DVB-T 474MHz)\n");
-    printf ("  --dvbt,        -t    :  modulator is  DVB-T\n");
-    printf ("  --NIT,         -n    :  write a minimal NIT for fatser scan\n");
-    printf ("  --help,        -h    :  print help message\n");
+    printf ("  --adapter <n>, -a <n>  :  adapter number <n> of modulator card (defaults to first found)\n");
+    printf ("  --mods <n>,    -m <n>  :  number <n> of modulators to use (default all)\n");
+    printf ("  --file,        -i      :  input filename (default test.ts)\n");
+    printf ("  --frequency,   -f      :  start frequency in MHz (default DVB_C 114MHz, DVB-T 474MHz)\n"); 
+    printf ("  --dvbt,        -t      :  modulator is DVB-T\n");
+    printf ("  --NIT,         -n      :  write a minimal NIT for faster scan\n");
+    printf ("  --help,        -h      :  print help message\n");
     printf ("\n");
     printf ("\n");
     exit(1);
 }
 
 
-static int parse_cl(int argc, char * const argv[], char **filename)
+static int parse_cl(int argc, char * const argv[], char **filename, int *chans)
 {
     int c;
     int fset = 0;
@@ -1184,12 +1185,13 @@ static int parse_cl(int argc, char * const argv[], char **filename)
 	    {"dvbt", no_argument , NULL, 't'},
 	    {"NIT", no_argument , NULL, 'n'},
 	    {"adapter", required_argument , NULL, 'a'},
+	    {"mods", required_argument , NULL, 'm'},
 	    {"file", required_argument , NULL, 'i'},
 	    {"frequency", required_argument , NULL, 'f'},
 	    {NULL, 0, NULL, 0}
 	};
 
-	c = getopt_long (argc, argv, "ha:i:f:nt",long_options, 
+	c = getopt_long (argc, argv, "ha:i:f:ntm:",long_options, 
 			 &option_index);
 	
 	if (c == -1)
@@ -1198,6 +1200,10 @@ static int parse_cl(int argc, char * const argv[], char **filename)
 	switch (c){
 	case 'a':
 	    adapt = (int)strtol(optarg,(char **)NULL, 0);
+	    break;
+
+	case 'm':
+	    *chans = (int)strtol(optarg,(char **)NULL, 0);
 	    break;
 
 	case 'f':
@@ -1248,9 +1254,10 @@ int main(int argc, char **argv)
     write_data wd;
     int fd_out;
     int fd_in;
+    int chans = 0;
 
     printf("%s \n\n", progn);
-    adapt = parse_cl(argc, argv, &filename);
+    adapt = parse_cl(argc, argv, &filename, &chans);
     if (check_dvb(&ddevices)<0){
 	fprintf(stderr,"No DVB devices found\n");
 	exit(1);
@@ -1290,7 +1297,8 @@ int main(int argc, char **argv)
 	exit(1);
     }
     
-    int chans = ddevices.ndevs[adapt];
+    if (chans<1 || chans >ddevices.ndevs[adapt] )
+	chans = ddevices.ndevs[adapt];
 
     if (dvbt){
 	set_dvbt_mods(adapt, chans, start_freq, &wd);
@@ -1299,9 +1307,9 @@ int main(int argc, char **argv)
     }
  
     fprintf(stderr,"Reading from %s\n", filename);
-    device = malloc(sizeof(char)*25);
+    device = malloc(sizeof(char)*40);
     for (int m= 0; m < chans; m++){
-	snprintf(device,24,"/dev/dvb/adapter%d/mod%d",adapt,m);
+	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,m);
 	fd_out = open(device, O_WRONLY);
 	wd.fd_out[m] = fd_out;
 	wd.fd_in = fd_in;
