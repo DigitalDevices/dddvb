@@ -11,3 +11,4 @@ dvb-core-objs := dvbdev.o dmxdev.o dvb_demux.o dvb_filter.o 	\
 obj-$(CONFIG_DVB_CORE) += dvb-core.o
 
 ccflags-y += -Idrivers/media/dvb-core/
+ccflags-y += --include=dd_compat.h

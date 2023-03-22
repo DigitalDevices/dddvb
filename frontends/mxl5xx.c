@@ -786,7 +786,7 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 		default:
 			break;
 		}
-		/* fallthrough */
+		fallthrough;
 	case SYS_DVBS:
 		switch ((MXL_HYDRA_MODULATION_E)
 			regData[DMD_MODULATION_SCHEME_ADDR]) {
@@ -825,13 +825,15 @@ static int set_input(struct dvb_frontend *fe, int input)
 	struct mxl *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 
-	state->tuner = p->input = input;
+	state->tuner = input;
+#ifndef KERNEL_DVB_CORE
+	p->input = input;
+#endif
 	return 0;
 }
 
 static struct dvb_frontend_ops mxl_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
-	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.info = {
 		.name			= "MXL5XX",
 		.frequency_min_hz	= 300000000,
@@ -856,7 +858,10 @@ static struct dvb_frontend_ops mxl_ops = {
 	.read_signal_strength		= read_signal_strength,
 	.read_ucblocks			= read_ucblocks,
 	.get_frontend                   = get_frontend,
+#ifndef KERNEL_DVB_CORE
 	.set_input                      = set_input,
+	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
+#endif
 	.diseqc_send_master_cmd		= send_master_cmd,
 };
 
@@ -1873,7 +1878,8 @@ static int probe(struct mxl *state, struct mxl5xx_cfg *cfg)
 
 struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 				   struct mxl5xx_cfg *cfg,
-				   u32 demod, u32 tuner)
+				   u32 demod, u32 tuner,
+				   int (**fn_set_input)(struct dvb_frontend *, int))
 {
 	struct mxl *state;
 	struct mxl_base *base;
@@ -1913,9 +1919,12 @@ struct dvb_frontend *mxl5xx_attach(struct i2c_adapter *i2c,
 		list_add(&base->mxllist, &mxllist);
 	}
 	state->fe.ops               = mxl_ops;
+#ifndef KERNEL_DVB_CORE
 	state->fe.ops.xbar[1]       = demod;
-	state->fe.demodulator_priv  = state;
 	state->fe.dtv_property_cache.input = tuner;
+#endif
+	state->fe.demodulator_priv  = state;
+	*fn_set_input = set_input;
 	list_add(&state->mxl, &base->mxls);
 	return &state->fe;
 

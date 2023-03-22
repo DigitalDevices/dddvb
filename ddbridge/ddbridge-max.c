@@ -40,6 +40,10 @@ static int old_quattro;
 module_param(old_quattro, int, 0444);
 MODULE_PARM_DESC(old_quattro, "old quattro LNB input order ");
 
+static int no_voltage;
+module_param(no_voltage, int, 0444);
+MODULE_PARM_DESC(no_voltage, "Do not enable voltage on LNBH (will also disable 22KHz tone).");
+
 /* MAX LNB interface related functions */
 
 static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
@@ -61,7 +65,7 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	return 0;
 }
 
-static int max_set_input_unlocked(struct dvb_frontend *fe, int in);
+static int max_set_input(struct dvb_frontend *fe, int in);
 
 static int max_emulate_switch(struct dvb_frontend *fe,
 			      u8 *cmd, u32 len)
@@ -75,7 +79,7 @@ static int max_emulate_switch(struct dvb_frontend *fe,
 		return -1;
 
 	input = cmd[3] & 3;
-	max_set_input_unlocked(fe, input);
+	max_set_input(fe, input);
 	return 0;
 }
 
@@ -94,7 +98,8 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 		return 0;
 
 	if (fmode == 4)
-		max_emulate_switch(fe, cmd->msg, cmd->msg_len);
+		if (!max_emulate_switch(fe, cmd->msg, cmd->msg_len))
+			return 0;
 
 	if (dvb->diseqc_send_master_cmd)
 		dvb->diseqc_send_master_cmd(fe, cmd);
@@ -164,6 +169,8 @@ static int lnb_set_voltage(struct ddb *dev, u32 link, u32 input,
 {
 	int s = 0;
 
+	if (no_voltage)
+		voltage = SEC_VOLTAGE_OFF;
 	if (dev->link[link].lnb.oldvoltage[input] == voltage)
 		return 0;
 	switch (voltage) {
@@ -465,7 +472,8 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	tuner = demod & 3;
 	if (fmode >= 3)
 		tuner = 0;
-	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg, demod, tuner);
+	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg,
+			     demod, tuner, &dvb->set_input);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MXL5XX found!\n");
 		return -ENODEV;
@@ -483,13 +491,17 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
 	dvb->fe->ops.diseqc_send_burst = max_send_burst;
 	dvb->fe->sec_priv = input;
-	dvb->set_input = dvb->fe->ops.set_input;
+#ifndef KERNEL_DVB_CORE
 	dvb->fe->ops.set_input = max_set_input;
+#endif
 	dvb->input = tuner;
 	return 0;
 }
 
 /* MAX MCI related functions */
+struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
+				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
+struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner);
 
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
@@ -498,25 +510,23 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	struct ddb_port *port = input->port;
 	struct ddb_link *link = &dev->link[port->lnr];
 	int demod, tuner;
-	struct mci_cfg cfg;
 	int fm = fmode;
 
 	demod = input->nr;
 	tuner = demod & 3;
 	switch (type) {
 	case DDB_TUNER_MCI_SX8:
-		cfg = ddb_max_sx8_cfg;
 		if (fm >= 3)
 			tuner = 0;
+		dvb->fe = ddb_sx8_attach(input, demod, tuner, &dvb->set_input);
 		break;
 	case DDB_TUNER_MCI_M4:
 		fm = 0;
-		cfg = ddb_max_m4_cfg;
+		dvb->fe = ddb_m4_attach(input, demod, tuner);
 		break;
 	default:
 		return -EINVAL;
 	}
-	dvb->fe = ddb_mci_attach(input, &cfg, demod, tuner);
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;
@@ -538,8 +548,9 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	case DDB_TUNER_MCI_M4:
 		break;
 	default:
-		dvb->set_input = dvb->fe->ops.set_input;
+#ifndef KERNEL_DVB_CORE
 		dvb->fe->ops.set_input = max_set_input;
+#endif
 		break;
 	}
 	dvb->input = tuner;

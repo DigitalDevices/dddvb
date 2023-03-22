@@ -11,7 +11,6 @@
 #include <sys/ioctl.h>
 #include <linux/types.h>
 
-
 #include "flash.h"
 #include "flash.c"
 
@@ -115,12 +114,12 @@ static int update_flash(struct ddflash *ddf)
 		if (!fname)
 			fname = default_fname;
 		if (name)
-			printf("Card:   %s\n", name);
+			printf("Card:     %s\n", name);
 		if (ddf->flash_name)
-			printf("Flash:  %s\n", ddf->flash_name);
-		printf("Version:%08x\n", ddf->id.hw);
-		//printf("REGMAPa: %08x\n", ddf->id.regmap);
-		if ((res = update_image(ddf, fname, 0x10000, 0x100000, 1, 0)) == 1)
+			printf("Flash:    %s\n", ddf->flash_name);
+		printf("Version:  %08x\n", ddf->id.hw);
+		printf("REGMAP :  %08x\n", ddf->id.regmap);
+		if ((res = update_image(ddf, fname, 0x10000, ddf->size / 2, 1, 0)) == 1)
 			stat |= 1;
 		return stat;
 	}
@@ -142,7 +141,7 @@ static int update_link(struct ddflash *ddf)
 	return ret;
 }
 
-static int update_card(int ddbnum, char *fname)
+static int update_card(int ddbnum, char *fname, int force)
 {
 	struct ddflash ddf;
 	char ddbname[80];
@@ -156,6 +155,7 @@ static int update_card(int ddbnum, char *fname)
 	ddf.fd = ddb;
 	ddf.link = 0;
 	ddf.fname = fname;
+	ddf.force = force;
 	links = 1;
 
 	for (link = 0; link < links; link++) {
@@ -200,24 +200,27 @@ static int usage()
 	       "-n N\n  only update card N (default with N=0)\n\n"
 	       "-a \n   update all cards\n\n"
 	       "-b file\n  fpga image file override (ignored if -a is used)\n\n"
+	       "-f  \n  force  update\n\n"
 	       "-v \n   more verbose (up to -v -v -v)\n\n"
 		);
 }
 
 int main(int argc, char **argv)
 {
-	int ddbnum = -1, all = 0, i, force = 0;
+	int ddbnum = -1, all = 0, i, force = 0, reboot_len = -1;
 	char *fname = 0;
+	int ret;
 	
         while (1) {
                 int option_index = 0;
 		int c;
                 static struct option long_options[] = {
+			{"reboot", optional_argument , NULL, 'r'},
 			{"help", no_argument , NULL, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"n:havfb:",
+				"n:havfb:r::",
 				long_options, &option_index);
 		if (c==-1)
 			break;
@@ -232,12 +235,23 @@ int main(int argc, char **argv)
 		case 'a':
 			all = 1;
 			break;
+		case 'f':
+			force = 1;
+			break;
 		case 'v':
 			verbose++;
 			break;
+		case 'r':
+			if (optarg)
+				reboot_len = strtol(optarg, NULL, 0);
+			else 
+				reboot_len = 40;
+			if (!reboot_len)
+				reboot(40);
+			break;
 		case 'h':
 			usage();
-			break;
+			return 0;
 		default:
 			break;
 
@@ -253,17 +267,19 @@ int main(int argc, char **argv)
 	}
 		
 	if (!all)
-		return update_card(ddbnum, fname);
-
-	for (i = 0; i < 100; i++) {
-		int ret = update_card(i, 0);
-		
-		if (ret == -3)     /* could not open, no more cards! */
-			break; 
-		if (ret < 0)
-			return i; /* fatal error */ 
-		if (verbose >= 1)
-			printf("card %d up to date\n", i);
-	}
+		ret = update_card(ddbnum, fname, force);
+	else
+		for (i = 0; i < 100; i++) {
+			ret = update_card(i, 0, 0);
+			
+			if (ret == -3)     /* could not open, no more cards! */
+				break; 
+			if (ret < 0)
+				return i; /* fatal error */ 
+			if (verbose >= 1)
+				printf("card %d up to date\n", i);
+		}
+	if (reboot_len > 0)
+		reboot(reboot_len);
 	return 0; 
 }

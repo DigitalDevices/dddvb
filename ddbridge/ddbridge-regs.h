@@ -260,8 +260,8 @@
 #define LNB_CMD_DISEQC 6
 #define LNB_CMD_SCIF   7
 
-#define LNB_BUSY  BIT_ULL(4)
-#define LNB_TONE  BIT_ULL(15)
+#define LNB_BUSY  (1ULL << 4)
+#define LNB_TONE  (1ULL << 15)
 
 #define LNB_INTERRUPT_BASE      4
 

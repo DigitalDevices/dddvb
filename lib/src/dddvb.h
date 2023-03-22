@@ -152,6 +152,9 @@ struct dddvb {
 	struct dddvb_fe dvbfe[DDDVB_MAX_DVB_FE];
 	struct dddvb_ca dvbca[DDDVB_MAX_DVB_CA];
 
+	unsigned int cam_family;
+	unsigned int cam_proto;
+	unsigned int cam_port;
 
 	unsigned int get_ts:1;
 };

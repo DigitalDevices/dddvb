@@ -6,18 +6,31 @@
 #   TunerN       = Slot,Frequency[,Pin]  Slot = 1..nn, Frequency = 950..2150, Pin = 0-255
 #                                        Slot = 0 (no SCIF)
 #                                        Slot = 1..8 for EN 50494, 1..32 for TS 50607
-Manufacturer=0
-Unit=8
-Type=2
-Tuner1=1,1210
-Tuner2=2,1420
-Tuner3=3,1680
-Tuner4=4,2040
-Tuner5=5,984
-Tuner6=6,1020
-Tuner7=7,1056
-Tuner8=8,1092
-Tuner9=1,1210
-Tuner10=2,1420
-Tuner11=3,1680
-Tuner12=4,2040
+Type=0
+Tuner1=0
+Tuner2=0
+Tuner3=0
+Tuner4=0
+Tuner5=0
+Tuner6=0
+Tuner7=0
+Tuner8=0
+[LNB]
+#
+# LNB 1 Setting
+#
+Tuner=1
+Source=1
+LOF1=9750
+LOF2=10600
+LOFS=11700
+
+[LNB]
+#
+# LNB 2 Setting
+#
+Tuner=2
+Source=1
+LOF1=9750
+LOF2=10600
+LOFS=11700

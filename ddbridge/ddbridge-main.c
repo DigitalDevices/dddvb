@@ -84,7 +84,7 @@ int pci_irq_vector(struct pci_dev *dev, unsigned int nr)
 /****************************************************************************/
 /****************************************************************************/
 
-static void __devexit ddb_irq_disable(struct ddb *dev)
+static void ddb_irq_disable(struct ddb *dev)
 {
 	if (dev->link[0].info->regmap->irq_version == 2) {
 		ddbwritel(dev, 0x00000000, INTERRUPT_V2_CONTROL);
@@ -114,7 +114,7 @@ static void __devexit ddb_msi_exit(struct ddb *dev)
 #endif
 }
 
-static void __devexit ddb_irq_exit(struct ddb *dev)
+static void ddb_irq_exit(struct ddb *dev)
 {
 	ddb_irq_disable(dev);
 	if (dev->msi == 2)
@@ -139,6 +139,7 @@ static void __devexit ddb_remove(struct pci_dev *pdev)
 	ddb_buffers_free(dev);
 
 	ddb_unmap(dev);
+	pci_clear_master(pdev);
 	pci_set_drvdata(pdev, NULL);
 	pci_disable_device(pdev);
 }
@@ -254,17 +255,9 @@ static int __devinit ddb_irq_init(struct ddb *dev)
 			return stat;
 		}
 	} else {
-#ifdef DDB_TEST_THREADED
-		stat = request_threaded_irq(pci_irq_vector(dev->pdev, 0),
-					    dev->pdev->irq, ddb_irq_handler,
-					    irq_thread,
-					    irq_flag,
-					    "ddbridge", (void *)dev);
-#else
 		stat = request_irq(pci_irq_vector(dev->pdev, 0),
 				   ddb_irq_handler,
 				   irq_flag, "ddbridge", (void *)dev);
-#endif
 		if (stat < 0)
 			return stat;
 	}
@@ -290,9 +283,17 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 
 	pci_set_master(pdev);
 
-	if (pci_set_dma_mask(pdev, DMA_BIT_MASK(64)))
-		if (pci_set_dma_mask(pdev, DMA_BIT_MASK(32)))
-			return -ENODEV;
+#if (KERNEL_VERSION(5, 18, 0) <= LINUX_VERSION_CODE)
+	if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64)))
+		if (dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(32)))
+#else
+	if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(64))) {
+		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(64));
+	} else if (!pci_set_dma_mask(pdev, DMA_BIT_MASK(32))) {
+		pci_set_consistent_dma_mask(pdev, DMA_BIT_MASK(32));
+	} else
+#endif
+		return -ENODEV;
 
 	dev = vzalloc(sizeof(*dev));
 	if (!dev)
@@ -309,11 +310,11 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.subvendor = id->subvendor;
 	dev->link[0].ids.subdevice = pdev->subsystem_device;
 	dev->link[0].ids.devid = (id->device << 16) | id->vendor;
+	dev->link[0].ids.revision = pdev->revision;
 
 	dev->link[0].dev = dev;
 	dev->link[0].info = get_ddb_info(id->vendor, id->device,
 					 id->subvendor, pdev->subsystem_device);
-	dev_info(dev->dev, "device name: %s\n", dev->link[0].info->name);
 
 	dev->regs_len = pci_resource_len(dev->pdev, 0);
 	dev->regs = ioremap(pci_resource_start(dev->pdev, 0),
@@ -333,14 +334,12 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	dev->link[0].ids.hwid = ddbreadl(dev, 0);
 	dev->link[0].ids.regmapid = ddbreadl(dev, 4);
 
-	dev_info(dev->dev, "HW %08x REGMAP %08x\n",
-		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid);
 	if ((dev->link[0].ids.hwid & 0xffffff) <
 	    dev->link[0].info->hw_min) {
 		u32 min = dev->link[0].info->hw_min;
 
 		dev_err(dev->dev, "Update firmware to at least version %u.%u to ensure full functionality!\n",
-			 (min & 0xff0000) >> 16, min & 0xffff);
+			(min & 0xff0000) >> 16, min & 0xffff);
 	}
 
 	if (dev->link[0].info->ns_num) {
@@ -351,33 +350,27 @@ static int __devinit ddb_probe(struct pci_dev *pdev,
 	if (dev->link[0].info->type != DDB_MOD)
 		ddbwritel(dev, 0, DMA_BASE_WRITE);
 
-	if (dev->link[0].info->type == DDB_MOD
-	    && dev->link[0].info->version <= 1) {
+	if (dev->link[0].info->type == DDB_MOD &&
+	    dev->link[0].info->version <= 1) {
 		if (ddbreadl(dev, 0x1c) == 4)
 			dev->link[0].info =
 				get_ddb_info(0xdd01, 0x0201, 0xdd01, 0x0004);
 	}
-	if (dev->link[0].info->type == DDB_MOD
-	    && dev->link[0].info->version == 2) {
-		u32 lic = ddbreadl(dev, 0x1c) & 7;
 
-		switch (lic) {
-		case 0:
-			dev->link[0].info =
-				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0000);
-			break;
-		case 1:
-			dev->link[0].info =
-				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0003);
-			break;
-		case 3:
-			dev->link[0].info =
-				get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0002);
-			break;
-		default:
-			break;
-		}
+	if (dev->link[0].info->type == DDB_MOD &&
+	    dev->link[0].info->version == 2) {
+		if (dev->link[0].ids.revision == 1)
+			dev->link[0].info = get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0004);
+		else if ((ddbreadl(dev, 0x1c) & 7) != 7)
+			dev->link[0].info = get_ddb_info(0xdd01, 0x0210, 0xdd01, 0x0004);
 	}
+
+	dev_info(dev->dev, "%s\n", dev->link[0].info->name);
+	dev_info(dev->dev, "HW %08x REGMAP %08x FW %u.%u\n",
+		 dev->link[0].ids.hwid, dev->link[0].ids.regmapid,
+		 (dev->link[0].ids.hwid & 0xff0000) >> 16,
+		 dev->link[0].ids.hwid & 0xffff);
+
 	stat = ddb_irq_init(dev);
 	if (stat < 0)
 		goto fail0;
@@ -402,6 +395,12 @@ fail:
 /****************************************************************************/
 /****************************************************************************/
 
+#ifndef PCI_DEVICE_SUB
+#define PCI_DEVICE_SUB(vend, dev, subvend, subdev) \
+	.vendor = (vend), .device = (dev), \
+		.subvendor = (subvend), .subdevice = (subdev)
+#endif
+
 #define DDB_DEVICE_ANY(_device) \
 	{ PCI_DEVICE_SUB(0xdd01, _device, 0xdd01, PCI_ANY_ID) }
 
@@ -425,6 +424,7 @@ static const struct pci_device_id ddb_id_table[] __devinitconst = {
 	DDB_DEVICE_ANY(0x0220),
 	DDB_DEVICE_ANY(0x0221),
 	DDB_DEVICE_ANY(0x0222),
+	DDB_DEVICE_ANY(0x0223),
 	DDB_DEVICE_ANY(0x0320),
 	DDB_DEVICE_ANY(0x0321),
 	DDB_DEVICE_ANY(0x0322),
@@ -434,7 +434,6 @@ static const struct pci_device_id ddb_id_table[] __devinitconst = {
 	{0}
 };
 MODULE_DEVICE_TABLE(pci, ddb_id_table);
-
 
 static pci_ers_result_t ddb_pci_slot_reset(struct pci_dev *dev)
 {
@@ -474,7 +473,6 @@ static const struct pci_error_handlers ddb_error = {
 	.slot_reset = ddb_pci_slot_reset,
 	.resume = ddb_pci_resume,
 };
-
 
 static struct pci_driver ddb_pci_driver = {
 	.name        = "ddbridge",

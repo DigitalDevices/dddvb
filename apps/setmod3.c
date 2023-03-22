@@ -58,7 +58,7 @@ int main(int argc, char*argv[])
 	struct dvb_mod_params mp;
 	struct dvb_mod_channel_params mc;
 	uint32_t data;
-	int adapter = 0, channel = 0, gain = -1;
+	int32_t adapter = 0, channel = 0, gain = -1;
 	int32_t base = -1, freq = -1, rate = -1;
 	char mod_name[128];
 	
@@ -113,7 +113,7 @@ int main(int argc, char*argv[])
 		}
 	}
 	if (optind < argc) {
-		printf("too man arguments\n");
+		printf("too many arguments\n");
 		exit(1);
 	}
 
@@ -134,6 +134,8 @@ int main(int argc, char*argv[])
 	//get_property(fd, MODULATOR_ATTENUATOR, &data);
 	//printf("Modulator attenuator = %u\n", data);
 
+	if (gain > 0)
+		set_property(fd, MODULATOR_GAIN, gain);
 	if (base > 0)
 		set_property(fd, MODULATOR_BASE_FREQUENCY, base);
 	if (freq > 0)

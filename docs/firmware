@@ -1,0 +1,13 @@
+Firmware update:
+
+Copy the firmware file to the dddvb/apps/ directory and
+execute "./flashprog".
+
+The program will try to identify the card version and
+check if it finds the corresponding firmware file.
+It will then prompt you to confirm to proceed
+with the flashing procedure.
+
+After the update the system needs a power cycle.
+
+

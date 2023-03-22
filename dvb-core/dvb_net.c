@@ -215,7 +215,7 @@ static int ule_exthdr_padding(struct dvb_net_priv *p)
 }
 
 /*
- *  Handle ULE extension headers.
+ * Handle ULE extension headers.
  *  Function is called after a successful CRC32 verification of an ULE SNDU to complete its decoding.
  *  Returns: >= 0: nr. of bytes consumed by next extension header
  *	     -1:   Mandatory extension header that is not recognized or TEST SNDU; discard.
@@ -553,7 +553,7 @@ static int dvb_net_ule_new_payload(struct dvb_net_ule_handle *h)
 		h->priv->ule_sndu_type_1 = 1;
 		h->ts_remain -= 1;
 		h->from_where += 1;
-		/* fallthrough */
+		fallthrough;
 	case 0:
 		h->new_ts = 1;
 		h->ts += TS_SZ;
@@ -1018,7 +1018,7 @@ static u8 mask_promisc[6]={0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static int dvb_net_filter_sec_set(struct net_device *dev,
 		   struct dmx_section_filter **secfilter,
-		   u8 *mac, u8 *mac_mask)
+		   const u8 *mac, u8 *mac_mask)
 {
 	struct dvb_net_priv *priv = netdev_priv(dev);
 	int ret;
@@ -1062,7 +1062,7 @@ static int dvb_net_feed_start(struct net_device *dev)
 	int ret = 0, i;
 	struct dvb_net_priv *priv = netdev_priv(dev);
 	struct dmx_demux *demux = priv->demux;
-	unsigned char *mac = (unsigned char *) dev->dev_addr;
+	const unsigned char *mac = (unsigned char *) dev->dev_addr;
 
 	netdev_dbg(dev, "rx_mode %i\n", priv->rx_mode);
 	mutex_lock(&priv->mutex);
@@ -1282,8 +1282,11 @@ static int dvb_net_set_mac (struct net_device *dev, void *p)
 	struct dvb_net_priv *priv = netdev_priv(dev);
 	struct sockaddr *addr=p;
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
 	memcpy(dev->dev_addr, addr->sa_data, dev->addr_len);
-
+#else
+	eth_hw_addr_set(dev, addr->sa_data);
+#endif
 	if (netif_running(dev))
 		schedule_work(&priv->restart_net_feed_wq);
 
@@ -1381,8 +1384,11 @@ static int dvb_net_add_if(struct dvb_net *dvbnet, u16 pid, u8 feedtype)
 			 dvbnet->dvbdev->adapter->num, if_num);
 
 	net->addr_len = 6;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 17, 0))
 	memcpy(net->dev_addr, dvbnet->dvbdev->adapter->proposed_mac, 6);
-
+#else
+	eth_hw_addr_set(net, dvbnet->dvbdev->adapter->proposed_mac);
+#endif
 	dvbnet->device[if_num] = net;
 
 	priv = netdev_priv(net);

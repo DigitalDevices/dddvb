@@ -23,9 +23,6 @@
 #ifndef _DDBRIDGE_H_
 #define _DDBRIDGE_H_
 
-#define DDB_USE_WORK
-/*#define DDB_TEST_THREADED*/
-
 #include <linux/version.h>
 
 #if (KERNEL_VERSION(3, 8, 0) <= LINUX_VERSION_CODE)
@@ -114,6 +111,7 @@ struct ddb_regmap {
 	u32 irq_base_odma;
 	u32 irq_base_gtl;
 	u32 irq_base_rate;
+	u32 irq_base_mci;
 
 	const struct ddb_regset *i2c;
 	const struct ddb_regset *i2c_buf;
@@ -127,6 +125,9 @@ struct ddb_regmap {
 
 	const struct ddb_regset *channel;
 	const struct ddb_regset *gtl;
+
+	const struct ddb_regset *mci;
+	const struct ddb_regset *mci_buf;
 };
 
 struct ddb_ids {
@@ -139,6 +140,7 @@ struct ddb_ids {
 	u32 regmapid;
 	u32 devid;
 	u32 mac;
+	u8 revision;
 };
 
 struct ddb_info {
@@ -200,11 +202,7 @@ struct ddb_dma {
 	u32                    div;
 	u32                    bufval;
 
-#ifdef DDB_USE_WORK
-	struct work_struct     work;
-#else
 	struct tasklet_struct  tasklet;
-#endif
 	spinlock_t             lock; /* DMA lock */
 	wait_queue_head_t      wq;
 	int                    running;
@@ -215,6 +213,7 @@ struct ddb_dma {
 
 	u32                    stall_count;
 	u32                    packet_loss;
+	u32                    unaligned;
 };
 
 struct ddb_dvb {
@@ -427,6 +426,9 @@ struct ddb_link {
 	struct ddb_irq         irq[256];
 
 	struct mci_base        *mci_base;
+	struct completion      mci_completion;
+	struct mutex           mci_lock;
+	int                    mci_ok;
 };
 
 struct ddb {

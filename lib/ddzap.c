@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <time.h>
+#include <inttypes.h>
 
 char line_start[16] = "";
 char line_end[16]   = "\r";
@@ -203,7 +204,7 @@ void proc_ts(int i, uint8_t *buf)
 			if (ccin & 0x10) {
 				if ( cc[pid]) {
 					// TODO: 1 repetition allowed
-					if( ( ccin & 0x10 ) != 0 && (((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)) )  
+					if ((((cc[pid] + 1) & 0x0F) != (ccin & 0x0F)))
 						cc_errors += 1;
 				}
 				cc[pid] = ccin;
@@ -271,7 +272,7 @@ int main(int argc, char **argv)
 	struct dddvb_fe *fe;
 	struct dddvb_params p;
 	uint32_t bandwidth = DDDVB_UNDEF, frequency = 0, symbol_rate = 0, pol = DDDVB_UNDEF;
-	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = 0;
+	uint32_t id = DDDVB_UNDEF, ssi = DDDVB_UNDEF, num = DDDVB_UNDEF, source = DDDVB_UNDEF;
 	uint32_t mtype= DDDVB_UNDEF;
 	uint32_t verbosity = 0;
 	uint32_t get_ts = 1;
@@ -308,20 +309,22 @@ int main(int argc, char **argv)
 			{"tscheck", no_argument, 0, 't'},
 			{"tscheck_l", required_argument, 0, 'a'},
 			{"nodvr", no_argument , 0, 'q'},
-			{"pam", no_argument , 0, 'a'},
+			{"pam", no_argument , 0, 'P'},
+			{"pam_color", no_argument , 0, 'e'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:q",
+				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:qP",
 				long_options, &option_index);
 		if (c==-1)
  			break;
 		
 		switch (c) {
 		case 'e':
-		        odvr = 2;
 		        color = strtoul(optarg, NULL, 0);
+		case 'P':
+		        odvr = 2;
 			break;
 		case 'o':
 		        fout = stderr;
@@ -341,7 +344,7 @@ int main(int argc, char **argv)
 			    break;
 			}
 		        fprintf(fout,"performing continuity check\n");
-		        odvr = 2;
+		        odvr = 3;
 			break;
 		case 'c':
 		        config = strdup(optarg);
@@ -414,6 +417,8 @@ int main(int argc, char **argv)
 				delsys = SYS_ISDBC;
 			if (!strcmp(optarg, "ISDBT"))
 				delsys = SYS_ISDBT;
+			if (!strcmp(optarg, "ISDBS"))
+				delsys = SYS_ISDBS;
 			break;
 		case 'p':
 			if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
@@ -425,12 +430,18 @@ int main(int argc, char **argv)
 			get_ts = 0;
 			break;
 		case 'h':
-		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir] [-f frequency(Hz)]\n"
+		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir]\n"
+			       "      [-f frequency(Hz for terr./kHz for SAT)]\n"
+			       "      [-m 16APSK/32APSK/64APSK/128APSK/256APSK]\n"
+			       "          (only needed for higher modulations than 8PSK) on some cards\n"
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
 			       "      [-g gold_code] [-r root_code] [-i id] [-n device_num]\n"
 			       "      [-o (write dvr to stdout)]\n"
 			       "      [-l (tuner source for unicable)]\n"
-			       "      [-t [display line](continuity check)]\n"
+			       "      [-t (continuity check)]\n"
+			       "      [-a [display line] (display continuity check in line)]\n"
+			       "      [-P (output IQ diagram as pam)]\n"
+			       "      [-e [color] (use color for pam 0=green)]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
 			       "      polarity        = h/H,v/V\n"
@@ -501,8 +512,10 @@ int main(int argc, char **argv)
 			str = dddvb_get_strength(fe);
 			cnr = dddvb_get_cnr(fe);
 			
-			printf("stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat, (long long int)str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
+			printf("stat=%02x, str=%" PRId64 ".%03u dBm, "
+			       "snr=%" PRId64 ".%03u dB\n",
+			       stat, str/1000, abs(str%1000),
+			       cnr/1000, abs(cnr%1000));
 		sleep(1);
 		}
 	} else {
@@ -521,7 +534,8 @@ int main(int argc, char **argv)
 			cnr = dddvb_get_cnr(fe);
 			
 			fprintf(stderr,"stat=%02x, str=%lld.%03llddB, snr=%lld.%03llddB \n",
-			       stat,(long long int) str/1000,(long long int) abs(str%1000),(long long int) cnr/1000, (long long int)abs(cnr%1000));
+				stat, (long long int) str/1000, (long long int) abs(str%1000),
+				(long long int) cnr/1000, (long long int)abs(cnr%1000));
 			sleep(1);
 		}
 		fprintf(stderr,"got lock on %s\n", fe->name);
@@ -531,29 +545,28 @@ int main(int argc, char **argv)
 		if ((fd = open(filename ,O_RDONLY)) < 0){
 		    fprintf(stderr,"Error opening input file:%s\n",filename);
 		}
-		if (odvr > 0){
-		    switch (odvr){
-		    case 1:
-			while(1){
-			    read(fd,buf,BUFFSIZE);
-			    write(fileno(stdout),buf,BUFFSIZE);
-			}
-			break;
-		    case 2:
-                        fprintf(stderr,"writing pamdata\n");
-                        init_pamdata(&iq,color);
-                        while(1){
-                            pam_read_data(fd, &iq);
-                            pam_write(STDOUT_FILENO, &iq);
-                        }
-                        break;
+		switch (odvr){
+		case 1:
+		    while(1){
+			read(fd,buf,BUFFSIZE);
+			write(fileno(stdout),buf,BUFFSIZE);
 		    }
-		} else {
+		    break;
+		case 2:
+		    fprintf(stderr,"writing pamdata\n");
+		    init_pamdata(&iq,color);
+		    while(1){
+			pam_read_data(fd, &iq);
+			pam_write(STDOUT_FILENO, &iq);
+		    }
+		    break;
+		case 3:
 		    if( line >= 0 && line < 64 ){
 			snprintf(line_start,sizeof(line_start)-1,"\0337\033[%d;0H",line);
 			strncpy(line_end,"\0338",sizeof(line_end)-1);
 		    }
 		    tscheck(fd);
+		    break;
 		}
 	}
 }

@@ -392,17 +392,23 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	struct m4 *state = fe->demodulator_priv;
 	struct mci_result res;
 
+	*status = 0x00;
+	if (!state->started)
+		return 0;
 	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
 		return stat;
-	*status = 0x00;
 	stat = ddb_mci_get_info(&state->mci);
 	if (stat)
 		return stat;
 	ddb_mci_get_strength(fe);
 	if (res.status == MCI_DEMOD_WAIT_SIGNAL)
 		*status = 0x01;
-	if (res.status == MCI_DEMOD_LOCKED) {
+	else if (res.status == M4_DEMOD_WAIT_TS)
+		*status = 0x03;
+	else if (res.status == MCI_DEMOD_TIMEOUT)
+		*status = FE_TIMEDOUT;
+	else if (res.status == MCI_DEMOD_LOCKED) {
 		*status = 0x1f;
 		ddb_mci_get_snr(fe);
 	}
@@ -510,7 +516,7 @@ static int base_init(struct mci_base *mci_base)
 	return 0;
 }
 
-struct mci_cfg ddb_max_m4_cfg = {
+static struct mci_cfg ddb_max_m4_cfg = {
 	.type = 0,
 	.fe_ops = &m4_ops,
 	.base_size = sizeof(struct m4_base),
@@ -518,3 +524,8 @@ struct mci_cfg ddb_max_m4_cfg = {
 	.init = init,
 	.base_init = base_init,
 };
+
+struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner)
+{
+	return ddb_mci_attach(input, &ddb_max_m4_cfg, nr, tuner);
+}

@@ -38,25 +38,6 @@
 #include "flash.h"
 #include "flash.c"
 
-static int reboot(uint32_t off)
-{
-	FILE *f;
-	uint32_t time;
-
-	if ((f = fopen ("/sys/class/rtc/rtc0/since_epoch", "r")) == NULL)
-		return -1;
-	fscanf(f, "%u", &time);
-	fclose(f);
-
-	if ((f = fopen ("/sys/class/rtc/rtc0/wakealarm", "r+")) == NULL)
-		return -1;
-	fprintf(f, "%u", time + off);
-	fclose(f);
-	system("/sbin/poweroff");
-	return 0;
-}
-
-
 static int update_flash(struct ddflash *ddf)
 {
 	char *fname;

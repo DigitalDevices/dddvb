@@ -1,7 +1,28 @@
+static int reboot(uint32_t off)
+{
+	FILE *f;
+	uint32_t time;
+
+	if ((f = fopen ("/sys/class/rtc/rtc0/since_epoch", "r")) == NULL)
+		return -1;
+	fscanf(f, "%u", &time);
+	fclose(f);
+
+	if ((f = fopen ("/sys/class/rtc/rtc0/wakealarm", "r+")) == NULL)
+		return -1;
+	fprintf(f, "%u", time + off);
+	fclose(f);
+	system("/sbin/poweroff");
+	return 0;
+}
+
+
+
 static uint32_t linknr = 0;
 
 int flashio(int ddb, int link,
-	    uint8_t *wbuf, uint32_t wlen, uint8_t *rbuf, uint32_t rlen)
+	    uint8_t *wbuf, uint32_t wlen,
+	    uint8_t *rbuf, uint32_t rlen)
 {
 	struct ddb_flashio fio = {
 		.write_buf=wbuf,
@@ -29,15 +50,15 @@ struct flash_info flashs[] = {
 	{ { 0x01, 0x40, 0x15 }, SPANSION_S25FL116K, 4096, 0x200000, "SPANSION S25FL116K 16 MBit" },
 	{ { 0x01, 0x40, 0x16 }, SPANSION_S25FL132K, 4096, 0x400000, "SPANSION S25FL132K 32 MBit" },
 	{ { 0x01, 0x40, 0x17 }, SPANSION_S25FL164K, 4096, 0x800000, "SPANSION S25FL164K 64 MBit" },
-	{ { 0xef, 0x40, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
-	{ { 0xef, 0x40, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
-	{ { 0xef, 0x40, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
-	{ { 0xef, 0x40, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
-	{ { 0xef, 0x70, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond 16 MBit" },
-	{ { 0xef, 0x70, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond 32 MBit" },
-	{ { 0xef, 0x70, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond 64 MBit" },
-	{ { 0xef, 0x70, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond 128 MBit" },
-	{ { 0x1f, 0x28, 0xff }, ATMEL_AT45DB642D, 1024, 0x800000, "Atmel AT45DB642D  64 MBit" },
+	{ { 0xef, 0x40, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond W25Q16JV 16 MBit" },
+	{ { 0xef, 0x40, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond W25Q32JV 32 MBit" },
+	{ { 0xef, 0x40, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond W25Q64JV 64 MBit" },
+	{ { 0xef, 0x40, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond W25Q128JV 128 MBit" },
+	{ { 0xef, 0x70, 0x15 }, WINBOND_W25Q16JV, 4096, 0x200000, "Winbond W25Q16JV 16 MBit" },
+	{ { 0xef, 0x70, 0x16 }, WINBOND_W25Q32JV, 4096, 0x400000, "Winbond W25Q32JV 32 MBit" },
+	{ { 0xef, 0x70, 0x17 }, WINBOND_W25Q64JV, 4096, 0x800000, "Winbond W25Q64JV 64 MBit" },
+	{ { 0xef, 0x70, 0x18 }, WINBOND_W25Q128JV, 4096, 0x1000000, "Winbond W25Q128JV 128 MBit" },
+	{ { 0x1f, 0x28, 0xff }, ATMEL_AT45DB642D, 1024, 0x800000, "Atmel AT45DB642D 64 MBit" },
 	{ { 0x00, 0x00, 0x00 }, UNKNOWN_FLASH, 0, 0, "Unknown" },
 };
 
@@ -47,7 +68,7 @@ static struct flash_info *flash_getinfo(uint8_t *id)
 
 	while (f->id[0]) {
 		if ((f->id[0] == id[0]) && (f->id[1] == id[1]) &&
-		    ((id[0] == 0xff) || (f->id[0] == id[0])))
+		    ((id[2] == 0xff) || (f->id[2] == id[2])))
 			break;
 		f++;
 	}
@@ -118,7 +139,7 @@ int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t len)
 	uint32_t l;
 
 	while (len) {
-		cmd[0] = 3;
+		cmd[0] = 0x03;
 		cmd[1] = (addr >> 16) & 0xff;
 		cmd[2] = (addr >> 8) & 0xff;
 		cmd[3] = addr & 0xff;
@@ -137,12 +158,12 @@ int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t len)
 	return 0;
 }
 #else
-static int flashread(int ddb, uint8_t *buf, uint32_t addr, uint32_t len)
+static int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t len)
 {
-	uint8_t cmd[4]= {0x03, (addr >> 16) & 0xff, 
-			 (addr >> 8) & 0xff, addr & 0xff};
+	uint8_t cmd[5]= {0x0b, (addr >> 16) & 0xff, 
+		(addr >> 8) & 0xff, addr & 0xff, 0x00};
 	
-	return flashio(ddb, linknr, cmd, 4, buf, len);
+	return flashio(ddb, link, cmd, 5, buf, len);
 }
 #endif
 
@@ -500,10 +521,10 @@ int FlashWritePageMode(int dev, uint32_t FlashOffset,
     uint8_t Cmd[260];
     int i, j;
     
-    if( (BufferSize % 4096) != 0 ) return -1;   // Must be multiple of sector size
+    if ((BufferSize % 4096))
+	    return -1;   // Must be multiple of sector size
 
-    do
-    {
+    do {
         Cmd[0] = 0x50;  // EWSR
         err = flashio(dev,linknr, Cmd,1,NULL,0);
         if( err < 0 ) break;
@@ -513,8 +534,7 @@ int FlashWritePageMode(int dev, uint32_t FlashOffset,
         err = flashio(dev,linknr, Cmd,2,NULL,0);
         if( err < 0 ) break;
 
-        for(i = 0; i < BufferSize; i += 4096 )
-        {
+        for(i = 0; i < BufferSize; i += 4096 ) {
             if( (i & 0xFFFF) == 0 )
             {
                 printf(" Erase    %08x\n",FlashOffset + i);
@@ -588,124 +608,117 @@ int FlashWritePageMode(int dev, uint32_t FlashOffset,
     return err;
 }
 
+static int flash_wait(int fd, uint32_t link)
+{
+	while (1) {
+		uint8_t rcmd = 0x05;  // RDSR
+		int err = flashio(fd, link, &rcmd, 1, &rcmd, 1);
+		
+		if (err < 0)
+			return err;
+		if ((rcmd & 0x01) == 0)
+			break;
+	}
+	return 0;
+}
+
+
 int flashwrite_pagemode(struct ddflash *ddf, int dev, uint32_t FlashOffset,
-			uint8_t LockBits, uint32_t fw_off)
+			uint8_t LockBits, uint32_t fw_off, int be)
 {
 	int err = 0;
 	uint8_t cmd[260];
 	int i, j;
 	uint32_t flen, blen;
+	int blockerase = be && ((FlashOffset & 0xFFFF) == 0 ) && (flen >= 0x10000);
 	
 	blen = flen = lseek(dev, 0, SEEK_END) - fw_off;
 	if (blen % 0xff)
 		blen = (blen + 0xff) & 0xffffff00; 
-	printf("blen = %u, flen = %u\n", blen, flen);
-	    
-	do {
-		cmd[0] = 0x50;  // EWSR
-		err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
-		if (err < 0)
-			break;
-		
-		cmd[0] = 0x01;  // WRSR
-		cmd[1] = 0x00;  // BPx = 0, Unlock all blocks
-		err = flashio(ddf->fd, ddf->link, cmd, 2, NULL, 0);
-		if (err < 0)
-			break;
-		
-		for (i = 0; i < flen; i += 4096) {
-			if ((i & 0xFFFF) == 0)
-				printf(" Erase    %08x\n", FlashOffset + i);
-			
-			cmd[0] = 0x06;  // WREN
-			err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
-			if (err < 0)
-				break;
-			
-			cmd[0] = 0x20;  // Sector erase ( 4Kb)
-			cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
-			cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
-			cmd[3] = 0x00;
-			err = flashio(ddf->fd, ddf->link, cmd, 4, NULL, 0);
-			if (err < 0)
-				break;
+	//printf("blen = %u, flen = %u\n", blen, flen);
+	setbuf(stdout, NULL);
 
-			while (1) {
-				cmd[0] = 0x05;  // RDSR
-				err = flashio(ddf->fd, ddf->link, cmd, 1, &cmd[0], 1);
-				if (err < 0)
-					break;
-				if ((cmd[0] & 0x01) == 0)
-					break;
-			}
-			if (err < 0)
-				break;
-			
-		}
-		if (err < 0)
-			break;
-		
-		for (j = blen - 256; j >= 0; j -= 256 ) {
-			uint32_t len = 256; 
-			ssize_t rlen;
-			
-			if (lseek(dev, j + fw_off, SEEK_SET) < 0) {
-				printf("seek error\n");
-				return -1;
-			}
-			if (flen - j < 256) {
-				len = flen - j;
-				memset(ddf->buffer, 0xff, 256);
-			}
-			rlen = read(dev, ddf->buffer, len);
-			if (rlen < 0 || rlen != len) {
-				printf("file read error %d,%d at %u\n", rlen, errno, j);
-				return -1;
-			}
-			//printf ("write %u bytes at %08x\n", len, j);
-			
-			
-			if ((j & 0xFFFF) == 0)
-				printf(" Program %08x\n", FlashOffset + j);
-			
-			cmd[0] = 0x06;  // WREN
-			err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
-			if (err < 0)
-				break;
-			
-			cmd[0] = 0x02;  // PP
-			cmd[1] = ( (( FlashOffset + j ) >> 16) & 0xFF );
-			cmd[2] = ( (( FlashOffset + j ) >>  8) & 0xFF );
-			cmd[3] = 0x00;
-			memcpy(&cmd[4], ddf->buffer, 256);
-			err = flashio(ddf->fd, ddf->link, cmd, 260, NULL, 0);
-			if (err < 0)
-				break;
-			
-			while(1) {
-				cmd[0] = 0x05;  // RDRS
-				err = flashio(ddf->fd, ddf->link, cmd,1, &cmd[0], 1);
-				if (err < 0)
-					break;
-				if ((cmd[0] & 0x01) == 0)
-					break;
-			}
-			if (err < 0)
-				break;
-			
-		}
-		if (err < 0)
-			break;
-		
-		cmd[0] = 0x50;  // EWSR
+	cmd[0] = 0x50;  // EWSR
+	err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
+	if (err < 0)
+		return err;
+	
+	cmd[0] = 0x01;  // WRSR
+	cmd[1] = 0x00;  // BPx = 0, Unlock all blocks
+	err = flashio(ddf->fd, ddf->link, cmd, 2, NULL, 0);
+	if (err < 0)
+		return err;
+	
+	for (i = 0; i < flen; ) {
+		printf(" Erase    %08x\r", FlashOffset + i);
+		cmd[0] = 0x06;  // WREN
 		err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
 		if (err < 0)
-			break;
+			return err;
+		cmd[1] = ( (( FlashOffset + i ) >> 16) & 0xFF );
+		cmd[2] = ( (( FlashOffset + i ) >>  8) & 0xFF );
+		cmd[3] = 0x00;
+		if (blockerase && ((flen - i) >= 0x10000) ) {
+			cmd[0] = 0xd8;
+			i += 0x10000;
+		} else {
+			cmd[0] = 0x20;  // Sector erase ( 4Kb)
+			i += 0x1000;
+		}
+		err = flashio(ddf->fd, ddf->link, cmd, 4, NULL, 0);
+		if (err < 0)
+			return err;
+		err = flash_wait(ddf->fd, ddf->link);
+		if (err < 0)
+			return err;
+	}
+	for (j = blen - 256; j >= 0; j -= 256 ) {
+		uint32_t len = 256; 
+		ssize_t rlen;
 		
-		cmd[0] = 0x01;  // WRSR
-		cmd[1] = LockBits;  // BPx = 0, Lock all blocks
-		err = flashio(ddf->fd, ddf->link, cmd, 2, NULL, 0);
-	} while(0);
+		if (lseek(dev, j + fw_off, SEEK_SET) < 0) {
+			printf("seek error\n");
+			return -1;
+		}
+		if (flen - j < 256) {
+			len = flen - j;
+			memset(ddf->buffer, 0xff, 256);
+		}
+		rlen = read(dev, ddf->buffer, len);
+		if (rlen < 0 || rlen != len) {
+			printf("file read error %d,%d at %u\n", rlen, errno, j);
+			return -1;
+		}
+		printf(" Program  %08x\r", FlashOffset + j);
+		
+		cmd[0] = 0x06;  // WREN
+		err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
+		if (err < 0)
+			goto out;
+		
+		cmd[0] = 0x02;  // PP
+		cmd[1] = ( (( FlashOffset + j ) >> 16) & 0xFF );
+		cmd[2] = ( (( FlashOffset + j ) >>  8) & 0xFF );
+		cmd[3] = 0x00;
+		memcpy(&cmd[4], ddf->buffer, 256);
+		err = flashio(ddf->fd, ddf->link, cmd, 260, NULL, 0);
+		if (err < 0)
+			goto out;
+		err = flash_wait(ddf->fd, ddf->link);
+		if (err < 0)
+			goto out;
+	}
+	printf("\n");
+	
+	cmd[0] = 0x50;  // EWSR
+	err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
+	if (err < 0)
+		goto out;
+	
+	cmd[0] = 0x01;  // WRSR
+	cmd[1] = LockBits;  // BPx = 0, Lock all blocks
+	err = flashio(ddf->fd, ddf->link, cmd, 2, NULL, 0);
+out:
 	return err;
 }
 
@@ -845,7 +858,7 @@ static int flashwrite(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxle
         case SSTI_SST25VF032B: 
 		return flashwrite_SSTI(ddf, fs, addr, maxlen, fw_off);
         case SSTI_SST25VF064C:
-		return flashwrite_pagemode(ddf, fs, addr, 0x3c, fw_off);
+		return flashwrite_pagemode(ddf, fs, addr, 0x3c, fw_off, 0);
 	case SPANSION_S25FL116K: 
 	case SPANSION_S25FL132K: 
 	case SPANSION_S25FL164K: 
@@ -853,7 +866,8 @@ static int flashwrite(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxle
 	case WINBOND_W25Q32JV:
 	case WINBOND_W25Q64JV:
 	case WINBOND_W25Q128JV:
-		return flashwrite_pagemode(ddf, fs, addr, 0x1c, fw_off);
+	default:
+		return flashwrite_pagemode(ddf, fs, addr, 0x1c, fw_off, 1);
 	}
 	return -1;
 }
@@ -892,96 +906,54 @@ static int get_id(struct ddflash *ddf)
 	return 0;
 }
 
+struct devids {
+	uint16_t id;
+	char *name;
+	char *fname;
+};
+
+#define DEV(_id, _name, _fname) { .id = _id, .name = _name, .fname = _fname }
+
+static const struct devids ids[] = {
+	DEV(0x0002, "Octopus 35", "DVBBridgeV1A_DVBBridgeV1A.bit"),
+	DEV(0x0003, "Octopus", "DVBBridgeV1B_DVBBridgeV1B.fpga"),
+	DEV(0x0005, "Octopus Classic", "DVBBridgeV2A_DD01_0005_STD.fpga"),
+	DEV(0x0006, "CineS2 V7", "DVBBridgeV2A_DD01_0006_STD.fpga"),
+	DEV(0x0007, "Octopus 4/8", "DVBBridgeV2A_DD01_0007_MXL.fpga"),
+	DEV(0x0008, "Octopus 4/8", "DVBBridgeV2A_DD01_0008_CXD.fpga"),
+	DEV(0x0009, "Octopus MAXSX8", "DVBBridgeV2A_DD01_0009_SX8.fpga"),
+	DEV(0x000b, "Octopus MAXSX8 Basic", "DVBBridgeV2A_DD01_000B_SX8.fpga"),
+	DEV(0x000a, "Octopus MAXM4", "DVBBridgeV2A_DD01_000A_M4.fpga"),
+	DEV(0x0011, "Octopus CI", "DVBBridgeV2B_DD01_0011.fpga"),
+	DEV(0x0012, "Octopus CI", "DVBBridgeV2B_DD01_0012_STD.fpga"),
+	DEV(0x0013, "Octopus PRO", "DVBBridgeV2B_DD01_0013_PRO.fpga"),
+	DEV(0x0020, "Octopus GT Mini", "DVBBridgeV2C_DD01_0020.fpga"),
+	DEV(0x0201, "Modulator", "DVBModulatorV1B_DVBModulatorV1B.bit"),
+	DEV(0x0203, "Modulator Test", "DVBModulatorV1B_DD01_0203.fpga"),
+	DEV(0x0210, "Modulator V2", "DVBModulatorV2A_DD01_0210.fpga"),
+	DEV(0x0220, "SDRModulator ATV", "SDRModulatorV1A_DD01_0220.fpga"),
+	DEV(0x0221, "SDRModulator IQ", "SDRModulatorV1A_DD01_0221_IQ.fpga"), 
+	DEV(0x0222, "SDRModulator DVBT", "SDRModulatorV1A_DD01_0222_DVBT.fpga"),
+	DEV(0x0223, "SDRModulator IQ2", "SDRModulatorV1A_DD01_0223_IQ2.fpga"),
+	DEV(0x0000, "UNKNOWN", 0),
+};
 
 static char *devid2fname(uint16_t devid, char **name)
 {
+	int i;
 	char *fname = 0;
 
-	switch (devid) {
-	case 0x0002:
-		fname="DVBBridgeV1A_DVBBridgeV1A.bit";
-		*name = "Octopus 35";
-		break;
-	case 0x0003:
-		fname="DVBBridgeV1B_DVBBridgeV1B.fpga";
-		*name = "Octopus";
-		break;
-	case 0x0005:
-		fname="DVBBridgeV2A_DD01_0005_STD.fpga";
-		*name = "Octopus Classic";
-		break;
-	case 0x0006:
-		fname="DVBBridgeV2A_DD01_0006_STD.fpga";
-		*name = "CineS2 V7";
-		break;
-	case 0x0007:
-		fname="DVBBridgeV2A_DD01_0007_MXL.fpga";
-		*name = "Octopus 4/8";
-		break;
-	case 0x0008:
-		fname="DVBBridgeV2A_DD01_0008_CXD.fpga";
-		*name = "Octopus 4/8";
-		break;
-	case 0x0009:
-		fname="DVBBridgeV2A_DD01_0009_SX8.fpga";
-		*name = "Octopus MAXSX8";
-		break;
-	case 0x000b:
-		fname="DVBBridgeV2A_DD01_000B_SX8.fpga";
-		*name = "Octopus MAXSX8 Basic";
-		break;
-	case 0x000a:
-		fname="DVBBridgeV2A_DD01_000A_M4.fpga";
-		*name = "Octopus MAXM4";
-		break;
-	case 0x0011:
-		fname="DVBBridgeV2B_DD01_0011.fpga";
-		*name = "Octopus CI";
-		break;
-	case 0x0012:
-		fname="DVBBridgeV2B_DD01_0012_STD.fpga";
-		*name = "Octopus CI";
-		break;
-	case 0x0013:
-		fname="DVBBridgeV2B_DD01_0013_PRO.fpga";
-		*name = "Octopus PRO";
-		break;
-	case 0x0020:
-		fname="DVBBridgeV2C_DD01_0020.fpga";
-		*name = "Octopus GT Mini";
-		break;
-	case 0x0201:
-		fname="DVBModulatorV1B_DVBModulatorV1B.bit";
-		*name = "Modulator";
-		break;
-	case 0x0203:
-		fname="DVBModulatorV1B_DD01_0203.fpga";
-		*name = "Modulator Test";
-		break;
-	case 0x0210:
-		fname="DVBModulatorV2A_DD01_0210.fpga";
-		*name = "Modulator V2";
-		break;
-	case 0x0220:
-		fname="SDRModulatorV1A_DD01_0220.fpga";
-		*name = "SDRModulator ATV";
-		break;
-	case 0x0221:
-		fname="SDRModulatorV1A_DD01_0221_IQ.fpga";
-		*name = "SDRModulator IQ";
-		break;
-	case 0x0222:
-		fname="SDRModulatorV1A_DD01_0222_DVBT.fpga";
-		*name = "SDRModulator DVBT";
-		break;
-	default:
-		*name = "UNKNOWN";
-		break;
+	for (i = 0; ; i++) {
+		const struct devids *id = &ids[i];
+
+		if (devid == id->id || !id->id) {
+			*name = id->name;
+			fname = id->fname;
+			break;
+		}
 	}
 	return fname;
 }
-
-	
 
 static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen, uint32_t fw_off)
 {
@@ -996,12 +968,10 @@ static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen,
 		return -1;
 	len = off - fw_off;
 	lseek(fs, fw_off, SEEK_SET);
-#if 0
 	if (len > maxlen) {
 		printf("file too big\n");
 		return -1;
 	}
-#endif
 	//printf("flash file len %u, compare to %08x in flash: ", len, addr);
 	for (j = 0; j < len; j += bl, addr += bl) {
 		if (len - j < bl)
@@ -1015,9 +985,9 @@ static int flashcmp(struct ddflash *ddf, int fs, uint32_t addr, uint32_t maxlen,
 			
 		if (memcmp(buf, buf2, bl)) {
 			printf("flash differs at %08x (offset %u)\n", addr, j);
-			dump(buf, bl);
-			printf("\n");
-			dump(buf2, bl);
+			//dump(buf, bl);
+			//printf("\n");
+			//dump(buf2, bl);
 			return addr;
 		}
 	}
@@ -1080,7 +1050,7 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 	unsigned int devid, version, length;
 	unsigned int cid[8];
 	int cids = 0;
-	uint32_t maxlen = 2 * 1024 * 1024, crc;
+	uint32_t maxlen = 2 * 1024 * 1024, crc, fcrc;
 	
 	fd = open(fn, O_RDONLY);
 	if (fd < 0) {
@@ -1148,15 +1118,27 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 	}
 	p++;
 	*fw_off = p;
-	printf("        CRC     = %08x\n", crc);
-	printf("        devid   = %04x\n", devid);
-	printf("        version = %08x    (current image = %08x)\n", version, ddf->id.hw);
+	fcrc = crc32(buf + p, length, 0xffffffff);
+	printf("          CRC file  = %08x\n", fcrc);
+	printf("          CRC flash = %08x\n", crc);
+	printf("          devid     = %04x\n", devid);
+	printf("          version   = %08x    (current image = %08x)\n", version, ddf->id.hw);
 	//printf("        length = %u\n", length);
 	//printf("fsize = %u, p = %u, f-p = %u\n", fsize, p, fsize - p);
+	if (fcrc != crc) {
+		printf("CRC error in file %s!\n", fn);
+		return -4;
+	}
 	if (devid == ddf->id.device) {
-		if (version <= (ddf->id.hw & 0xffffff)) {
-			printf("%s is older or same version as flash\n", fn);
-			ret = -3; /* same id but no newer version */
+		if (version < (ddf->id.hw & 0xffffff)) {
+			printf("%s is older version than flash\n", fn);
+			if (!ddf->force)
+				ret = -3; /* same id but older newer version */
+		}
+		if (version == (ddf->id.hw & 0xffffff)) {
+			printf("%s is same version as flash\n", fn);
+			if (!ddf->force)
+				ret = 2; /* same and same version */
 		}
 	} else
 		ret = 1;
@@ -1169,13 +1151,13 @@ out:
 }
 
 static int update_image(struct ddflash *ddf, char *fn, 
-			uint32_t adr, uint32_t len,
+			uint32_t adr, uint32_t maxlen,
 			int has_header, int no_change)
 {
 	int fs, res = 0;
 	uint32_t fw_off = 0;
 
-	printf("File:   %s\n", fn);
+	printf("File:     %s\n", fn);
 	if (has_header) {
 		int ck;
 		ck = check_fw(ddf, fn, &fw_off);
@@ -1189,17 +1171,24 @@ static int update_image(struct ddflash *ddf, char *fn,
 		printf("File %s not found \n", fn);
 		return -1;
 	}
-	res = flashcmp(ddf, fs, adr, len, fw_off);
+	res = flashcmp(ddf, fs, adr, maxlen, fw_off);
 	if (res == -2) {
 		printf("Flash already identical to %s\n", fn);
+		if (ddf->force) {
+			printf("but force enabled!\n");
+			res = 0;
+		}
 	}
 	if (res < 0) 
 		goto out;
-	res = flashwrite(ddf, fs, adr, len, fw_off);
+	res = flashwrite(ddf, fs, adr, maxlen, fw_off);
 	if (res == 0) {
-		res = flashcmp(ddf, fs, adr, len, fw_off);
+		res = flashcmp(ddf, fs, adr, maxlen, fw_off);
 		if (res == -2) {
 			res = 1;
+			printf("Flash verify OK!\n");
+		} else {
+			printf("Flash verify ERROR!\n");
 		}
 	}
  

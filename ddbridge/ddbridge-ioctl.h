@@ -1,5 +1,7 @@
-#define DDB_MAGIC 'd'
+#ifndef _DDBRIDGE_IOCTL_H_
+#define _DDBRIDGE_IOCTL_H_
 
+#define DDB_MAGIC 'd'
 
 struct ddb_flashio {
 	__u8 *write_buf;
@@ -49,6 +51,12 @@ struct ddb_i2c_msg {
 	__u32  mlen;
 };
 
+struct ddb_mci_msg {
+	__u32 link;
+	struct mci_command cmd;
+	struct mci_result res;
+};
+
 #define IOCTL_DDB_FLASHIO    _IOWR(DDB_MAGIC, 0x00, struct ddb_flashio)
 #define IOCTL_DDB_GPIO_IN    _IOWR(DDB_MAGIC, 0x01, struct ddb_gpio)
 #define IOCTL_DDB_GPIO_OUT   _IOWR(DDB_MAGIC, 0x02, struct ddb_gpio)
@@ -61,47 +69,6 @@ struct ddb_i2c_msg {
 #define IOCTL_DDB_WRITE_MDIO _IOR(DDB_MAGIC, 0x09, struct ddb_mdio)
 #define IOCTL_DDB_READ_I2C   _IOWR(DDB_MAGIC, 0x0a, struct ddb_i2c_msg)
 #define IOCTL_DDB_WRITE_I2C  _IOR(DDB_MAGIC, 0x0b, struct ddb_i2c_msg)
+#define IOCTL_DDB_MCI_CMD    _IOWR(DDB_MAGIC, 0x0c, struct ddb_mci_msg)
 
-enum {
-	UNKNOWN_FLASH = 0,
-	ATMEL_AT45DB642D = 1,
-	SSTI_SST25VF016B = 2,
-	SSTI_SST25VF032B = 3,
-	SSTI_SST25VF064C = 4,
-	SPANSION_S25FL116K = 5,
-	SPANSION_S25FL132K = 6,
-	SPANSION_S25FL164K = 7,
-	WINBOND_W25Q16JV = 8,
-	WINBOND_W25Q32JV = 9,
-	WINBOND_W25Q64JV = 10,
-	WINBOND_W25Q128JV = 11,
-};
-
-struct flash_info {
-	uint8_t id[3];
-	uint32_t type;
-	uint32_t ssize;
-	uint32_t fsize;
-	char *name;
-};
-
-struct ddflash {
-	int fd;
-	uint32_t link;
-	char *fname;
-	int force;
-	
-	struct ddb_id id;
-	uint32_t version;
-
-	char    *flash_name;
-	uint32_t flash_type;
-	uint32_t sector_size;
-	uint32_t size;
-
-	uint32_t bufsize;
-	uint32_t block_erase;
-
-	uint8_t *buffer;
-};
-
+#endif

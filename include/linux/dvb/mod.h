@@ -44,8 +44,10 @@ enum mod_output_rate {
 	SYS_ISDBT_6 = 16,
 	SYS_J83B_64_6 = 24,
 	SYS_J83B_256_6 = 25,
-	SYS_DVBS2_22 = 32,
-	SYS_DVBS2_24 = 33,
+	SYS_DVB_22 = 32,
+	SYS_DVB_24 = 33,
+	SYS_DVB_30 = 34,
+	SYS_ISDBS_2886 = 48,
 };
 
 
