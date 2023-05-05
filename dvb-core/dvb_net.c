@@ -60,6 +60,9 @@
 
 #include <media/dvb_demux.h>
 #include <media/dvb_net.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 18))
+#include <linux/nospec.h>
+#endif
 
 static inline __u32 iov_crc32( __u32 c, struct kvec *iov, unsigned int cnt )
 {
@@ -661,8 +664,8 @@ static void dvb_net_ule_check_crc(struct dvb_net_ule_handle *h,
 			h->ts_remain,
 			h->ts_remain > 2 ?
 				*(unsigned short *)h->from_where : 0);
-
-        #ifdef DVB_ULE_DEBUG
+		
+#ifdef DVB_ULE_DEBUG
 		hexdump(iov[0].iov_base, iov[0].iov_len);
 		hexdump(iov[1].iov_base, iov[1].iov_len);
 		hexdump(iov[2].iov_base, iov[2].iov_len);
@@ -678,8 +681,8 @@ static void dvb_net_ule_check_crc(struct dvb_net_ule_handle *h,
 			hexdump(ule_where - TS_SZ, TS_SZ);
 		}
 		ule_dump = 1;
-	#endif
-
+#endif
+		
 		h->dev->stats.rx_errors++;
 		h->dev->stats.rx_crc_errors++;
 		dev_kfree_skb(h->priv->ule_skb);
@@ -1062,7 +1065,7 @@ static int dvb_net_feed_start(struct net_device *dev)
 	int ret = 0, i;
 	struct dvb_net_priv *priv = netdev_priv(dev);
 	struct dmx_demux *demux = priv->demux;
-	const unsigned char *mac = (unsigned char *) dev->dev_addr;
+	const unsigned char *mac = (const unsigned char *) dev->dev_addr;
 
 	netdev_dbg(dev, "rx_mode %i\n", priv->rx_mode);
 	mutex_lock(&priv->mutex);
@@ -1483,14 +1486,21 @@ static int dvb_net_do_ioctl(struct file *file,
 		struct net_device *netdev;
 		struct dvb_net_priv *priv_data;
 		struct dvb_net_if *dvbnetif = parg;
+		int if_num = dvbnetif->if_num;
 
-		if (dvbnetif->if_num >= DVB_NET_DEVICES_MAX ||
-		    !dvbnet->state[dvbnetif->if_num]) {
+		if (if_num >= DVB_NET_DEVICES_MAX) {
+			ret = -EINVAL;
+			goto ioctl_error;
+		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 18))
+		if_num = array_index_nospec(if_num, DVB_NET_DEVICES_MAX);
+#endif
+		if (!dvbnet->state[if_num]) {
 			ret = -EINVAL;
 			goto ioctl_error;
 		}
 
-		netdev = dvbnet->device[dvbnetif->if_num];
+		netdev = dvbnet->device[if_num];
 
 		priv_data = netdev_priv(netdev);
 		dvbnetif->pid=priv_data->pid;
@@ -1543,14 +1553,21 @@ static int dvb_net_do_ioctl(struct file *file,
 		struct net_device *netdev;
 		struct dvb_net_priv *priv_data;
 		struct __dvb_net_if_old *dvbnetif = parg;
+		int if_num = dvbnetif->if_num;
 
-		if (dvbnetif->if_num >= DVB_NET_DEVICES_MAX ||
-		    !dvbnet->state[dvbnetif->if_num]) {
+		if (if_num >= DVB_NET_DEVICES_MAX) {
+			ret = -EINVAL;
+			goto ioctl_error;
+		}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 18))
+		if_num = array_index_nospec(if_num, DVB_NET_DEVICES_MAX);
+#endif
+		if (!dvbnet->state[if_num]) {
 			ret = -EINVAL;
 			goto ioctl_error;
 		}
 
-		netdev = dvbnet->device[dvbnetif->if_num];
+		netdev = dvbnet->device[if_num];
 
 		priv_data = netdev_priv(netdev);
 		dvbnetif->pid=priv_data->pid;

@@ -1,20 +1,10 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * dvb_demux.c - DVB kernel demux API
  *
  * Copyright (C) 2000-2001 Ralph  Metzler <ralph@convergence.de>
  *		       & Marcus Metzler <marcus@convergence.de>
  *			 for convergence integrated media GmbH
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 
 #define pr_fmt(fmt) "dvb_demux: " fmt
@@ -256,7 +246,7 @@ static int dvb_dmx_swfilter_section_copy_dump(struct dvb_demux_feed *feed,
 {
 	struct dvb_demux *demux = feed->demux;
 	struct dmx_section_feed *sec = &feed->feed.sec;
-	u16 limit, seclen, n;
+	u16 limit, seclen;
 
 	if (sec->tsfeedp >= DMX_MAX_SECFEED_SIZE)
 		return 0;
@@ -285,7 +275,7 @@ static int dvb_dmx_swfilter_section_copy_dump(struct dvb_demux_feed *feed,
 	/* to be sure always set secbuf */
 	sec->secbuf = sec->secbuf_base + sec->secbufp;
 
-	for (n = 0; sec->secbufp + 2 < limit; n++) {
+	while (sec->secbufp + 2 < limit) {
 		seclen = section_length(sec->secbuf);
 		if (seclen <= 0 || seclen > DMX_MAX_SECTION_SIZE
 		    || seclen + sec->secbufp > limit)
@@ -489,8 +479,8 @@ static void dvb_dmx_swfilter_packet(struct dvb_demux *demux, const u8 *buf)
 					}
 
 					dprintk_tscheck("TS packet counter mismatch. PID=0x%x expected 0x%x got 0x%x\n",
-						pid, demux->cnt_storage[pid],
-						buf[3] & 0xf);
+							pid, demux->cnt_storage[pid],
+							buf[3] & 0xf);
 					demux->cnt_storage[pid] = buf[3] & 0xf;
 				}
 			}

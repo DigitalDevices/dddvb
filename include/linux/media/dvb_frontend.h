@@ -369,6 +369,10 @@ struct dvb_frontend_internal_info {
  *			allocated by the driver.
  * @init:		callback function used to initialize the tuner device.
  * @sleep:		callback function used to put the tuner to sleep.
+ * @suspend:		callback function used to inform that the Kernel will
+ *			suspend.
+ * @resume:		callback function used to inform that the Kernel is
+ *			resuming from suspend.
  * @write:		callback function used by some demod legacy drivers to
  *			allow other drivers to write data into their registers.
  *			Should not be used on new drivers.
@@ -438,7 +442,6 @@ struct dvb_frontend_internal_info {
  * @analog_ops:		pointer to &struct analog_demod_ops
  */
 struct dvb_frontend_ops {
-
 	struct dvb_frontend_internal_info info;
 
 	u8 delsys[MAX_DELSYS];
@@ -449,6 +452,8 @@ struct dvb_frontend_ops {
 
 	int (*init)(struct dvb_frontend* fe);
 	int (*sleep)(struct dvb_frontend* fe);
+	int (*suspend)(struct dvb_frontend *fe);
+	int (*resume)(struct dvb_frontend *fe);
 
 	int (*write)(struct dvb_frontend* fe, const u8 buf[], int len);
 
@@ -765,7 +770,8 @@ void dvb_frontend_detach(struct dvb_frontend *fe);
  * &dvb_frontend_ops.tuner_ops.suspend\(\) is available, it calls it. Otherwise,
  * it will call &dvb_frontend_ops.tuner_ops.sleep\(\), if available.
  *
- * It will also call &dvb_frontend_ops.sleep\(\) to put the demod to suspend.
+ * It will also call &dvb_frontend_ops.suspend\(\) to put the demod to suspend,
+ * if available. Otherwise it will call &dvb_frontend_ops.sleep\(\).
  *
  * The drivers should also call dvb_frontend_suspend\(\) as part of their
  * handler for the &device_driver.suspend\(\).
@@ -779,7 +785,9 @@ int dvb_frontend_suspend(struct dvb_frontend *fe);
  *
  * This function resumes the usual operation of the tuner after resume.
  *
- * In order to resume the frontend, it calls the demod &dvb_frontend_ops.init\(\).
+ * In order to resume the frontend, it calls the demod
+ * &dvb_frontend_ops.resume\(\) if available. Otherwise it calls demod
+ * &dvb_frontend_ops.init\(\).
  *
  * If &dvb_frontend_ops.tuner_ops.resume\(\) is available, It, it calls it.
  * Otherwise,t will call &dvb_frontend_ops.tuner_ops.init\(\), if available.
