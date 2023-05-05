@@ -310,16 +310,10 @@ struct mci_command msg_channels = {
 
 struct mci_command msg_stream = {
 	.mod_command = MOD_SETUP_STREAM,
-	.mod_channel = 1,
+	.mod_channel = 0,
 	.mod_stream = 0,
 	.mod_setup_stream = {
 		.standard = MOD_STANDARD_DVBC_8,
-#if 0
-		.ofdm = {
-			.fft_size = 1,
-			.guard_interval = 0,
-		}
-#endif
 	},
 };
 
@@ -381,6 +375,7 @@ void channels_cb(void *priv, char *par, char *val)
 		printf("frequency = %u\n", mc->channels.mod_setup_channels[0].frequency);
 	} else if (!strcasecmp(par, "channels")) {
 		mc->channels.mod_setup_channels[0].num_channels = strtol(val, NULL, 10);
+		printf("channels = %u\n", mc->channels.mod_setup_channels[0].num_channels);
 	} else if (!strcasecmp(par, "standard")) {
 		if (!parse_param(val,mod_standard_table, &value))
 			mc->channels.mod_setup_channels[0].standard = value;
@@ -434,6 +429,15 @@ void streams_cb(void *priv, char *par, char *val)
 	} else if (!strcasecmp(par, "stream")) {
 		mc->stream.mod_stream = strtol(val, NULL, 10);
 		printf("set stream %u to channel %u\n", mc->stream.mod_stream, mc->stream.mod_channel);
+		printf("%u %u %u %u %u %u %u %u\n",
+		       mc->stream.mod_command,
+		       mc->stream.mod_channel,
+		       mc->stream.mod_stream,
+		       mc->stream.mod_setup_stream.standard,
+		       mc->stream.mod_setup_stream.symbol_rate,
+		       mc->stream.mod_setup_stream.stream_format,
+		       mc->stream.mod_setup_stream.qam.modulation,
+		       mc->stream.mod_setup_stream.qam.rolloff);
 		mci_cmd(mc->fd, &mc->stream);
 	} else
 		printf("invalid streams parameter: %s = %s\n", par, val);
