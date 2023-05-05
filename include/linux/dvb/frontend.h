@@ -7,21 +7,6 @@
  *		    Holger Waechtler <holger@convergence.de>
  *		    Andre Draszik <ad@convergence.de>
  *		    for convergence integrated media GmbH
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- *
  */
 
 #ifndef _DVBFRONTEND_H_
@@ -281,7 +266,6 @@ enum fe_spectral_inversion {
 
 /**
  * enum fe_code_rate - Type of Forward Error Correction (FEC)
- *
  *
  * @FEC_NONE: No Forward Error Correction Code
  * @FEC_1_2:  Forward Error Correction Code 1/2
@@ -841,18 +825,18 @@ struct dtv_fe_stats {
 /**
  * struct dtv_property - store one of frontend command and its value
  *
- * @cmd:	Digital TV command.
- * @reserved:	Not used.
- * @u:		Union with the values for the command.
- * @u.data:           A unsigned 32 bits integer with command value.
- * @u.buffer:         Struct to store bigger properties.
- *                    Currently unused.
- * @u.buffer.data:    an unsigned 32-bits array.
- * @u.buffer.len:     number of elements of the buffer.
- * @u.buffer.reserved1:       Reserved.
- * @u.buffer.reserved2:       Reserved.
- * @u.st:             a &struct dtv_fe_stats array of statistics.
- * @result:           Currently unused.
+ * @cmd:		Digital TV command.
+ * @reserved:		Not used.
+ * @u:			Union with the values for the command.
+ * @u.data:		A unsigned 32 bits integer with command value.
+ * @u.buffer:		Struct to store bigger properties.
+ *			Currently unused.
+ * @u.buffer.data:	an unsigned 32-bits array.
+ * @u.buffer.len:	number of elements of the buffer.
+ * @u.buffer.reserved1:	Reserved.
+ * @u.buffer.reserved2:	Reserved.
+ * @u.st:		a &struct dtv_fe_stats array of statistics.
+ * @result:		Currently unused.
  *
  */
 struct dtv_property {
