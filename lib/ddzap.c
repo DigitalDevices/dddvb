@@ -391,6 +391,10 @@ int main(int argc, char **argv)
 				printf("unknown mtype %s\n", optarg);
 			break;
 		case 'd':
+			if (!strcmp(optarg, "C2"))
+				delsys = SYS_DVBC2;
+			if (!strcmp(optarg, "DVBC2"))
+				delsys = SYS_DVBC2;
 			if (!strcmp(optarg, "C"))
 				delsys = SYS_DVBC_ANNEX_A;
 			if (!strcmp(optarg, "DVBC"))

@@ -5,21 +5,6 @@
  * Copyright (C) 2000 Ralph  Metzler <ralph@convergence.de>
  *                  & Marcus Metzler <marcus@convergence.de>
  *                    for convergence integrated media GmbH
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Lesser Public License
- * as published by the Free Software Foundation; either version 2.1
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
- *
  */
 
 #ifndef _DVBCA_H_
@@ -132,11 +117,6 @@ struct ca_descr {
 	unsigned char cw[8];
 };
 
-struct ca_pid {
-	unsigned int pid;
-	int index;/* -1 == disable*/
-};
-
 #define CA_RESET          _IO('o', 128)
 #define CA_GET_CAP        _IOR('o', 129, struct ca_caps)
 #define CA_GET_SLOT_INFO  _IOR('o', 130, struct ca_slot_info)
@@ -144,7 +124,6 @@ struct ca_pid {
 #define CA_GET_MSG        _IOR('o', 132, struct ca_msg)
 #define CA_SEND_MSG       _IOW('o', 133, struct ca_msg)
 #define CA_SET_DESCR      _IOW('o', 134, struct ca_descr)
-#define CA_SET_PID        _IOW('o', 135, struct ca_pid)
 
 #if !defined(__KERNEL__)
 
@@ -154,7 +133,6 @@ typedef struct ca_descr_info  ca_descr_info_t;
 typedef struct ca_caps  ca_caps_t;
 typedef struct ca_msg ca_msg_t;
 typedef struct ca_descr ca_descr_t;
-typedef struct ca_pid ca_pid_t;
 
 #endif
 

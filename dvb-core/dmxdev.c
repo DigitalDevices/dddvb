@@ -1,19 +1,9 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * dmxdev.c - DVB demultiplexer device
  *
  * Copyright (C) 2000 Ralph Metzler & Marcus Metzler
  *		      for convergence integrated media GmbH
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License
- * as published by the Free Software Foundation; either version 2.1
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
  */
 
 #define pr_fmt(fmt) "dmxdev: " fmt
@@ -369,23 +359,23 @@ static int dvb_dmxdev_set_buffer_size(struct dmxdev_filter *dmxdevfilter,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 static void dvb_dmxdev_filter_timeout(struct timer_list *t)
 {
-        struct dmxdev_filter *dmxdevfilter = from_timer(dmxdevfilter, t, timer);
-	
-        dmxdevfilter->buffer.error = -ETIMEDOUT;
-        spin_lock_irq(&dmxdevfilter->dev->lock);
-        dmxdevfilter->state = DMXDEV_STATE_TIMEDOUT;
-        spin_unlock_irq(&dmxdevfilter->dev->lock);
-        wake_up(&dmxdevfilter->buffer.queue);
+	struct dmxdev_filter *dmxdevfilter = from_timer(dmxdevfilter, t, timer);
+
+	dmxdevfilter->buffer.error = -ETIMEDOUT;
+	spin_lock_irq(&dmxdevfilter->dev->lock);
+	dmxdevfilter->state = DMXDEV_STATE_TIMEDOUT;
+	spin_unlock_irq(&dmxdevfilter->dev->lock);
+	wake_up(&dmxdevfilter->buffer.queue);
 }
 
 static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 {
 	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
-	
+
 	del_timer(&dmxdevfilter->timer);
 	if (para->timeout) {
-                dmxdevfilter->timer.expires =
-			jiffies + 1 + (HZ / 2 + HZ * para->timeout) / 1000;
+		dmxdevfilter->timer.expires =
+		    jiffies + 1 + (HZ / 2 + HZ * para->timeout) / 1000;
 		add_timer(&dmxdevfilter->timer);
 	}
 }
@@ -404,7 +394,7 @@ static void dvb_dmxdev_filter_timeout(unsigned long data)
 static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 {
 	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
-	
+
 	del_timer(&dmxdevfilter->timer);
 	if (para->timeout) {
 		dmxdevfilter->timer.function = dvb_dmxdev_filter_timeout;
@@ -415,6 +405,7 @@ static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 	}
 }
 #endif
+
 static int dvb_dmxdev_section_callback(const u8 *buffer1, size_t buffer1_len,
 				       const u8 *buffer2, size_t buffer2_len,
 				       struct dmx_section_filter *filter,
@@ -475,14 +466,14 @@ static int dvb_dmxdev_section_callback(const u8 *buffer1, size_t buffer1_len,
 
 static int dvb_dmxdev_ts_callback(const u8 *buffer1, size_t buffer1_len,
 				  const u8 *buffer2, size_t buffer2_len,
-				       struct dmx_ts_feed *feed,
-				       u32 *buffer_flags)
+				  struct dmx_ts_feed *feed,
+				  u32 *buffer_flags)
 {
 	struct dmxdev_filter *dmxdevfilter = feed->priv;
+	struct dvb_ringbuffer *buffer;
 #ifdef CONFIG_DVB_MMAP
 	struct dvb_vb2_ctx *ctx;
 #endif
-	struct dvb_ringbuffer *buffer;
 	int ret;
 
 	spin_lock(&dmxdevfilter->dev->lock);
@@ -848,6 +839,11 @@ static int dvb_demux_open(struct inode *inode, struct file *file)
 
 	if (mutex_lock_interruptible(&dmxdev->mutex))
 		return -ERESTARTSYS;
+
+	if (dmxdev->exit) {
+		mutex_unlock(&dmxdev->mutex);
+		return -ENODEV;
+	}
 
 	for (i = 0; i < dmxdev->filternum; i++)
 		if (dmxdev->filter[i].state == DMXDEV_STATE_FREE)
@@ -1485,7 +1481,7 @@ static const struct dvb_device dvbdev_dvr = {
 
 int dvb_dmxdev_init(struct dmxdev *dmxdev, struct dvb_adapter *dvb_adapter)
 {
-	int i;
+	int i, ret;
 
 	if (dmxdev->demux->open(dmxdev->demux) < 0)
 		return -EUSERS;
@@ -1508,21 +1504,36 @@ int dvb_dmxdev_init(struct dmxdev *dmxdev, struct dvb_adapter *dvb_adapter)
 					    DMXDEV_STATE_FREE);
 	}
 
-	dvb_register_device(dvb_adapter, &dmxdev->dvbdev, &dvbdev_demux, dmxdev,
+	ret = dvb_register_device(dvb_adapter, &dmxdev->dvbdev, &dvbdev_demux, dmxdev,
 			    DVB_DEVICE_DEMUX, dmxdev->filternum);
-	dvb_register_device(dvb_adapter, &dmxdev->dvr_dvbdev, &dvbdev_dvr,
+	if (ret < 0)
+		goto err_register_dvbdev;
+
+	ret = dvb_register_device(dvb_adapter, &dmxdev->dvr_dvbdev, &dvbdev_dvr,
 			    dmxdev, DVB_DEVICE_DVR, dmxdev->filternum);
+	if (ret < 0)
+		goto err_register_dvr_dvbdev;
 
 	dvb_ringbuffer_init(&dmxdev->dvr_buffer, NULL, 8192);
 
 	return 0;
+
+err_register_dvr_dvbdev:
+	dvb_unregister_device(dmxdev->dvbdev);
+err_register_dvbdev:
+	vfree(dmxdev->filter);
+	dmxdev->filter = NULL;
+	return ret;
 }
 
 EXPORT_SYMBOL(dvb_dmxdev_init);
 
 void dvb_dmxdev_release(struct dmxdev *dmxdev)
 {
+	mutex_lock(&dmxdev->mutex);
 	dmxdev->exit = 1;
+	mutex_unlock(&dmxdev->mutex);
+
 	if (dmxdev->dvbdev->users > 1) {
 		wait_event(dmxdev->dvbdev->wait_queue,
 				dmxdev->dvbdev->users == 1);

@@ -3469,7 +3469,11 @@ static const struct file_operations ddb_fops = {
 #if (KERNEL_VERSION(3, 4, 0) > LINUX_VERSION_CODE)
 static char *ddb_devnode(struct device *device, mode_t *mode)
 #else
+#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
 static char *ddb_devnode(struct device *device, umode_t *mode)
+#else
+static char *ddb_devnode(const struct device *device, umode_t *mode)
+#endif
 #endif
 {
 	struct ddb *dev = dev_get_drvdata(device);
