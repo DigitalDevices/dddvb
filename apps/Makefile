@@ -26,7 +26,7 @@ cit: cit.c
 	$(CC) $(CFLAGS) -I../ddbridge -o $@ $<
 
 clean:
-	rm test.ts
+	rm test.ts -f
 	for f in $(TARGETS) *.o *~ ; do \
 		if [ -e "$$f" ]; then \
 			rm "$$f" || exit 1; \
