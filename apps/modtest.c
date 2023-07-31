@@ -1137,11 +1137,6 @@ void set_dvbc_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
 	    exit(1);   
 	}
      
-
-	if (set_property(fd, MODULATOR_PCR_MODE, 0) < 0){
-	    fprintf(stderr,"setting pcr mode 0 failed\n");
-	    exit(1);   
-	}
 	freq += 8000000;
 	close(fd);
 	free(device);
