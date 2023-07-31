@@ -147,13 +147,10 @@ struct ddb_info {
 	u32   type;
 #define DDB_NONE             0
 #define DDB_OCTOPUS          1
-#define DDB_OCTOPUS_CI       2
 #define DDB_MOD              3
 #define DDB_OCTONET          4
 #define DDB_OCTOPUS_MAX      5
 #define DDB_OCTOPUS_MAX_CT   6
-#define DDB_OCTOPRO          7
-#define DDB_OCTOPRO_HDIN     8
 #define DDB_OCTOPUS_MCI      9
 	u32   version;
 	char *name;
@@ -175,11 +172,14 @@ struct ddb_info {
 #define TS_QUIRK_ALT_OSC   8
 	u8    mci_ports;
 	u8    mci_type;
+	u8    ci_mask;
 
 	u32   tempmon_irq;
 	u32   lostlock_irq;
 	u32   mdio_base;
 	u32   hw_min;
+	u32   ci_base;
+	u32   lnb_base;
 	const struct ddb_regmap *regmap;
 };
 
@@ -247,6 +247,7 @@ struct ddb_ci {
 	struct dvb_ca_en50221  en;
 	struct ddb_port       *port;
 	u32                    nr;
+	u32                    regs;
 };
 
 struct ddb_io {

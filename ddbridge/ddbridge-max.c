@@ -49,11 +49,12 @@ MODULE_PARM_DESC(no_voltage, "Do not enable voltage on LNBH (will also disable 2
 static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 {
 	u32 c, v = 0, tag = DDB_LINK_TAG(link);
+	u32 base = dev->link[link].info->lnb_base;
 
 	v = LNB_TONE & (dev->link[link].lnb.tone << (15 - lnb));
-	ddbwritel(dev, cmd | v, tag | LNB_CONTROL(lnb));
+	ddbwritel(dev, cmd | v, tag | base | LNB_CONTROL(lnb));
 	for (c = 0; c < 10; c++) {
-		v = ddbreadl(dev, tag | LNB_CONTROL(lnb));
+		v = ddbreadl(dev, tag | base | LNB_CONTROL(lnb));
 		if ((v & LNB_BUSY) == 0)
 			break;
 		msleep(20);
@@ -91,6 +92,7 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	struct ddb *dev = port->dev;
 	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
 	u32 tag = DDB_LINK_TAG(port->lnr);
+	u32 base = dev->link[port->lnr].info->lnb_base;
 	int i;
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
 
@@ -105,9 +107,9 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 		dvb->diseqc_send_master_cmd(fe, cmd);
 
 	mutex_lock(&dev->link[port->lnr].lnb.lock);
-	ddbwritel(dev, 0, tag | LNB_BUF_LEVEL(dvb->input));
+	ddbwritel(dev, 0, tag | base | LNB_BUF_LEVEL(dvb->input));
 	for (i = 0; i < cmd->msg_len; i++)
-		ddbwritel(dev, cmd->msg[i], tag | LNB_BUF_WRITE(dvb->input));
+		ddbwritel(dev, cmd->msg[i], tag | base | LNB_BUF_WRITE(dvb->input));
 	lnb_command(dev, port->lnr, dvb->input, LNB_CMD_DISEQC);
 	mutex_unlock(&dev->link[port->lnr].lnb.lock);
 	return 0;
@@ -117,11 +119,12 @@ static int lnb_send_diseqc(struct ddb *dev, u32 link, u32 input,
 			   struct dvb_diseqc_master_cmd *cmd)
 {
 	u32 tag = DDB_LINK_TAG(link);
+	u32 base = dev->link[link].info->lnb_base;
 	int i;
 
-	ddbwritel(dev, 0, tag | LNB_BUF_LEVEL(input));
+	ddbwritel(dev, 0, tag | base | LNB_BUF_LEVEL(input));
 	for (i = 0; i < cmd->msg_len; i++)
-		ddbwritel(dev, cmd->msg[i], tag | LNB_BUF_WRITE(input));
+		ddbwritel(dev, cmd->msg[i], tag | base | LNB_BUF_WRITE(input));
 	lnb_command(dev, link, input, LNB_CMD_DISEQC);
 	return 0;
 }
@@ -369,6 +372,7 @@ static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	struct ddb_port *port = input->port;
 	struct ddb *dev = port->dev;
 	u32 tag = DDB_LINK_TAG(port->lnr);
+	u32 base = dev->link[port->lnr].info->lnb_base;
 	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
 
@@ -377,14 +381,14 @@ static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	default:
 	case 0:
 	case 3:
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(dvb->input));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(dvb->input));
 		break;
 	case 1:
 	case 2:
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(0));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(1));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(2));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(3));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(0));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(1));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(2));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(3));
 		break;
 	}
 	mutex_unlock(&dev->link[port->lnr].lnb.lock);
