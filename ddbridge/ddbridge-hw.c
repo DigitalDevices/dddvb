@@ -731,8 +731,48 @@ static const struct ddb_info ddb_m4 = {
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
 	.mci_ports = 2,
-	.mci_type = 1,
+	.mci_type = DDB_TUNER_MCI_M4,
 	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_m8 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices MAX M8",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.i2c_mask = 0x00,
+	.tempmon_irq = 24,
+	.mci_ports = 4,
+	.mci_type = DDB_TUNER_MCI_M8,
+	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_m8a = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices MAX M8A",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.tempmon_irq = 24,
+	.mci_ports = 4,
+	.mci_type = DDB_TUNER_MCI_M8A,
+	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_ci_m2 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices Octopus CI M2",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.tempmon_irq = 24,
+	.mci_ports = 1,
+	.mci_type = DDB_TUNER_MCI_M2,
+	.temp_num = 1,
+	.ci_mask  = 0x0c,
+	.ci_base  = 0x400,
+	.lnb_base = 0x480,
 };
 
 /****************************************************************************/
@@ -865,7 +905,10 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0012, 0x0042, ddb_ci),
 	DDB_DEVID(0x0013, 0x0043, ddb_ci_s2_pro),
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
+	DDB_DEVID(0x0014, 0x0045, ddb_ci_m2),
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
+	DDB_DEVID(0x0022, 0x0052, ddb_m8),
+	DDB_DEVID(0x0024, 0x0053, ddb_m8a),
 
 	/* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),

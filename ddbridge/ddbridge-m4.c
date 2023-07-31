@@ -529,7 +529,134 @@ static struct mci_cfg ddb_max_m4_cfg = {
 	.base_init = base_init,
 };
 
-struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner)
+static struct dvb_frontend_ops m_ops = {
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B, SYS_DVBC_ANNEX_C,
+		    SYS_ISDBC, 
+		    SYS_DVBT, SYS_DVBT2, SYS_ISDBT,
+		    SYS_DVBS, SYS_DVBS2, SYS_ISDBS, },
+	.info = {
+		.name = "M_AS",
+		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 2150000000,	/* DVB-C: 862000000 */
+		.symbol_rate_min = 100000,
+		.symbol_rate_max = 100000000,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
+		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
+		FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		FE_CAN_QAM_AUTO |
+		FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+		FE_CAN_FEC_4_5 |
+		FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+		FE_CAN_TRANSMISSION_MODE_AUTO |
+		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+	},
+	.release                        = release,
+	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
+	.read_status                    = read_status,
+	.tune                           = tune,
+	.sleep                          = sleep,
+};
+
+static struct mci_cfg ddb_max_m_cfg = {
+	.type = 0,
+	.fe_ops = &m_ops,
+	.base_size = sizeof(struct m4_base),
+	.state_size = sizeof(struct m4),
+	.init = init,
+	.base_init = base_init,
+};
+
+static struct dvb_frontend_ops m_s_ops = {
+	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_ISDBS },
+	.info = {
+		.name = "M_S",
+		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 2150000000,	/* DVB-C: 862000000 */
+		.symbol_rate_min = 100000,
+		.symbol_rate_max = 100000000,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
+		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
+		FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		FE_CAN_QAM_AUTO |
+		FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+		FE_CAN_FEC_4_5 |
+		FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+		FE_CAN_TRANSMISSION_MODE_AUTO |
+		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+	},
+	.release                        = release,
+	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
+	.read_status                    = read_status,
+	.tune                           = tune,
+	.sleep                          = sleep,
+};
+
+static struct mci_cfg ddb_max_m_s_cfg = {
+	.type = 0,
+	.fe_ops = &m_s_ops,
+	.base_size = sizeof(struct m4_base),
+	.state_size = sizeof(struct m4),
+	.init = init,
+	.base_init = base_init,
+};
+
+static struct dvb_frontend_ops m_a_ops = {
+	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B, SYS_DVBC_ANNEX_C,
+		    SYS_ISDBC, 
+		    SYS_DVBT, SYS_DVBT2, SYS_ISDBT,
+	},
+	.info = {
+		.name = "M_A",
+		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
+		.frequency_max_hz = 2150000000,	/* DVB-C: 862000000 */
+		.symbol_rate_min = 100000,
+		.symbol_rate_max = 100000000,
+		.frequency_stepsize_hz	= 0,
+		.frequency_tolerance_hz	= 0,
+		.caps = FE_CAN_QPSK | FE_CAN_QAM_16 | FE_CAN_QAM_32 |
+		FE_CAN_QAM_64 | FE_CAN_QAM_128 | FE_CAN_QAM_256 |
+		FE_CAN_QAM_AUTO |
+		FE_CAN_FEC_1_2 | FE_CAN_FEC_2_3 | FE_CAN_FEC_3_4 |
+		FE_CAN_FEC_4_5 |
+		FE_CAN_FEC_5_6 | FE_CAN_FEC_7_8 | FE_CAN_FEC_AUTO |
+		FE_CAN_TRANSMISSION_MODE_AUTO |
+		FE_CAN_GUARD_INTERVAL_AUTO | FE_CAN_HIERARCHY_AUTO |
+		FE_CAN_RECOVER | FE_CAN_MUTE_TS | FE_CAN_2G_MODULATION
+	},
+	.release                        = release,
+	.get_frontend_algo              = get_algo,
+	.get_frontend                   = get_frontend,
+	.read_status                    = read_status,
+	.tune                           = tune,
+	.sleep                          = sleep,
+};
+
+static struct mci_cfg ddb_max_m_a_cfg = {
+	.type = 0,
+	.fe_ops = &m_a_ops,
+	.base_size = sizeof(struct m4_base),
+	.state_size = sizeof(struct m4),
+	.init = init,
+	.base_init = base_init,
+};
+
+static struct mci_cfg *ddb_max_cfgs [] = {
+	&ddb_max_m4_cfg,
+	&ddb_max_m_a_cfg,
+	&ddb_max_m_s_cfg,
+	&ddb_max_m_cfg,
+};
+
+struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type)
 {
-	return ddb_mci_attach(input, &ddb_max_m4_cfg, nr, tuner);
+	return ddb_mci_attach(input, ddb_max_cfgs[type], nr, tuner);
 }
+
+EXPORT_SYMBOL(ddb_mx_attach);
+
