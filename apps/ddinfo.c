@@ -274,7 +274,7 @@ void print_info(int dev, uint32_t link, uint8_t demod, struct mci_result *res)
 	if (res->status == MCI_DEMOD_LOCKED) {
 		switch (res->mode) {
 		case 0:
-		case M4_MODE_DVBSX:
+		case MX_MODE_DVBSX:
 			if (res->dvbs2_signal_info.standard != 1) {
 				int short_frame = 0, pilots = 0;
 				char *modcod = "unknown";
@@ -308,10 +308,10 @@ void print_info(int dev, uint32_t link, uint8_t demod, struct mci_result *res)
 			}
 			printf("Inversion:     %s\n", (res->dvbs2_signal_info.roll_off & 0x80) ? "on": "off");
 			break;
-		case M4_MODE_DVBT:
+		case MX_MODE_DVBT:
 			printf("Locked DVB-T\n");
 			break;
-		case M4_MODE_DVBT2:
+		case MX_MODE_DVBT2:
 			printf("Locked DVB-T2\n");
 			break;
 		}

@@ -96,8 +96,8 @@
 #define SX8_DEMOD_IQ_MODE        (1)
 #define SX8_DEMOD_WAIT_MATYPE    (3)
 
-#define M4_DEMOD_WAIT_TS         (6)
-#define M4_DEMOD_C2SCAN          (16)
+#define MX_DEMOD_WAIT_TS         (6)
+#define MX_DEMOD_C2SCAN          (16)
 
 #define MCI_STATUS_OK                 (0x00)
 #define MCI_STATUS_UNSUPPORTED        (0x80)
@@ -142,42 +142,45 @@
 #define SX8_CMD_ENABLE_IQOUTPUT  (0x44)
 #define SX8_CMD_DISABLE_IQOUTPUT (0x45)
 
-#define M4_CMD_GET_L1INFO         (0x50)
-#define M4_CMD_GET_IDS            (0x51)
-#define M4_CMD_GET_DVBT_TPS       (0x52)
+#define MX_CMD_GET_L1INFO         (0x50)
+#define MX_CMD_GET_IDS            (0x51)
+#define MX_CMD_GET_DVBT_TPS       (0x52)
 #define MCI_CMD_GET_BBHEADER      (0x53)
-#define M4_CMD_GET_ISDBT_TMCC     (0x54)
-#define M4_CMD_GET_ISDBS_TMCC     (0x55)
-#define M4_CMD_GET_ISDBC_TSMF     (0x56)
+#define MX_CMD_GET_ISDBT_TMCC     (0x54)
+#define MX_CMD_GET_ISDBS_TMCC     (0x55)
+#define MX_CMD_GET_ISDBC_TSMF     (0x56)
 
-#define M4_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
+#define MX_CMD_GET_BBHEADER       (MCI_CMD_GET_BBHEADER)
 
-#define M4_L1INFO_SEL_PRE         (0)
-#define M4_L1INFO_SEL_DSINFO      (1)
-#define M4_L1INFO_SEL_PLPINFO     (2)
-#define M4_L1INFO_SEL_PLPINFO_C   (3)
-#define M4_L1INFO_SEL_SETID       (0x80)
+#define MX_L1INFO_SEL_PRE         (0)
+#define MX_L1INFO_SEL_DSINFO      (1)
+#define MX_L1INFO_SEL_PLPINFO     (2)
+#define MX_L1INFO_SEL_PLPINFO_C   (3)
+#define MX_L1INFO_SEL_SETID       (0x80)
 
 #define MCI_BANDWIDTH_EXTENSION  (0x80)   // currently used only for J83B in Japan
 
-#define M4_MODE_DVBSX            (2)
-#define M4_MODE_DVBC             (3)
-#define M4_MODE_DVBT             (4)
-#define M4_MODE_DVBT2            (5)
-#define M4_MODE_DVBC2            (6)
-#define M4_MODE_J83B             (7)
-#define M4_MODE_ISDBT            (8)
-#define M4_MODE_ISDBC            (9)
-#define M4_MODE_ISDBS            (10)
+#define MX_MODE_DVBSX            (2)
+#define MX_MODE_DVBC             (3)
+#define MX_MODE_DVBT             (4)
+#define MX_MODE_DVBT2            (5)
+#define MX_MODE_DVBC2            (6)
+#define MX_MODE_J83B             (7)
+#define MX_MODE_ISDBT            (8)
+#define MX_MODE_ISDBC            (9)
+#define MX_MODE_ISDBS            (10)
+#define MX_MODE_ISDBS3           (11)
+#define MX_MODE_ATSC             (12)
+#define MX_MODE_ATSC3            (13)
 
-#define M4_DVBC_CONSTELLATION_16QAM  (0)
-#define M4_DVBC_CONSTELLATION_32QAM  (1)
-#define M4_DVBC_CONSTELLATION_64QAM  (2)  // also valid for J83B and ISDB-C
-#define M4_DVBC_CONSTELLATION_128QAM (3)
-#define M4_DVBC_CONSTELLATION_256QAM (4)  // also valid for J83B and ISDB-C
+#define MX_DVBC_CONSTELLATION_16QAM  (0)
+#define MX_DVBC_CONSTELLATION_32QAM  (1)
+#define MX_DVBC_CONSTELLATION_64QAM  (2)  // also valid for J83B and ISDB-C
+#define MX_DVBC_CONSTELLATION_128QAM (3)
+#define MX_DVBC_CONSTELLATION_256QAM (4)  // also valid for J83B and ISDB-C
 
-#define M4_SIGNALINFO_FLAG_CHANGE (0x01)
-#define M4_SIGNALINFO_FLAG_EWS    (0x02)
+#define MX_SIGNALINFO_FLAG_CHANGE (0x01)
+#define MX_SIGNALINFO_FLAG_EWS    (0x02)
 
 #define SX8_ROLLOFF_35  0
 #define SX8_ROLLOFF_25  1
