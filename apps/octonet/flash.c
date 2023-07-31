@@ -1076,12 +1076,12 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 	close(fd);
 	
 	for (p = 0; p < fsize && buf[p]; p++) {
-		char *key = &buf[p], *val = NULL;
+		char *key = (char *) &buf[p], *val = NULL;
 
 		for (; p < fsize && buf[p] != 0x0a; p++) {
 			if (buf[p] == ':') {
 				buf[p] = 0;
-				val = &buf[p + 1];
+				val = (char *) &buf[p + 1];
 			}
 		}
 		if (val == NULL || p == fsize)
