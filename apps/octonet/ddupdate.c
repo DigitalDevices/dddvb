@@ -109,20 +109,14 @@ static int update_flash(struct ddflash *ddf)
 			stat |= 1;
 		return stat;
 		break;
-	case 0x21:
-	case 0x22:
-	case 0x24:
-	case 0x14:
-		imgadr = 0;
 	default:
 	{
 		uint32_t val;
 		if (!readreg(ddf->fd, (ddf->link << 28) | 0x10, &val)) {
-			printf("reg0x10=%08x\n", val);
+			//printf("reg0x10=%08x\n", val);
 			if ((val >> 24) == 5)
 				imgadr = 0;
 		}
-		printf("imgadr= %08x\n", imgadr);
 	}
 		fname = ddf->fname;
 		default_fname = devid2fname(ddf->id.device, &name);
