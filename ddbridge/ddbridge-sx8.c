@@ -117,6 +117,9 @@ static void release(struct dvb_frontend *fe)
 		kfree(mci_base);
 	}
 	kfree(state);
+#ifdef CONFIG_MEDIA_ATTACH
+	__module_get(THIS_MODULE);
+#endif
 }
 
 static int ddb_mci_tsconfig(struct mci *state, u32 config)
