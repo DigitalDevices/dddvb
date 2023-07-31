@@ -1122,6 +1122,9 @@ static int dummy_read_status(struct dvb_frontend *fe, enum fe_status *status)
 static void dummy_release(struct dvb_frontend *fe)
 {
 	kfree(fe);
+#ifdef CONFIG_MEDIA_ATTACH
+	__module_get(THIS_MODULE);
+#endif
 }
 
 static enum dvbfe_algo dummy_algo(struct dvb_frontend *fe)
@@ -1170,11 +1173,7 @@ static int demod_attach_dummy(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 
-#if 0
-	dvb->fe = dvb_attach(dummy_attach);
-#else
 	dvb->fe = dummy_attach();
-#endif
 	return 0;
 }
 

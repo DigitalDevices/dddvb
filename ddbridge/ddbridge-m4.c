@@ -457,6 +457,9 @@ static void release(struct dvb_frontend *fe)
 		kfree(mci_base);
 	}
 	kfree(state);
+#ifdef CONFIG_MEDIA_ATTACH
+	__module_get(THIS_MODULE);
+#endif
 }
 
 static enum dvbfe_algo get_algo(struct dvb_frontend *fe)
