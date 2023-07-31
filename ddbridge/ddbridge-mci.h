@@ -993,6 +993,7 @@ struct mci_cfg {
 
 int ddb_mci_cmd(struct mci *state, struct mci_command *command, struct mci_result *result);
 int ddb_mci_cmd_link(struct ddb_link *link, struct mci_command *command, struct mci_result *result);
+int ddb_mci_cmd_link_simple(struct ddb_link *link, u8 command, u8 demod, u8 value);
 int ddb_mci_get_status(struct mci *mci, struct mci_result *res);
 int ddb_mci_get_snr(struct dvb_frontend *fe);
 int ddb_mci_get_info(struct mci *mci);
