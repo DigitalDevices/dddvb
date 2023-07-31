@@ -1094,7 +1094,11 @@ static int __init init_dvbdev(void)
 		goto error;
 	}
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0))
 	dvb_class = class_create(THIS_MODULE, "dvb");
+#else
+	dvb_class = class_create("dvb");
+#endif
 	if (IS_ERR(dvb_class)) {
 		retval = PTR_ERR(dvb_class);
 		goto error;
