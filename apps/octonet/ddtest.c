@@ -1362,7 +1362,7 @@ int read_id(int dev, int argc, char* argv[], uint32_t Flags)
 	for (i = 0; i < len; i++)
 		printf("%02x ", Id[i]);
 	printf("\n");
-
+	return 0;
 }
 
 int i2cread(int dev, int argc, char* argv[], uint32_t Flags)
