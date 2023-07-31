@@ -152,6 +152,17 @@ int ddb_mci_cmd_link(struct ddb_link *link,
 	return stat;
 }
 
+int ddb_mci_cmd_link_simple(struct ddb_link *link, u8 command, u8 demod, u8 value)
+{
+	struct mci_command cmd;
+
+	memset(&cmd, 0, sizeof(cmd));
+	cmd.command = command;
+	cmd.demod = demod;
+	cmd.params8[0] = value;
+	return ddb_mci_cmd_link(link, &cmd, 0);
+}
+
 static void mci_handler(void *priv)
 {
 	struct ddb_link *link = (struct ddb_link *) priv;
