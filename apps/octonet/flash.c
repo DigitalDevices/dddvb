@@ -167,7 +167,7 @@ static int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t le
 }
 #endif
 
-int flashdump(int ddb, int link, uint32_t addr, uint32_t len)
+void flashdump(int ddb, int link, uint32_t addr, uint32_t len)
 {
 	int i, j;
 	uint8_t buf[32];
