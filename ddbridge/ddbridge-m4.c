@@ -72,11 +72,12 @@ static int search_s2(struct dvb_frontend *fe)
 	cmd.dvbs2_search.retry = 0;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
-	cmd.dvbs2_search.scrambling_sequence_index = 0; //p->scrambling_sequence_index;
+	cmd.dvbs2_search.scrambling_sequence_index =
+		p->scrambling_sequence_index;
 	if (p->stream_id != NO_STREAM_ID_FILTER)
 		cmd.dvbs2_search.input_stream_id = p->stream_id;
-	cmd.tuner = state->mci.nr;
-	cmd.demod = state->mci.tuner;
+	cmd.tuner = state->mci.tuner;
+	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
 	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
