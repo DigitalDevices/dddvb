@@ -248,8 +248,7 @@
 
 /* ------------------------------------------------------------------------- */
 
-#define LNB_BASE                     (0x400)
-#define LNB_CONTROL(i)               (LNB_BASE + (i) * 0x20 + 0x00)
+#define LNB_CONTROL(i)               ((i) * 0x20 + 0x00)
 #define LNB_CMD   (7ULL <<  0)
 #define LNB_CMD_NOP    0
 #define LNB_CMD_INIT   1
@@ -265,27 +264,26 @@
 
 #define LNB_INTERRUPT_BASE      4
 
-#define LNB_STATUS(i)                (LNB_BASE + (i) * 0x20 + 0x04)
-#define LNB_VOLTAGE(i)               (LNB_BASE + (i) * 0x20 + 0x08)
-#define LNB_CONFIG(i)                (LNB_BASE + (i) * 0x20 + 0x0c)
-#define LNB_BUF_LEVEL(i)             (LNB_BASE + (i) * 0x20 + 0x10)
-#define LNB_BUF_WRITE(i)             (LNB_BASE + (i) * 0x20 + 0x14)
+#define LNB_STATUS(i)                ((i) * 0x20 + 0x04)
+#define LNB_VOLTAGE(i)               ((i) * 0x20 + 0x08)
+#define LNB_CONFIG(i)                ((i) * 0x20 + 0x0c)
+#define LNB_BUF_LEVEL(i)             ((i) * 0x20 + 0x10)
+#define LNB_BUF_WRITE(i)             ((i) * 0x20 + 0x14)
 
-#define LNB_SETTING(i)               (LNB_BASE + (i) * 0x20 + 0x0c)
-#define LNB_FIFO_LEVEL(i)            (LNB_BASE + (i) * 0x20 + 0x10)
-#define LNB_RESET_FIFO(i)            (LNB_BASE + (i) * 0x20 + 0x10)
-#define LNB_WRITE_FIFO(i)            (LNB_BASE + (i) * 0x20 + 0x14)
+#define LNB_SETTING(i)               ((i) * 0x20 + 0x0c)
+#define LNB_FIFO_LEVEL(i)            ((i) * 0x20 + 0x10)
+#define LNB_RESET_FIFO(i)            ((i) * 0x20 + 0x10)
+#define LNB_WRITE_FIFO(i)            ((i) * 0x20 + 0x14)
 
 /* ------------------------------------------------------------------------- */
 /* CI Interface (only CI-Bridge) */
 
-#define CI_BASE                     (0x400)
-#define CI_CONTROL(i)               (CI_BASE + (i) * 32 + 0x00)
+#define CI_CONTROL(_ci)                 ((_ci)->regs + 0x00)
 
-#define CI_DO_ATTRIBUTE_RW(i)       (CI_BASE + (i) * 32 + 0x04)
-#define CI_DO_IO_RW(i)              (CI_BASE + (i) * 32 + 0x08)
-#define CI_READDATA(i)              (CI_BASE + (i) * 32 + 0x0c)
-#define CI_DO_READ_ATTRIBUTES(i)    (CI_BASE + (i) * 32 + 0x10)
+#define CI_DO_ATTRIBUTE_RW(_ci)         ((_ci)->regs + 0x04)
+#define CI_DO_IO_RW(_ci)                ((_ci)->regs + 0x08)
+#define CI_READDATA(_ci)                ((_ci)->regs + 0x0c)
+#define CI_DO_READ_ATTRIBUTES(_ci)      ((_ci)->regs + 0x10)
 
 #define CI_RESET_CAM                    (0x00000001)
 #define CI_POWER_ON                     (0x00000002)
@@ -305,8 +303,8 @@
 #define CI_READ_CMD                     (0x40000000)
 #define CI_WRITE_CMD                    (0x80000000)
 
-#define CI_BLOCKIO_SEND(i)              (CI_BASE + (i) * 32 + 0x14)
-#define CI_BLOCKIO_RECEIVE(i)           (CI_BASE + (i) * 32 + 0x18)
+#define CI_BLOCKIO_SEND(_ci)            ((_ci)->regs + 0x14)
+#define CI_BLOCKIO_RECEIVE(_ci)         ((_ci)->regs + 0x18)
 
 #define CI_BLOCKIO_SEND_COMMAND         (0x80000000)
 #define CI_BLOCKIO_SEND_COMPLETE_ACK    (0x40000000)
