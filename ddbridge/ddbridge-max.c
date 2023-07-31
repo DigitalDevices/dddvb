@@ -28,6 +28,10 @@
 
 /* MAX LNB interface related module parameters */
 
+static int delmode;
+module_param(delmode, int, 0444);
+MODULE_PARM_DESC(delmode, "frontend delivery system mode");
+
 static int fmode;
 module_param(fmode, int, 0444);
 MODULE_PARM_DESC(fmode, "frontend emulation mode");
@@ -505,7 +509,8 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 /* MAX MCI related functions */
 struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
 				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
-struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner);
+struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type);
+
 
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
@@ -523,11 +528,46 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		if (fm >= 3)
 			tuner = 0;
 		dvb->fe = ddb_sx8_attach(input, demod, tuner, &dvb->set_input);
+		dvb->input = tuner;
 		break;
 	case DDB_TUNER_MCI_M4:
 		fm = 0;
-		dvb->fe = ddb_m4_attach(input, demod, tuner);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 0);
+		dvb->input = tuner;
 		break;
+	case DDB_TUNER_MCI_M8:
+		fm = 3;
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 1);
+		dvb->input = 0;
+		break;
+	case DDB_TUNER_MCI_M8A:
+		fm = 3;
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 2);
+		dvb->input = 0;
+		break;
+	case DDB_TUNER_MCI_M2:
+	{
+		u32 mode, mmode;
+		
+                // delmode: 0 - sat,sat  1-cable,cable/sat 
+		switch (delmode & 1) {
+		case 0:
+			mode = 2;
+			mmode = 2;
+			break;
+		case 1:
+			mode = 1;
+			mmode = demod ? 3 : 1;
+			break;
+		}
+		if (!demod)
+			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
+						0xff, mode | (delmode & 0x10));
+		dvb->fe = ddb_mx_attach(input, demod, tuner, mmode);
+		dvb->input = 0;
+		fm = 0;
+		break;
+	}
 	default:
 		return -EINVAL;
 	}
@@ -535,7 +575,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;
 	}
-	if (input->nr < 4) {
+	if (!input->nr || (input->nr < 4 && type != DDB_TUNER_MCI_M8)) {
 		lnb_command(dev, port->lnr, input->nr, LNB_CMD_INIT);
 		lnb_set_voltage(dev, port->lnr, input->nr, SEC_VOLTAGE_OFF);
 	}
@@ -548,15 +588,10 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
 	dvb->fe->ops.diseqc_send_burst = max_send_burst;
 	dvb->fe->sec_priv = input;
-	switch (type) {
-	case DDB_TUNER_MCI_M4:
-		break;
-	default:
+	if (type == DDB_TUNER_MCI_SX8) {
 #ifndef KERNEL_DVB_CORE
 		dvb->fe->ops.set_input = max_set_input;
 #endif
-		break;
 	}
-	dvb->input = tuner;
 	return 0;
 }
