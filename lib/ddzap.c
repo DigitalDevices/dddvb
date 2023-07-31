@@ -484,7 +484,7 @@ int main(int argc, char **argv)
 	else
 		fe = dddvb_fe_alloc(dd, delsys);
 	if (!fe) {
-	    fprintf(fout,"dddvb_fe_alloc failed\n");
+		fprintf(fout,"dddvb_fe_alloc failed\n");
 		exit(-1);
 	}
 	dddvb_param_init(&p);

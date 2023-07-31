@@ -30,7 +30,7 @@ LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc_num(struct dddvb *dd, uint32_t
 	pthread_mutex_unlock(&dd->lock);
 	if (dddvb_fe_start(fe) < 0) {
 		dbgprintf(DEBUG_SYS, "fe %d busy\n", fe->nr);
-		return 0;
+		return NULL;
 	}
 	dbgprintf(DEBUG_SYS, "Allocated fe %d = %d/%d, fd=%d\n",
 		  fe->nr, fe->anum, fe->fnum, fe->fd);
@@ -40,22 +40,25 @@ LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc_num(struct dddvb *dd, uint32_t
 LIBDDDVB_EXPORTED struct dddvb_fe *dddvb_fe_alloc(struct dddvb *dd, uint32_t type)
 {
 	int i;
-	struct dddvb_fe *fe = NULL;
+	struct dddvb_fe *fe = NULL, *tfe;
 
 	pthread_mutex_lock(&dd->lock);
 	dbgprintf(DEBUG_SYS, "alloc_fe type %u\n", type);
 	for (i = 0; i < dd->dvbfe_num; i++) {
-		fe = &dd->dvbfe[i];
-		if (fe->state == 0 && 
-		    (fe->type & (1UL << type))) {
+		tfe = &dd->dvbfe[i];
+		if (tfe->state == 0 &&
+		    (tfe->type & (1UL << type))) {
 			fe = dddvb_fe_alloc_num(dd, type, i);
 			if (fe)
 				break;
 		}
 	}
 	pthread_mutex_unlock(&dd->lock);
+	if (!fe)
+		dbgprintf(DEBUG_SYS, "alloc_fe type %u\n failed!", type);
+	else
+		dbgprintf(DEBUG_SYS, "alloc_fe type %u success!\n", type);
 	return fe;
-
 }
 
 LIBDDDVB_EXPORTED int dddvb_dvb_tune(struct dddvb_fe *fe, struct dddvb_params *p)
