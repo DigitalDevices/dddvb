@@ -113,6 +113,8 @@
 #define MCI_CMD_GETSIGNALINFO    (0x03)
 //#define MCI_CMD_RFPOWER          (0x04)
 
+#define MCI_CMD_SET_INPUT_CONFIG  (0x05)
+
 #define MCI_CMD_SEARCH_DVBS     (0x10)
 #define MCI_CMD_SEARCH_ISDBS    (0x11)
 
@@ -124,6 +126,9 @@
 #define MCI_CMD_SEARCH_ISDBT    (0x24)
 #define MCI_CMD_SEARCH_ISDBC    (0x25)
 #define MCI_CMD_SEARCH_J83B     (0x26)
+
+#define MCI_CMD_SEARCH_ATSC     (0x27)
+#define MCI_CMD_SEARCH_ATSC3    (0x28)
 
 #define MCI_CMD_GET_IQSYMBOL     (0x30)
 
@@ -268,8 +273,11 @@
 #define MOD_QAM_ISDBC_64          (0x08)
 #define MOD_QAM_ISDBC_256         (0x09)
 
-#define CMD_GET_SERIALNUMBER    (0xF0)
-#define CMD_EXPORT_LICENSE      (0xF0)
+#define CMD_GET_SERIALNUMBER      (0xF0)
+#define CMD_EXPORT_LICENSE        (0xF0)
+#define CMD_IMPORT_LICENSE        (0xF1)
+#define CMD_POWER_DOWN            (0xF2)
+#define CMD_POWER_UP              (0xF3)
 
 struct mod_setup_channels {
 	u8   flags;
@@ -483,6 +491,20 @@ struct mci_command {
 		struct mod_setup_channels mod_setup_channels[4];
 		struct mod_setup_stream mod_setup_stream;
 		struct mod_setup_output mod_setup_output;
+
+		struct {
+			u8   Cmd;
+			u8   Offset;
+			u8   Length;
+			u8   Rsvd1;
+			u32  Rsvd2[2];
+			u8   Data[96];
+		} sx8_packet_filter;
+
+		struct {
+			u8   ID[8];
+			u8   LK[24];
+		} license;
 	};
 };
 
