@@ -4050,7 +4050,9 @@ static struct device_attribute ddb_attrs_fanspeed[] = {
 
 static struct class ddb_class = {
 	.name		= "ddbridge",
+#if (KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE)
 	.owner          = THIS_MODULE,
+#endif
 	.devnode        = ddb_devnode,
 };
 
