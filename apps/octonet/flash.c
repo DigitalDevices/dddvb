@@ -630,13 +630,14 @@ int flashwrite_pagemode(struct ddflash *ddf, int dev, uint32_t FlashOffset,
 	uint8_t cmd[260];
 	int i, j;
 	uint32_t flen, blen;
-	int blockerase = be && ((FlashOffset & 0xFFFF) == 0 ) && (flen >= 0x10000);
+	int blockerase;
 	
 	blen = flen = lseek(dev, 0, SEEK_END) - fw_off;
 	if (blen % 0xff)
 		blen = (blen + 0xff) & 0xffffff00; 
 	//printf("blen = %u, flen = %u\n", blen, flen);
 	setbuf(stdout, NULL);
+	blockerase = be && ((FlashOffset & 0xFFFF) == 0 ) && (flen >= 0x10000);
 
 	cmd[0] = 0x50;  // EWSR
 	err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
