@@ -36,6 +36,7 @@ static int update_flash(struct ddflash *ddf)
 	char *fname, *default_fname;
 	int res, stat = 0;
 	char *name = 0, *dname;
+	uint32_t imgadr = 0x10000;
 	
 	switch (ddf->id.device) {
 	case 0x300:
@@ -109,6 +110,14 @@ static int update_flash(struct ddflash *ddf)
 		return stat;
 		break;
 	default:
+	{
+		uint32_t val;
+		if (!readreg(ddf->fd, (ddf->link << 28) | 0x10, &val)) {
+			//printf("reg0x10=%08x\n", val);
+			if ((val >> 24) == 5)
+				imgadr = 0;
+		}
+	}
 		fname = ddf->fname;
 		default_fname = devid2fname(ddf->id.device, &name);
 		if (!fname)
@@ -119,7 +128,8 @@ static int update_flash(struct ddflash *ddf)
 			printf("Flash:    %s\n", ddf->flash_name);
 		printf("Version:  %08x\n", ddf->id.hw);
 		printf("REGMAP :  %08x\n", ddf->id.regmap);
-		if ((res = update_image(ddf, fname, 0x10000, ddf->size / 2, 1, 0)) == 1)
+		printf("Address:  %08x\n", imgadr);
+		if ((res = update_image(ddf, fname, imgadr, ddf->size / 2, 1, 0)) == 1)
 			stat |= 1;
 		return stat;
 	}

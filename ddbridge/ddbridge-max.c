@@ -28,6 +28,10 @@
 
 /* MAX LNB interface related module parameters */
 
+static int delmode;
+module_param(delmode, int, 0444);
+MODULE_PARM_DESC(delmode, "frontend delivery system mode");
+
 static int fmode;
 module_param(fmode, int, 0444);
 MODULE_PARM_DESC(fmode, "frontend emulation mode");
@@ -49,11 +53,12 @@ MODULE_PARM_DESC(no_voltage, "Do not enable voltage on LNBH (will also disable 2
 static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 {
 	u32 c, v = 0, tag = DDB_LINK_TAG(link);
+	u32 base = dev->link[link].info->lnb_base;
 
 	v = LNB_TONE & (dev->link[link].lnb.tone << (15 - lnb));
-	ddbwritel(dev, cmd | v, tag | LNB_CONTROL(lnb));
+	ddbwritel(dev, cmd | v, tag | base | LNB_CONTROL(lnb));
 	for (c = 0; c < 10; c++) {
-		v = ddbreadl(dev, tag | LNB_CONTROL(lnb));
+		v = ddbreadl(dev, tag | base | LNB_CONTROL(lnb));
 		if ((v & LNB_BUSY) == 0)
 			break;
 		msleep(20);
@@ -91,6 +96,7 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	struct ddb *dev = port->dev;
 	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
 	u32 tag = DDB_LINK_TAG(port->lnr);
+	u32 base = dev->link[port->lnr].info->lnb_base;
 	int i;
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
 
@@ -105,9 +111,9 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 		dvb->diseqc_send_master_cmd(fe, cmd);
 
 	mutex_lock(&dev->link[port->lnr].lnb.lock);
-	ddbwritel(dev, 0, tag | LNB_BUF_LEVEL(dvb->input));
+	ddbwritel(dev, 0, tag | base | LNB_BUF_LEVEL(dvb->input));
 	for (i = 0; i < cmd->msg_len; i++)
-		ddbwritel(dev, cmd->msg[i], tag | LNB_BUF_WRITE(dvb->input));
+		ddbwritel(dev, cmd->msg[i], tag | base | LNB_BUF_WRITE(dvb->input));
 	lnb_command(dev, port->lnr, dvb->input, LNB_CMD_DISEQC);
 	mutex_unlock(&dev->link[port->lnr].lnb.lock);
 	return 0;
@@ -117,11 +123,12 @@ static int lnb_send_diseqc(struct ddb *dev, u32 link, u32 input,
 			   struct dvb_diseqc_master_cmd *cmd)
 {
 	u32 tag = DDB_LINK_TAG(link);
+	u32 base = dev->link[link].info->lnb_base;
 	int i;
 
-	ddbwritel(dev, 0, tag | LNB_BUF_LEVEL(input));
+	ddbwritel(dev, 0, tag | base | LNB_BUF_LEVEL(input));
 	for (i = 0; i < cmd->msg_len; i++)
-		ddbwritel(dev, cmd->msg[i], tag | LNB_BUF_WRITE(input));
+		ddbwritel(dev, cmd->msg[i], tag | base | LNB_BUF_WRITE(input));
 	lnb_command(dev, link, input, LNB_CMD_DISEQC);
 	return 0;
 }
@@ -369,6 +376,7 @@ static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	struct ddb_port *port = input->port;
 	struct ddb *dev = port->dev;
 	u32 tag = DDB_LINK_TAG(port->lnr);
+	u32 base = dev->link[port->lnr].info->lnb_base;
 	struct ddb_dvb *dvb = &port->dvb[input->nr & 1];
 	u32 fmode = dev->link[port->lnr].lnb.fmode;
 
@@ -377,14 +385,14 @@ static int max_enable_high_lnb_voltage(struct dvb_frontend *fe, long arg)
 	default:
 	case 0:
 	case 3:
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(dvb->input));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(dvb->input));
 		break;
 	case 1:
 	case 2:
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(0));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(1));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(2));
-		ddbwritel(dev, arg ? 0x34 : 0x01, tag | LNB_CONTROL(3));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(0));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(1));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(2));
+		ddbwritel(dev, arg ? 0x34 : 0x01, tag | base | LNB_CONTROL(3));
 		break;
 	}
 	mutex_unlock(&dev->link[port->lnr].lnb.lock);
@@ -501,7 +509,8 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 /* MAX MCI related functions */
 struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
 				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
-struct dvb_frontend *ddb_m4_attach(struct ddb_input *input, int nr, int tuner);
+struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type);
+
 
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 {
@@ -519,11 +528,46 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		if (fm >= 3)
 			tuner = 0;
 		dvb->fe = ddb_sx8_attach(input, demod, tuner, &dvb->set_input);
+		dvb->input = tuner;
 		break;
 	case DDB_TUNER_MCI_M4:
 		fm = 0;
-		dvb->fe = ddb_m4_attach(input, demod, tuner);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 0);
+		dvb->input = tuner;
 		break;
+	case DDB_TUNER_MCI_M8:
+		fm = 3;
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 1);
+		dvb->input = 0;
+		break;
+	case DDB_TUNER_MCI_M8A:
+		fm = 3;
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 2);
+		dvb->input = 0;
+		break;
+	case DDB_TUNER_MCI_M2:
+	{
+		u32 mode, mmode;
+		
+                // delmode: 0 - sat,sat  1-cable,cable/sat 
+		switch (delmode & 1) {
+		case 0:
+			mode = 2;
+			mmode = 2;
+			break;
+		case 1:
+			mode = 1;
+			mmode = demod ? 3 : 1;
+			break;
+		}
+		if (!demod)
+			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
+						0xff, mode | (delmode & 0x10));
+		dvb->fe = ddb_mx_attach(input, demod, tuner, mmode);
+		dvb->input = 0;
+		fm = 0;
+		break;
+	}
 	default:
 		return -EINVAL;
 	}
@@ -531,7 +575,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		dev_err(dev->dev, "No MCI card found!\n");
 		return -ENODEV;
 	}
-	if (input->nr < 4) {
+	if (!input->nr || (input->nr < 4 && type != DDB_TUNER_MCI_M8)) {
 		lnb_command(dev, port->lnr, input->nr, LNB_CMD_INIT);
 		lnb_set_voltage(dev, port->lnr, input->nr, SEC_VOLTAGE_OFF);
 	}
@@ -544,15 +588,10 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	dvb->fe->ops.diseqc_send_master_cmd = max_send_master_cmd;
 	dvb->fe->ops.diseqc_send_burst = max_send_burst;
 	dvb->fe->sec_priv = input;
-	switch (type) {
-	case DDB_TUNER_MCI_M4:
-		break;
-	default:
+	if (type == DDB_TUNER_MCI_SX8) {
 #ifndef KERNEL_DVB_CORE
 		dvb->fe->ops.set_input = max_set_input;
 #endif
-		break;
 	}
-	dvb->input = tuner;
 	return 0;
 }

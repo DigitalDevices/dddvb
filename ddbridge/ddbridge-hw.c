@@ -246,7 +246,6 @@ static const struct ddb_regmap octopus_map = {
 	.odma = &octopus_odma,
 	.odma_buf = &octopus_odma_buf,
 	.input = &octopus_input,
-
 	.output = &octopus_output,
 };
 
@@ -463,23 +462,25 @@ static const struct ddb_info ddb_satixs2v3 = {
 };
 
 static const struct ddb_info ddb_ci = {
-	.type     = DDB_OCTOPUS_CI,
+	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus CI",
 	.regmap   = &octopus_map,
 	.port_num = 4,
 	.i2c_mask = 0x03,
+	.ci_mask  = 0x0c,
 };
 
 static const struct ddb_info ddb_cis = {
-	.type     = DDB_OCTOPUS_CI,
+	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus CI single",
 	.regmap   = &octopus_map,
 	.port_num = 3,
 	.i2c_mask = 0x03,
+	.ci_mask  = 0x04,
 };
 
 static const struct ddb_info ddb_ci_s2_pro = {
-	.type     = DDB_OCTOPUS_CI,
+	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus CI S2 Pro",
 	.regmap   = &octopus_map,
 	.port_num = 4,
@@ -487,10 +488,11 @@ static const struct ddb_info ddb_ci_s2_pro = {
 	.board_control   = 2,
 	.board_control_2 = 4,
 	.hw_min    = 0x010007,
+	.ci_mask   = 0x0c,
 };
 
 static const struct ddb_info ddb_ci_s2_pro_a = {
-	.type     = DDB_OCTOPUS_CI,
+	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus CI S2 Pro Advanced",
 	.regmap   = &octopus_map,
 	.port_num = 4,
@@ -498,6 +500,7 @@ static const struct ddb_info ddb_ci_s2_pro_a = {
 	.board_control   = 2,
 	.board_control_2 = 4,
 	.hw_min    = 0x010007,
+	.ci_mask  = 0x0c,
 };
 
 static const struct ddb_info ddb_dvbct = {
@@ -621,24 +624,6 @@ static const struct ddb_info ddb_sdr_dvbt = {
 	.tempmon_irq = 8,
 };
 
-static const struct ddb_info ddb_octopro_hdin = {
-	.type     = DDB_OCTOPRO_HDIN,
-	.name     = "Digital Devices OctopusNet Pro HDIN",
-	.regmap   = &octopro_hdin_map,
-	.port_num = 10,
-	.i2c_mask = 0x3ff,
-	.mdio_base = 0x10020,
-};
-
-static const struct ddb_info ddb_octopro = {
-	.type     = DDB_OCTOPRO,
-	.name     = "Digital Devices OctopusNet Pro",
-	.regmap   = &octopro_map,
-	.port_num = 10,
-	.i2c_mask = 0x3ff,
-	.mdio_base = 0x10020,
-};
-
 static const struct ddb_info ddb_s2_48 = {
 	.type     = DDB_OCTOPUS_MAX,
 	.name     = "Digital Devices MAX S8 4/8",
@@ -647,6 +632,7 @@ static const struct ddb_info ddb_s2_48 = {
 	.i2c_mask = 0x01,
 	.board_control = 1,
 	.tempmon_irq = 24,
+	.lnb_base = 0x400,
 };
 
 static const struct ddb_info ddb_ct2_8 = {
@@ -719,8 +705,9 @@ static const struct ddb_info ddb_s2x_48 = {
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
 	.mci_ports = 4,
-	.mci_type = 0,
+	.mci_type = DDB_TUNER_MCI_SX8,
 	.temp_num = 1,
+	.lnb_base = 0x400,
 };
 
 static const struct ddb_info ddb_s2x_48_b = {
@@ -731,8 +718,9 @@ static const struct ddb_info ddb_s2x_48_b = {
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
 	.mci_ports = 4,
-	.mci_type = 0,
+	.mci_type = DDB_TUNER_MCI_SX8,
 	.temp_num = 1,
+	.lnb_base = 0x400,
 };
 
 static const struct ddb_info ddb_m4 = {
@@ -743,8 +731,48 @@ static const struct ddb_info ddb_m4 = {
 	.i2c_mask = 0x00,
 	.tempmon_irq = 24,
 	.mci_ports = 2,
-	.mci_type = 1,
+	.mci_type = DDB_TUNER_MCI_M4,
 	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_m8 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices MAX M8",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.i2c_mask = 0x00,
+	.tempmon_irq = 24,
+	.mci_ports = 4,
+	.mci_type = DDB_TUNER_MCI_M8,
+	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_m8a = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices MAX M8A",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.tempmon_irq = 24,
+	.mci_ports = 4,
+	.mci_type = DDB_TUNER_MCI_M8A,
+	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
+static const struct ddb_info ddb_ci_m2 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices Octopus CI M2",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.tempmon_irq = 24,
+	.mci_ports = 1,
+	.mci_type = DDB_TUNER_MCI_M2,
+	.temp_num = 1,
+	.ci_mask  = 0x0c,
+	.ci_base  = 0x400,
+	.lnb_base = 0x480,
 };
 
 /****************************************************************************/
@@ -877,7 +905,10 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0012, 0x0042, ddb_ci),
 	DDB_DEVID(0x0013, 0x0043, ddb_ci_s2_pro),
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
+	DDB_DEVID(0x0014, 0x0045, ddb_ci_m2),
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
+	DDB_DEVID(0x0022, 0x0052, ddb_m8),
+	DDB_DEVID(0x0024, 0x0053, ddb_m8a),
 
 	/* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),

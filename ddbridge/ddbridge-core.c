@@ -467,7 +467,7 @@ static void calc_con(struct ddb_output *output, u32 *con, u32 *con2, u32 flags)
 		gap = output->port->gap;
 		max_bitrate = 0;
 	}
-	if (dev->link[0].info->type == DDB_OCTOPUS_CI && output->port->nr > 1) {
+	if (dev->link[0].info->ci_mask && output->port->nr > 1) {
 		*con = 0x10c;
 		if (dev->link[0].ids.regmapid >= 0x10003 && !(flags & 1)) {
 			if (!(flags & 2)) {
@@ -1122,6 +1122,9 @@ static int dummy_read_status(struct dvb_frontend *fe, enum fe_status *status)
 static void dummy_release(struct dvb_frontend *fe)
 {
 	kfree(fe);
+#ifdef CONFIG_MEDIA_ATTACH
+	__module_get(THIS_MODULE);
+#endif
 }
 
 static enum dvbfe_algo dummy_algo(struct dvb_frontend *fe)
@@ -1170,11 +1173,7 @@ static int demod_attach_dummy(struct ddb_input *input)
 {
 	struct ddb_dvb *dvb = &input->port->dvb[input->nr & 1];
 
-#if 0
-	dvb->fe = dvb_attach(dummy_attach);
-#else
 	dvb->fe = dummy_attach();
-#endif
 	return 0;
 }
 
@@ -1597,8 +1596,7 @@ static int dvb_register_adapters(struct ddb *dev)
 	}
 
 	if (adapter_alloc >= 3 || dev->link[0].info->type == DDB_MOD ||
-	    dev->link[0].info->type == DDB_OCTONET ||
-	    dev->link[0].info->type == DDB_OCTOPRO) {
+	    dev->link[0].info->type == DDB_OCTONET) {
 		port = &dev->port[0];
 		adap = port->dvb[0].adap;
 		ret = dvb_register_adapter(adap, "DDBridge", THIS_MODULE,
@@ -1840,6 +1838,9 @@ static int dvb_input_attach(struct ddb_input *input)
 		break;
 	case DDB_TUNER_MCI_SX8:
 	case DDB_TUNER_MCI_M4:
+	case DDB_TUNER_MCI_M8:
+	case DDB_TUNER_MCI_M8A:
+	case DDB_TUNER_MCI_M2:
 		if (ddb_fe_attach_mci(input, port->type) < 0)
 			return -ENODEV;
 		break;
@@ -2103,7 +2104,7 @@ static void ddb_port_probe(struct ddb_port *port)
 		return;
 	}
 
-	if (port->nr == 1 && link->info->type == DDB_OCTOPUS_CI &&
+	if (port->nr == 1 && link->info->ci_mask &&
 	    link->info->i2c_mask == 1) {
 		port->name = "NO TAB";
 		port->class = DDB_PORT_NONE;
@@ -2131,15 +2132,16 @@ static void ddb_port_probe(struct ddb_port *port)
 		port->name = "DUAL MCI";
 		port->type_name = "MCI";
 		port->class = DDB_PORT_TUNER;
-		port->type = DDB_TUNER_MCI + link->info->mci_type;
+		port->type = link->info->mci_type;
 		return;
 	}
 
-	if (port->nr > 1 && link->info->type == DDB_OCTOPUS_CI) {
+	if (port->nr > 1 && (link->info->ci_mask & (1 << port->nr))) {
 		port->name = "CI internal";
 		port->type_name = "INTERNAL";
 		port->class = DDB_PORT_CI;
 		port->type = DDB_CI_INTERNAL;
+		return;
 	}
 
 	if (!port->i2c)
@@ -2717,24 +2719,28 @@ static void ddb_ports_init(struct ddb *dev)
 				continue;
 			
 			switch (info->type) {
-			case DDB_OCTOPUS_CI:
-				if (i >= 2) {
+			case DDB_OCTONET:
+			case DDB_OCTOPUS:
+				if (info->ci_mask & (1 << i)) {
 					ddb_input_init(port, 2 + i, 0, 2 + i);
 					ddb_input_init(port, 4 + i, 1, 4 + i);
 					ddb_output_init(port, i);
 					break;
 				}
-				fallthrough;
-			case DDB_OCTONET:
-			case DDB_OCTOPUS:
-			case DDB_OCTOPRO:
-				ddb_input_init(port, 2 * i, 0, 2 * i);
-				ddb_input_init(port, 2 * i + 1, 1, 2 * i + 1);
+				ddb_output_init(port, i);
+				ddb_input_init(port, 2 * i, 0, 2 * p);
+				ddb_input_init(port, 2 * i + 1, 1, 2 * p + 1);
 				ddb_output_init(port, i);
 				break;
 			case DDB_OCTOPUS_MAX:
 			case DDB_OCTOPUS_MAX_CT:
 			case DDB_OCTOPUS_MCI:
+				if (info->ci_mask & (1 << i)) {
+					ddb_input_init(port, 2 + i, 0, 2 + i);
+					ddb_input_init(port, 4 + i, 1, 4 + i);
+					ddb_output_init(port, i);
+					break;
+				}
 				ddb_input_init(port, 2 * i, 0, 2 * p);
 				ddb_input_init(port, 2 * i + 1, 1, 2 * p + 1);
 				break;
@@ -4050,7 +4056,9 @@ static struct device_attribute ddb_attrs_fanspeed[] = {
 
 static struct class ddb_class = {
 	.name		= "ddbridge",
+#if (KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE)
 	.owner          = THIS_MODULE,
+#endif
 	.devnode        = ddb_devnode,
 };
 

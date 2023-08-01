@@ -117,6 +117,9 @@ static void release(struct dvb_frontend *fe)
 		kfree(mci_base);
 	}
 	kfree(state);
+#ifdef CONFIG_MEDIA_ATTACH
+	__module_get(THIS_MODULE);
+#endif
 }
 
 static int ddb_mci_tsconfig(struct mci *state, u32 config)
@@ -491,18 +494,21 @@ static int set_parameters(struct dvb_frontend *fe)
 		stop_iq(fe);
 		switch (p->modulation) {
 		case APSK_256:
+		case APSK_256_L:
 			mask = 0x7f;
 			break;
 		case APSK_128:
 			mask = 0x3f;
 			break;
 		case APSK_64:
+		case APSK_64_L:
 			mask = 0x1f;
 			break;
 		case APSK_32:
 			mask = 0x0f;
 			break;
 		case APSK_16:
+		case APSK_16_L:
 			mask = 0x07;
 			break;
 		default:

@@ -167,7 +167,7 @@ static int flashread(int ddb, int link, uint8_t *buf, uint32_t addr, uint32_t le
 }
 #endif
 
-int flashdump(int ddb, int link, uint32_t addr, uint32_t len)
+void flashdump(int ddb, int link, uint32_t addr, uint32_t len)
 {
 	int i, j;
 	uint8_t buf[32];
@@ -630,13 +630,14 @@ int flashwrite_pagemode(struct ddflash *ddf, int dev, uint32_t FlashOffset,
 	uint8_t cmd[260];
 	int i, j;
 	uint32_t flen, blen;
-	int blockerase = be && ((FlashOffset & 0xFFFF) == 0 ) && (flen >= 0x10000);
+	int blockerase;
 	
 	blen = flen = lseek(dev, 0, SEEK_END) - fw_off;
 	if (blen % 0xff)
 		blen = (blen + 0xff) & 0xffffff00; 
 	//printf("blen = %u, flen = %u\n", blen, flen);
 	setbuf(stdout, NULL);
+	blockerase = be && ((FlashOffset & 0xFFFF) == 0 ) && (flen >= 0x10000);
 
 	cmd[0] = 0x50;  // EWSR
 	err = flashio(ddf->fd, ddf->link, cmd, 1, NULL, 0);
@@ -927,7 +928,10 @@ static const struct devids ids[] = {
 	DEV(0x0011, "Octopus CI", "DVBBridgeV2B_DD01_0011.fpga"),
 	DEV(0x0012, "Octopus CI", "DVBBridgeV2B_DD01_0012_STD.fpga"),
 	DEV(0x0013, "Octopus PRO", "DVBBridgeV2B_DD01_0013_PRO.fpga"),
+	DEV(0x0014, "Octopus CI M2", "DVBBridgeV3A_DD01_0014_CIM2.fpga"),
 	DEV(0x0020, "Octopus GT Mini", "DVBBridgeV2C_DD01_0020.fpga"),
+	DEV(0x0022, "Octopus MAXM8", "DVBBridgeV3A_DD01_0022_M8.fpga"),
+	DEV(0x0024, "Octopus MAXM8A", "DVBBridgeV3A_DD01_0024_M8A.fpga"),
 	DEV(0x0201, "Modulator", "DVBModulatorV1B_DVBModulatorV1B.bit"),
 	DEV(0x0203, "Modulator Test", "DVBModulatorV1B_DD01_0203.fpga"),
 	DEV(0x0210, "Modulator V2", "DVBModulatorV2A_DD01_0210.fpga"),
@@ -1075,12 +1079,12 @@ static int check_fw(struct ddflash *ddf, char *fn, uint32_t *fw_off)
 	close(fd);
 	
 	for (p = 0; p < fsize && buf[p]; p++) {
-		char *key = &buf[p], *val = NULL;
+		char *key = (char *) &buf[p], *val = NULL;
 
 		for (; p < fsize && buf[p] != 0x0a; p++) {
 			if (buf[p] == ':') {
 				buf[p] = 0;
-				val = &buf[p + 1];
+				val = (char *) &buf[p + 1];
 			}
 		}
 		if (val == NULL || p == fsize)
