@@ -564,7 +564,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
 						0xff, mode | (delmode & 0x10));
 		dvb->fe = ddb_mx_attach(input, demod, tuner, mmode);
-		dvb->input = 0;
+		dvb->input = tuner;
 		fm = 0;
 		break;
 	}
