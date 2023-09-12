@@ -302,6 +302,7 @@ enum fe_spectral_inversion {
  * @FEC_7_15: Forward Error Correction Code 7/15
  * @FEC_29_45: Forward Error Correction Code 29/45
  * @FEC_31_45: Forward Error Correction Code 31/45
+ *
  * Please note that not all FEC types are supported by a given standard.
  */
 enum fe_code_rate {
@@ -597,7 +598,7 @@ enum fe_interleaving {
 #define DTV_STAT_TOTAL_BLOCK_COUNT	69
 
 /* Physical layer scrambling */
-#define DTV_SCRAMBLING_SEQUENCE_INDEX   70
+#define DTV_SCRAMBLING_SEQUENCE_INDEX	70
 #define DTV_INPUT                       71
 
 #define DTV_MAX_COMMAND		        DTV_INPUT
