@@ -780,7 +780,7 @@ struct dvb_ca_en50221 *cxd2099_attach(struct cxd2099_cfg *cfg,
 
 	return &ci->en;
 }
-EXPORT_SYMBOL(cxd2099_attach);
+EXPORT_SYMBOL_GPL(cxd2099_attach);
 
 MODULE_DESCRIPTION("cxd2099");
 MODULE_AUTHOR("Ralph Metzler");
