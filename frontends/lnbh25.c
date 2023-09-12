@@ -152,7 +152,7 @@ struct dvb_frontend *lnbh25_attach(struct dvb_frontend *fe,
 
 	return fe;
 }
-EXPORT_SYMBOL(lnbh25_attach);
+EXPORT_SYMBOL_GPL(lnbh25_attach);
 
 MODULE_DESCRIPTION("LNBH25");
 MODULE_AUTHOR("Ralph Metzler");

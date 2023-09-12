@@ -2701,7 +2701,7 @@ struct dvb_frontend *cxd2843_attach(struct i2c_adapter *i2c,
 	kfree(state);
 	return NULL;
 }
-EXPORT_SYMBOL(cxd2843_attach);
+EXPORT_SYMBOL_GPL(cxd2843_attach);
 
 MODULE_DESCRIPTION("CXD2843/37/38 driver");
 MODULE_AUTHOR("Ralph Metzler, Manfred Voelkel");

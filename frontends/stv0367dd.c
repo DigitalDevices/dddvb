@@ -2154,7 +2154,7 @@ MODULE_DESCRIPTION("STV0367DD driver");
 MODULE_AUTHOR("Ralph Metzler, Manfred Voelkel");
 MODULE_LICENSE("GPL v2");
 
-EXPORT_SYMBOL(stv0367_attach);
+EXPORT_SYMBOL_GPL(stv0367_attach);
 
 
 
