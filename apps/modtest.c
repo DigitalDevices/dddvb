@@ -866,7 +866,7 @@ int mci_set_output(int fd, uint8_t connector, uint8_t nchannels, uint8_t unit,
 	break;
     }
     
-    fprintf(stderr,"Setting DVBT Modulator output to %s, %d channels, power %f%s\n",
+    fprintf(stderr,"Setting DVB Modulator output to %s, %d channels, power %f%s\n",
 	   con, nchannels, (double)power/100, un );
 
     return mci_cmd(fd,&msg_output);
@@ -1020,11 +1020,12 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	char *device;
 	int fd;
 	
+	wd->tp[i].tpid = i; 
+	wd->tp[i].delsys = delsys;
+	wd->tp[i].freq = start_freq+8000000*i;
+	
 	switch(delsys){
 	case SYS_DVBT:
-	    wd->tp[i].tpid = 1; // all the same transport stream  id  
-	    wd->tp[i].delsys = SYS_DVBT;
-	    wd->tp[i].freq = start_freq+8000000*i;
 	    wd->tp[i].qam = 2;
 	    wd->tp[i].symbolrate = 0;
 	    wd->tp[i].bandwidth = 0;
@@ -1034,9 +1035,6 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    break;
 
 	case SYS_DVBC_ANNEX_A:
-	    wd->tp[i].tpid = i; 
-	    wd->tp[i].delsys = SYS_DVBC_ANNEX_A;
-	    wd->tp[i].freq = start_freq+8000000*i;
 	    wd->tp[i].qam = QAM_256;
 	    wd->tp[i].symbolrate = 6900000;
 	    wd->tp[i].bandwidth = 0;
@@ -1045,7 +1043,6 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    wd->tp[i].trans_mode = 0;
 	    break;
 	}
-
  	device = malloc(sizeof(char)*40);
 	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,i);
 	fd = open(device, O_RDWR);
@@ -1055,8 +1052,30 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    free(device);
 	    exit(1);   
 	}
+
+
+	int re= 0;
+	uint8_t stream_format = 4;  //format is ransport stream
+	uint8_t fft_size = wd->tp[i].trans_mode;
 	
-	mci_set_stream( fd, i, i, MOD_STANDARD_DVBT_8, 4, 0, 0, 0, 1, 0, 4, 2, 0);
+	switch(delsys){
+	case SYS_DVBC_ANNEX_A:
+	    re =  mci_set_stream( fd, i, i, MOD_STANDARD_DVBC_8,
+				  stream_format, wd->tp[i].symbolrate,
+				  wd->tp[i].qam, 0, 0, 0, 0, 0, 0);
+	    break;
+	    
+	case SYS_DVBT:
+	    re =  mci_set_stream( fd, i, i, MOD_STANDARD_DVBT_8,
+				  stream_format, 0,
+				  0, 0, fft_size, wd->tp[i].guard,
+				  wd->tp[i].code_rate, wd->tp[i].qam,
+				  0);
+	    break;
+	default:
+	    re = -1;
+	}
+	
 	close(fd);
 	free(device);
     }
