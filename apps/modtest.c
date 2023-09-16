@@ -952,7 +952,7 @@ int mci_set_channels(int fd, uint32_t freq, uint8_t nchan, uint8_t standard,
 	break;	
 
     }
-    fprintf(stderr,"Setting DVBT Modulator channels to %d HZ, %d channels, %s\n",
+    fprintf(stderr,"Setting DVB Modulator channels to %d HZ, %d channels, %s\n",
 	   freq, nchan, stand);
  
     return mci_cmd(fd,&msg_channels);
