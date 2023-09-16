@@ -934,13 +934,25 @@ int mci_set_channels(int fd, uint32_t freq, uint8_t nchan, uint8_t standard,
 	snprintf(stand, 24, "MOD_STANDARD_DVBT_5");
 	break;
 
+    case MOD_STANDARD_DVBC_8:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_8");
+	break;
+
+    case MOD_STANDARD_DVBC_7:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_7");
+	break;
+
+    case MOD_STANDARD_DVBC_6:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_6");
+	break;
+
     default:
 	fprintf(stderr,"unknown standard in channels setup\n");
 	return -1;
 	break;	
 
     }
-    fprintf(stderr,"Setting DVB Modulator channels to %d HZ, %d channels, %s\n",
+    fprintf(stderr,"Setting DVBT Modulator channels to %d HZ, %d channels, %s\n",
 	   freq, nchan, stand);
  
     return mci_cmd(fd,&msg_channels);
