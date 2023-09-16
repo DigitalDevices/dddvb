@@ -1075,7 +1075,6 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    free(device);
 	    exit(1);   
 	}
-	fprintf(stderr,"QAM: %d\n",wd->tp[i].qam);
 
 	int re= 0;
 	uint8_t stream_format = 4;  //format is ransport stream
@@ -1098,7 +1097,7 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	default:
 	    re = -1;
 	}
-	
+	if (re < 0) fprintf(stderr,"ERROR setting stream\n");
 	close(fd);
 	free(device);
     }
