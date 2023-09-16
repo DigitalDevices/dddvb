@@ -1058,7 +1058,7 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    break;
 
 	case SYS_DVBC_ANNEX_A:
-	    wd->tp[i].qam = QAM_256;
+	    wd->tp[i].qam = MOD_QAM_DVBC_256;
 	    wd->tp[i].symbolrate = 6900000;
 	    wd->tp[i].bandwidth = 0;
 	    wd->tp[i].guard = 0;
