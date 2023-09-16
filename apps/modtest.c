@@ -958,7 +958,8 @@ int mci_set_channels(int fd, uint32_t freq, uint8_t nchan, uint8_t standard,
     return mci_cmd(fd,&msg_channels);
 }
 
-int mci_set_channels_simple(int adapt, uint32_t freq, uint8_t nchan)
+int mci_set_channels_simple(int adapt, enum fe_delivery_system delsys,
+			    uint32_t freq, uint8_t nchan)
 {
 
     char fn[128];
@@ -970,8 +971,18 @@ int mci_set_channels_simple(int adapt, uint32_t freq, uint8_t nchan)
 	fprintf(stderr, "Could not open %s\n", fn);
 	return -1;
     }
+    switch(delsys){
+    case SYS_DVBC_ANNEX_A:
+	re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBC_8, 0, 0);
+	break;
+	
+    case SYS_DVBT:
+	re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBT_8, 0, 0);
+	break;
 
-    re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBT_8, 0, 0);
+    default:
+	re = -1;
+    }
     close(fd);
     return re;
 }
@@ -1019,7 +1030,7 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 		  enum fe_delivery_system delsys, write_data *wd)
 {
     if ((mci_set_output_simple(adapt, chans) < 0)||
-	(mci_set_channels_simple(adapt, start_freq, chans)< 0))
+	(mci_set_channels_simple(adapt, delsys, start_freq, chans)< 0))
     {
 	fprintf(stderr,"Error setting up DVB Modulator\n");
 	exit(1);
