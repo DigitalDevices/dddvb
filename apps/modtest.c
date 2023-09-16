@@ -994,15 +994,11 @@ int mci_set_stream( int fd, uint8_t stream, uint8_t channel, uint8_t standard,
 		    uint8_t puncture_rate, uint8_t constellation,
 		    uint16_t cell_identifier)
 {
-    struct mci_command msg_stream = {
-	.mod_command = MOD_SETUP_STREAM,
-	.mod_channel = 0,
-	.mod_stream = 0,
-	.mod_setup_stream = {
-	    .standard = MOD_STANDARD_DVBC_8,
-	},
-    };
- 
+    struct mci_command msg_stream;
+
+    memset(&msg_stream,0,sizeof(msg_stream));
+	
+    msg_stream.mod_command = MOD_SETUP_STREAM;
     msg_stream.mod_channel = channel; 
     msg_stream.mod_stream = stream;
     msg_stream.mod_setup_stream.standard = standard;
@@ -1013,15 +1009,19 @@ int mci_set_stream( int fd, uint8_t stream, uint8_t channel, uint8_t standard,
 	msg_stream.mod_setup_stream.qam.modulation = modulation;
     if (rolloff)
 	msg_stream.mod_setup_stream.qam.rolloff = rolloff;    
-    msg_stream.mod_setup_stream.ofdm.fft_size = fft_size;
-    msg_stream.mod_setup_stream.ofdm.guard_interval = guard_interval;
-    msg_stream.mod_setup_stream.ofdm.puncture_rate = puncture_rate;
-    msg_stream.mod_setup_stream.ofdm.constellation = constellation;
+    if (fft_size)
+	msg_stream.mod_setup_stream.ofdm.fft_size = fft_size;
+    if (guard_interval)
+	msg_stream.mod_setup_stream.ofdm.guard_interval = guard_interval;
+    if (puncture_rate)
+	msg_stream.mod_setup_stream.ofdm.puncture_rate = puncture_rate;
+    if (constellation)
+	msg_stream.mod_setup_stream.ofdm.constellation = constellation;
     if (cell_identifier)
 	msg_stream.mod_setup_stream.ofdm.cell_identifier = cell_identifier;
 
     fprintf(stderr,"Setting DVB Stream %d to channel %d\n",stream, channel);
- 
+    
     return mci_cmd(fd,&msg_stream);
     
 }
@@ -1089,8 +1089,8 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
 	    
 	case SYS_DVBT:
 	    re =  mci_set_stream( fd, i, i, MOD_STANDARD_DVBT_8,
-				  stream_format, 0,
-				  0, 0, fft_size, wd->tp[i].guard,
+				  stream_format, 0, 0,
+				  0, fft_size, wd->tp[i].guard,
 				  wd->tp[i].code_rate, wd->tp[i].qam,
 				  0);
 	    break;
