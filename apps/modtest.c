@@ -940,7 +940,7 @@ int mci_set_channels(int fd, uint32_t freq, uint8_t nchan, uint8_t standard,
 	break;	
 
     }
-    fprintf(stderr,"Setting DVBT Modulator channels to %d HZ, %d channels, %s\n",
+    fprintf(stderr,"Setting DVB Modulator channels to %d HZ, %d channels, %s\n",
 	   freq, nchan, stand);
  
     return mci_cmd(fd,&msg_channels);
@@ -997,7 +997,7 @@ int mci_set_stream( int fd, uint8_t stream, uint8_t channel, uint8_t standard,
     if (cell_identifier)
 	msg_stream.mod_setup_stream.ofdm.cell_identifier = cell_identifier;
 
-    fprintf(stderr,"Setting DVBT Stream %d to channel %d\n",stream, channel);
+    fprintf(stderr,"Setting DVB Stream %d to channel %d\n",stream, channel);
  
     return mci_cmd(fd,&msg_stream);
     
@@ -1009,7 +1009,7 @@ void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
     if ((mci_set_output_simple(adapt, chans) < 0)||
 	(mci_set_channels_simple(adapt, start_freq, chans)< 0))
     {
-	fprintf(stderr,"Error setting up DVBT Modulator\n");
+	fprintf(stderr,"Error setting up DVB Modulator\n");
 	exit(1);
     }
     wd->chans = chans;
