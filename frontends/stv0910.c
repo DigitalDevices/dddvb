@@ -1643,7 +1643,7 @@ static int clear_slave(struct dvb_frontend *fe)
 
 	get_field(RXEND, &done);
 	get_reg(DISRXBYTES, &n);
-	printk("clear: done = %u, %u fifo bytes\n", done, n);
+	//printk("clear: done = %u, %u fifo bytes\n", done, n);
 	
 	for (get_reg(DISRXBYTES, &n); n; n--) 
 		get_reg(DISRXFIFO, &d);
@@ -1699,7 +1699,7 @@ static int recv_slave_reply(struct dvb_frontend *fe,
 		msleep(10);
 	}
 	get_reg(DISRXBYTES, &val);
-	printk("done = %u, %u fifo bytes, i=%u\n", done, val, i);
+	//printk("done = %u, %u fifo bytes, i=%u\n", done, val, i);
 	if (i == to && !val)
 		return -EIO;
 	if (done && !val)
