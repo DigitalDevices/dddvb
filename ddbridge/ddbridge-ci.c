@@ -237,6 +237,8 @@ static int slot_reset_xo2(struct dvb_ca_en50221 *ca, int slot)
 {
 	struct ddb_ci *ci = ca->data;
 
+	write_creg(ci, 0x00, 0x01);
+	msleep(300);
 	write_creg(ci, 0x01, 0x01);
 	write_creg(ci, 0x04, 0x04);
 	msleep(300);
