@@ -866,7 +866,7 @@ int mci_set_output(int fd, uint8_t connector, uint8_t nchannels, uint8_t unit,
 	break;
     }
     
-    fprintf(stderr,"Setting DVBT Modulator output to %s, %d channels, power %f%s\n",
+    fprintf(stderr,"Setting DVB Modulator output to %s, %d channels, power %f%s\n",
 	   con, nchannels, (double)power/100, un );
 
     return mci_cmd(fd,&msg_output);
@@ -934,19 +934,32 @@ int mci_set_channels(int fd, uint32_t freq, uint8_t nchan, uint8_t standard,
 	snprintf(stand, 24, "MOD_STANDARD_DVBT_5");
 	break;
 
+    case MOD_STANDARD_DVBC_8:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_8");
+	break;
+
+    case MOD_STANDARD_DVBC_7:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_7");
+	break;
+
+    case MOD_STANDARD_DVBC_6:
+	snprintf(stand, 24, "MOD_STANDARD_DVBC_6");
+	break;
+
     default:
 	fprintf(stderr,"unknown standard in channels setup\n");
 	return -1;
 	break;	
 
     }
-    fprintf(stderr,"Setting DVBT Modulator channels to %d HZ, %d channels, %s\n",
+    fprintf(stderr,"Setting DVB Modulator channels to %d HZ, %d channels, %s\n",
 	   freq, nchan, stand);
  
     return mci_cmd(fd,&msg_channels);
 }
 
-int mci_set_channels_simple(int adapt, uint32_t freq, uint8_t nchan)
+int mci_set_channels_simple(int adapt, enum fe_delivery_system delsys,
+			    uint32_t freq, uint8_t nchan)
 {
 
     char fn[128];
@@ -958,8 +971,18 @@ int mci_set_channels_simple(int adapt, uint32_t freq, uint8_t nchan)
 	fprintf(stderr, "Could not open %s\n", fn);
 	return -1;
     }
+    switch(delsys){
+    case SYS_DVBC_ANNEX_A:
+	re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBC_8, 0, 0);
+	break;
+	
+    case SYS_DVBT:
+	re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBT_8, 0, 0);
+	break;
 
-    re = mci_set_channels(fd, freq, nchan, MOD_STANDARD_DVBT_8, 0, 0);
+    default:
+	re = -1;
+    }
     close(fd);
     return re;
 }
@@ -971,15 +994,11 @@ int mci_set_stream( int fd, uint8_t stream, uint8_t channel, uint8_t standard,
 		    uint8_t puncture_rate, uint8_t constellation,
 		    uint16_t cell_identifier)
 {
-    struct mci_command msg_stream = {
-	.mod_command = MOD_SETUP_STREAM,
-	.mod_channel = 0,
-	.mod_stream = 0,
-	.mod_setup_stream = {
-	    .standard = MOD_STANDARD_DVBC_8,
-	},
-    };
- 
+    struct mci_command msg_stream;
+
+    memset(&msg_stream,0,sizeof(msg_stream));
+	
+    msg_stream.mod_command = MOD_SETUP_STREAM;
     msg_stream.mod_channel = channel; 
     msg_stream.mod_stream = stream;
     msg_stream.mod_setup_stream.standard = standard;
@@ -990,25 +1009,30 @@ int mci_set_stream( int fd, uint8_t stream, uint8_t channel, uint8_t standard,
 	msg_stream.mod_setup_stream.qam.modulation = modulation;
     if (rolloff)
 	msg_stream.mod_setup_stream.qam.rolloff = rolloff;    
-    msg_stream.mod_setup_stream.ofdm.fft_size = fft_size;
-    msg_stream.mod_setup_stream.ofdm.guard_interval = guard_interval;
-    msg_stream.mod_setup_stream.ofdm.puncture_rate = puncture_rate;
-    msg_stream.mod_setup_stream.ofdm.constellation = constellation;
+    if (fft_size)
+	msg_stream.mod_setup_stream.ofdm.fft_size = fft_size;
+    if (guard_interval)
+	msg_stream.mod_setup_stream.ofdm.guard_interval = guard_interval;
+    if (puncture_rate)
+	msg_stream.mod_setup_stream.ofdm.puncture_rate = puncture_rate;
+    if (constellation)
+	msg_stream.mod_setup_stream.ofdm.constellation = constellation;
     if (cell_identifier)
 	msg_stream.mod_setup_stream.ofdm.cell_identifier = cell_identifier;
 
-    fprintf(stderr,"Setting DVBT Stream %d to channel %d\n",stream, channel);
- 
+    fprintf(stderr,"Setting DVB Stream %d to channel %d\n",stream, channel);
+    
     return mci_cmd(fd,&msg_stream);
     
 }
 
-void set_dvbt_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
+void set_dvb_mods(int adapt, int chans, uint32_t start_freq,
+		  enum fe_delivery_system delsys, write_data *wd)
 {
     if ((mci_set_output_simple(adapt, chans) < 0)||
-	(mci_set_channels_simple(adapt, start_freq, chans)< 0))
+	(mci_set_channels_simple(adapt, delsys, start_freq, chans)< 0))
     {
-	fprintf(stderr,"Error setting up DVBT Modulator\n");
+	fprintf(stderr,"Error setting up DVB Modulator\n");
 	exit(1);
     }
     wd->chans = chans;
@@ -1019,16 +1043,29 @@ void set_dvbt_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
 	char *device;
 	int fd;
 	
-	wd->tp[i].tpid = 1; // all the same transport stream  id  
-	wd->tp[i].delsys = SYS_DVBT;
+	wd->tp[i].tpid = i; 
+	wd->tp[i].delsys = delsys;
 	wd->tp[i].freq = start_freq+8000000*i;
-	wd->tp[i].qam = 2;
-	wd->tp[i].symbolrate = 0;
-	wd->tp[i].bandwidth = 0;
-	wd->tp[i].guard = 0;
-	wd->tp[i].code_rate = 4;
-	wd->tp[i].trans_mode = MOD_STANDARD_DVBT_8;
 	
+	switch(delsys){
+	case SYS_DVBT:
+	    wd->tp[i].qam = 2;
+	    wd->tp[i].symbolrate = 0;
+	    wd->tp[i].bandwidth = 0;
+	    wd->tp[i].guard = 0;
+	    wd->tp[i].code_rate = 4;
+	    wd->tp[i].trans_mode = MOD_STANDARD_DVBT_8;
+	    break;
+
+	case SYS_DVBC_ANNEX_A:
+	    wd->tp[i].qam = MOD_QAM_DVBC_256;
+	    wd->tp[i].symbolrate = 6900000;
+	    wd->tp[i].bandwidth = 0;
+	    wd->tp[i].guard = 0;
+	    wd->tp[i].code_rate = 0;
+	    wd->tp[i].trans_mode = 0;
+	    break;
+	}
  	device = malloc(sizeof(char)*40);
 	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,i);
 	fd = open(device, O_RDWR);
@@ -1038,106 +1075,29 @@ void set_dvbt_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
 	    free(device);
 	    exit(1);   
 	}
+
+	int re= 0;
+	uint8_t stream_format = 4;  //format is ransport stream
+	uint8_t fft_size = wd->tp[i].trans_mode;
 	
-	mci_set_stream( fd, i, i, MOD_STANDARD_DVBT_8, 4, 0, 0, 0, 1, 0, 4, 2, 0);
-	close(fd);
-	free(device);
-    }
-}
-
-//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//++++++++++++++++++++++++++++++++DVBC MOD++++++++++++++++++++++++++++++++
-
-static int set_property(int fd, uint32_t cmd, uint32_t data)
-{
-        struct dtv_property p;
-        struct dtv_properties c;
-        int ret;
-
-        p.cmd = cmd;
-        c.num = 1;
-        c.props = &p;
-        p.u.data = data;
-        ret = ioctl(fd, FE_SET_PROPERTY, &c);
-        if (ret < 0) {
-                fprintf(stderr, "FE_SET_PROPERTY returned %d\n", errno);
-                return -1;
-        }
-        return 0;
-}
-
-static int set_input_bitrate(int fd, uint64_t data)
-{
-        struct dtv_property p;
-        struct dtv_properties c;
-        int ret;
-
-        p.cmd = MODULATOR_INPUT_BITRATE;
-        c.num = 1;
-        c.props = &p;
-        p.u.data64 = data;
-        ret = ioctl(fd, FE_SET_PROPERTY, &c);
-        if (ret < 0) {
-                fprintf(stderr, "FE_SET_PROPERTY returned %d\n", errno);
-                return -1;
-        }
-        return 0;
-}
-
-void set_dvbc_mods(int adapt, int chans, uint32_t start_freq, write_data *wd)
-{
-    uint32_t freq = start_freq;
-    uint8_t qam = QAM_256;
-    uint32_t sym = 6900000;
-
-    wd->chans = chans;
-    wd->fd_out = (int *)malloc(chans*sizeof(int));
-    memset(wd->fd_out,0,chans*sizeof(int));
-    
-    for (int i = 0; i < chans; i++){
-	char *device;
-	int fd;
-	
-	wd->tp[i].tpid = i; 
-	wd->tp[i].delsys = SYS_DVBC_ANNEX_A;
-	wd->tp[i].freq = freq;
-	wd->tp[i].qam = qam;
-	wd->tp[i].symbolrate = sym;
-	wd->tp[i].bandwidth = 0;
-	wd->tp[i].guard = 0;
-	wd->tp[i].code_rate = 0;
-	wd->tp[i].trans_mode = 0;
-	
-	device = malloc(sizeof(char)*40);
-	snprintf(device,35,"/dev/dvb/adapter%d/mod%d",adapt,i);
-	fd = open(device, O_RDWR);
-	if( fd < 0 )
-	{
-	    fprintf(stderr,"Error opening %s : %s\n",device,strerror(errno));
-	    free(device);
-	    exit(1);   
+	switch(delsys){
+	case SYS_DVBC_ANNEX_A:
+	    re =  mci_set_stream( fd, i, i, MOD_STANDARD_DVBC_8,
+				  stream_format, wd->tp[i].symbolrate,
+				  wd->tp[i].qam, 0, 0, 0, 0, 0, 0);
+	    break;
+	    
+	case SYS_DVBT:
+	    re =  mci_set_stream( fd, i, i, MOD_STANDARD_DVBT_8,
+				  stream_format, 0, 0,
+				  0, fft_size, wd->tp[i].guard,
+				  wd->tp[i].code_rate, wd->tp[i].qam,
+				  0);
+	    break;
+	default:
+	    re = -1;
 	}
-	if (set_property(fd, MODULATOR_FREQUENCY, freq) < 0){
-	    fprintf(stderr,"setting freq %d failed\n",freq);
-	    exit(1);   
-	}
-	if (set_property(fd, MODULATOR_MODULATION, qam) < 0){
-	    fprintf(stderr,"setting qam %d failed\n",qam);
-	    exit(1);   
-	}
-	if (set_property(fd, MODULATOR_SYMBOL_RATE, sym) < 0){
-	    fprintf(stderr,"setting sym %d failed\n",sym);
-	    exit(1);   
-	}
-
-	if (set_input_bitrate(fd, (DEFAULT_BIT_RATE_C << 32)) < 0){
-	    fprintf(stderr,"setting bitrate %d failed\n",
-		    (int)DEFAULT_BIT_RATE_C);
-	    exit(1);   
-	}
-     
-	freq += 8000000;
+	if (re < 0) fprintf(stderr,"ERROR setting stream\n");
 	close(fd);
 	free(device);
     }
@@ -1296,9 +1256,9 @@ int main(int argc, char **argv)
 	chans = ddevices.ndevs[adapt];
 
     if (dvbt){
-	set_dvbt_mods(adapt, chans, start_freq, &wd);
+	set_dvb_mods(adapt, chans, start_freq, SYS_DVBT, &wd);
     } else {
-	set_dvbc_mods(adapt, chans, start_freq, &wd);
+	set_dvb_mods(adapt, chans, start_freq, SYS_DVBC_ANNEX_A, &wd);
     }
  
     fprintf(stderr,"Reading from %s\n", filename);
