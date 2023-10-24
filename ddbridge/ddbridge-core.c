@@ -4613,7 +4613,7 @@ int ddb_init_ddbridge(void)
 
 	if (ddb_class_create() < 0)
 		return -1;
-	ddb_wq = alloc_workqueue("ddbridge", 0, 0);
+	ddb_wq = alloc_workqueue("ddbridge", WQ_UNBOUND, 0);
 	if (!ddb_wq)
 		return ddb_exit_ddbridge(1, -1);
 	return 0;
