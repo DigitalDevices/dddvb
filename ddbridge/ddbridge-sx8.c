@@ -152,6 +152,7 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	if (stat)
 		goto unlock;
 	if (res.status == MCI_DEMOD_LOCKED || res.status == SX8_DEMOD_IQ_MODE) {
+		//if (res.status == MCI_DEMOD_LOCKED || sx8_base->iq_mode) {
 		*status = FE_HAS_LOCK | FE_HAS_SYNC | FE_HAS_VITERBI |
 			FE_HAS_CARRIER | FE_HAS_SIGNAL;
 		if (res.status == MCI_DEMOD_LOCKED) {
@@ -171,8 +172,12 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 		}
 	} else if (res.status == MCI_DEMOD_TIMEOUT)
 		*status = FE_TIMEDOUT;
-	else if (res.status >= SX8_DEMOD_WAIT_MATYPE)
+	else if (res.status >= SX8_DEMOD_WAIT_MATYPE) {
 		*status = FE_HAS_SYNC | FE_HAS_VITERBI | FE_HAS_CARRIER | FE_HAS_SIGNAL;
+		if (sx8_base->iq_mode)
+			*status |= FE_HAS_LOCK;
+	}
+			
 unlock:
 	mutex_unlock(&state->lock);
 	return stat;
@@ -385,6 +390,8 @@ unlock:
 	cmd.dvbs2_search.s2_modulation_mask = modmask;
 	cmd.dvbs2_search.rsvd1 = ro_lut[p->rolloff & 7];
 	cmd.dvbs2_search.retry = 2;
+	if (sx8_base->iq_mode)
+		cmd.dvbs2_search.retry = 255;
 	cmd.dvbs2_search.frequency = p->frequency * 1000;
 	cmd.dvbs2_search.symbol_rate = p->symbol_rate;
 	cmd.dvbs2_search.scrambling_sequence_index =
