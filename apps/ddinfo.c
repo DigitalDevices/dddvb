@@ -285,7 +285,6 @@ void print_info(int dev, uint32_t link, uint8_t demod, struct mci_result *res)
 				else
 					printf("Demod Locked:  DVB-S2\n");
 				printf("PLS-Code:      %u\n", res->dvbs2_signal_info.pls_code);
-				mci_bb(dev, link, demod);
 				if (pls >= 250)  {
 					pilots = 1;
 					modcod = S2Xrsvd[pls - 250];
@@ -298,6 +297,8 @@ void print_info(int dev, uint32_t link, uint8_t demod, struct mci_result *res)
 					short_frame = pls & 2;
 					modcod = S2ModCods[pls / 4];
 				}
+				printf("ModCod:        %s\n", modcod);
+				mci_bb(dev, link, demod);
 				printf("Roll-Off:      %s\n", Rolloff[res->dvbs2_signal_info.roll_off & 7]);
 				printf("Pilots:        %s\n", pilots ? "On" : "Off");
 				printf("Frame:         %s\n", short_frame ? "Short" : "Normal");
@@ -423,6 +424,8 @@ static char *id2name(uint16_t id)
 		return "MAX SX8 Basic";
 	case 0x000a:
 		return "MAX M4";
+	case 0x0014:
+		return "MAX CI M2";
 	default:
 		return " ";
 	}
@@ -432,7 +435,7 @@ static int card_info(int ddbnum, int demod)
 {
 	char ddbname[80];
 	struct ddb_id ddbid;
-	int ddb, ret, link, links = 1, i;
+	int ddb, ret, link, links = 1, i, num=8;
 	struct ddb_id id;
 	
 	sprintf(ddbname, "/dev/ddbridge/card%d", ddbnum);
@@ -465,21 +468,19 @@ static int card_info(int ddbnum, int demod)
 		       id.hw, id.regmap, (id.hw & 0xff0000) >> 16, (id.hw & 0xffff));
 		switch (id.device) {
 		case 0x0009:
-			mci_firmware(ddb, link);
-			if (demod >= 0)
-				mci_info(ddb, link, demod);
-			else {
-				for (i = 0; i < 8; i++)
-					mci_info(ddb, link, i);
-			}
+		case 0x000b:
 			temp_info(ddb, link);
-			break;
 		case 0x000a:
+		case 0x0014:
+			if (id.device == 0x000a)
+				num = 4;
+			if (id.device == 0x0014)
+				num = 2;
 			mci_firmware(ddb, link);
 			if (demod >= 0)
 				mci_info(ddb, link, demod);
 			else {
-				for (i = 0; i < 4; i++)
+				for (i = 0; i < num; i++)
 					mci_info(ddb, link, i);
 			}
 			break;
