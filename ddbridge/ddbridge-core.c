@@ -61,7 +61,7 @@ static int raw_stream;
 module_param(raw_stream, int, 0444);
 MODULE_PARM_DESC(raw_stream, "send data as raw stream to DVB layer");
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 static int alt_dma = 1;
 #else
 static int alt_dma;
@@ -325,7 +325,7 @@ static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 				dma_unmap_single(&pdev->dev, dma->pbuf[i],
 						 dma->size,
 						 dir ? DMA_TO_DEVICE :
-						 DMA_FROM_DEVICE);
+						 DMA_BIDIRECTIONAL);
 				kfree(dma->vbuf[i]);
 			} else {
 				dma_free_coherent(&pdev->dev, dma->size,
@@ -356,7 +356,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 						      dma->vbuf[i],
 						      dma->size,
 						      dir ? DMA_TO_DEVICE :
-						      DMA_FROM_DEVICE);
+						      DMA_BIDIRECTIONAL);
 			if (dma_mapping_error(&pdev->dev, dma->pbuf[i])) {
 				kfree(dma->vbuf[i]);
 				dma->vbuf[i] = 0;
@@ -795,6 +795,12 @@ static ssize_t ddb_output_write(struct ddb_output *output,
 		}
 		if (len > left)
 			len = left;
+		if (alt_dma)
+			dma_sync_single_for_cpu(dev->dev,
+						output->dma->pbuf[
+							output->dma->cbuf],
+						output->dma->size,
+						DMA_TO_DEVICE);
 		if (copy_from_user(output->dma->vbuf[output->dma->cbuf] +
 				   output->dma->coff,
 				   buf, len))
@@ -865,6 +871,12 @@ static size_t ddb_input_read(struct ddb_input *input,
 						DMA_FROM_DEVICE);
 		ret = copy_to_user(buf, input->dma->vbuf[input->dma->cbuf] +
 				   input->dma->coff, free);
+		if (alt_dma)
+			dma_sync_single_for_device(dev->dev,
+						   input->dma->pbuf[
+							   input->dma->cbuf],
+						   input->dma->size,
+						   DMA_FROM_DEVICE);
 		if (ret)
 			return -EFAULT;
 		input->dma->coff += free;
@@ -1155,11 +1167,8 @@ static struct dvb_frontend_ops dummy_ops = {
 
 static struct dvb_frontend *dummy_attach(void)
 {
-#if (KERNEL_VERSION(4, 13, 0) > LINUX_VERSION_CODE)
-	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_REPEAT);
-#else
-	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_RETRY_MAYFAIL);
-#endif
+	struct dvb_frontend *fe = kzalloc(sizeof(*fe), GFP_KERNEL);
+
 	if (fe)
 		fe->ops = dummy_ops;
 	return fe;
@@ -2415,7 +2424,9 @@ static void input_write_dvb(struct ddb_input *input,
 							 dma2->vbuf[dma->cbuf],
 							 dma2->size / 188);
 		}
-		
+		//if (alt_dma)
+		//	dma_sync_single_for_device(dev->dev, dma2->pbuf[dma->cbuf],
+		//				   dma2->size, DMA_FROM_DEVICE);
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
