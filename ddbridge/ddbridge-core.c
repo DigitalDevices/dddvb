@@ -974,12 +974,16 @@ static unsigned int ts_poll(struct file *file, poll_table *wait)
 
 	unsigned int mask = 0;
 
-	poll_wait(file, &input->dma->wq, wait);
-	poll_wait(file, &output->dma->wq, wait);
-	if (ddb_input_avail(input) >= 188)
-		mask |= POLLIN | POLLRDNORM;
-	if (ddb_output_free(output) >= 188)
-		mask |= POLLOUT | POLLWRNORM;
+	if (input && input->dma) {
+		poll_wait(file, &input->dma->wq, wait);
+		if (ddb_input_avail(input) >= 188)
+			mask |= POLLIN | POLLRDNORM;
+	}
+	if (output && output->dma) {
+		poll_wait(file, &output->dma->wq, wait);
+		if (ddb_output_free(output) >= 188)
+			mask |= POLLOUT | POLLWRNORM;
+	}
 	return mask;
 }
 
@@ -1006,8 +1010,11 @@ static int ts_open(struct inode *inode, struct file *file)
 	int err;
 	struct dvb_device *dvbdev = file->private_data;
 	struct ddb_output *output = dvbdev->priv;
-	struct ddb_input *input = output->port->input[0];
+	struct ddb_input *input;
 
+	if (!output)
+		return -EINVAL;
+	input = output->port->input[0];
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY) {
 		if (!input)
 			return -EINVAL;
