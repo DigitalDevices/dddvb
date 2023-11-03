@@ -65,8 +65,8 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 	}
 	if (c == 10)
 		dev_info(dev->dev,
-			 "%s lnb = %08x  cmd = %08x\n",
-			 __func__, lnb, cmd);
+			 "%s lnb = %08x  cmd = %08x timed out\n",
+			 __func__, lnb, cmd | v);
 	return 0;
 }
 
