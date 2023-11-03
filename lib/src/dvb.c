@@ -244,7 +244,7 @@ static int set_en50607(struct dddvb_fe *fe, uint32_t freq_khz, uint32_t sr,
 	uint32_t t = freq - 100;
 	uint32_t input = 3 & (sat >> 6);
 	int fd = fe->fd;
-	
+
 	dbgprintf(DEBUG_DVB, "input = %u, sat = %u\n", input, sat&0x3f);
 	hor &= 1;
 	cmd.msg[1] = slot << 3;
@@ -809,8 +809,10 @@ static int dddvb_fe_init(struct dddvb *dd, int a, int f, int fd)
 	dps.props = dp;
 	dp[0].cmd = DTV_ENUM_DELSYS;
 	r = ioctl(fd, FE_GET_PROPERTY, &dps);
-	if (r < 0)
+	if (r < 0) {
+		dbgprintf(DEBUG_DVB, "Could not get delsys, error=%d\n", errno);
 		return -1;
+	}
 	for (i = 0; i < dp[0].u.buffer.len; i++) {
 		ds = dp[0].u.buffer.data[i];
 		dbgprintf(DEBUG_DVB, "delivery system %d\n", ds);
