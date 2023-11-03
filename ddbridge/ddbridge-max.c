@@ -480,8 +480,12 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	tuner = demod & 3;
 	if (fmode >= 3)
 		tuner = 0;
+#ifdef CONFIG_MEDIA_ATTACH
 	dvb->fe = dvb_attach(mxl5xx_attach, i2c, &cfg,
 			     demod, tuner, &dvb->set_input);
+#else
+	dvb->fe = mxl5xx_attach(i2c, &cfg, demod, tuner, &dvb->set_input);
+#endif
 	if (!dvb->fe) {
 		dev_err(dev->dev, "No MXL5XX found!\n");
 		return -ENODEV;
