@@ -331,8 +331,6 @@ static void calc_lq(struct dddvb_fe *fe)
 	int64_t str, snr;
 	uint32_t mod, fec, ber_num, ber_den, trans, pilot = 0, quality = 0, freq, rate;
 	
-	get_property(fe->fd, DTV_TRANSMISSION_MODE, &fe->pls_code);
-	dbgprintf(DEBUG_DVB, "fe%d: pls=0x%02x\n", fe->nr, fe->pls_code);
 	
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 	str = st.stat[0].svalue;
@@ -368,9 +366,17 @@ static void calc_lq(struct dddvb_fe *fe)
 	dbgprintf(DEBUG_DVB, "fe%d: actual symbol rate=%u\n", fe->nr, rate);
 	switch (fe->n_param.param[PARAM_MSYS]) {
 	case SYS_DVBS:
+		get_property(fe->fd, DTV_INVERSION, &fe->inversion);
+		get_property(fe->fd, DTV_ROLLOFF, &fe->rolloff);
+		dbgprintf(DEBUG_DVB, "fe%d: inversion=%u rolloff=%u\n", fe->nr, fe->inversion, fe->rolloff);
 		quality = dvbsq(snr, fec, ber_num, ber_den);
 		break;
 	case SYS_DVBS2:
+		get_property(fe->fd, DTV_TRANSMISSION_MODE, &fe->pls_code);
+		dbgprintf(DEBUG_DVB, "fe%d: pls=0x%02x\n", fe->nr, fe->pls_code);
+		get_property(fe->fd, DTV_INVERSION, &fe->inversion);
+		get_property(fe->fd, DTV_ROLLOFF, &fe->rolloff);
+		dbgprintf(DEBUG_DVB, "fe%d: inversion=%u rolloff=%u\n", fe->nr, fe->inversion, fe->rolloff);
 		quality = dvbs2q(snr, fec, mod, ber_num, ber_den);
 		break;
 	case SYS_DVBC_ANNEX_A:
