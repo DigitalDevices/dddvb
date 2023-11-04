@@ -2552,7 +2552,6 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 	spin_lock_init(&dma->lock);
 	init_waitqueue_head(&dma->wq);
 	if (out) {
-		tasklet_init(&dma->tasklet, output_tasklet, (unsigned long)dma);
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
