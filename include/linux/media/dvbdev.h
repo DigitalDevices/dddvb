@@ -182,6 +182,7 @@ struct dvb_device {
 	int readers;
 	int writers;
 	int users;
+	struct mutex lock;
 
 	wait_queue_head_t	  wait_queue;
 	/* don't really need those !? -- FIXME: use video_usercopy  */

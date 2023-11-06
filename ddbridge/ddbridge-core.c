@@ -61,13 +61,21 @@ static int raw_stream;
 module_param(raw_stream, int, 0444);
 MODULE_PARM_DESC(raw_stream, "send data as raw stream to DVB layer");
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 static int alt_dma = 1;
 #else
 static int alt_dma;
 #endif
 module_param(alt_dma, int, 0444);
 MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
+
+#if defined(__arm__) || defined(__aarch64__)
+static int use_workqueue = 1;
+#else
+static int use_workqueue;
+#endif
+module_param(use_workqueue, int, 0444);
+MODULE_PARM_DESC(use_workqueue, "use workqueue instead of tasklet");
 
 static int no_init;
 module_param(no_init, int, 0444);
@@ -325,7 +333,7 @@ static void dma_free(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 				dma_unmap_single(&pdev->dev, dma->pbuf[i],
 						 dma->size,
 						 dir ? DMA_TO_DEVICE :
-						 DMA_FROM_DEVICE);
+						 DMA_BIDIRECTIONAL);
 				kfree(dma->vbuf[i]);
 			} else {
 				dma_free_coherent(&pdev->dev, dma->size,
@@ -356,7 +364,7 @@ static int dma_alloc(struct pci_dev *pdev, struct ddb_dma *dma, int dir)
 						      dma->vbuf[i],
 						      dma->size,
 						      dir ? DMA_TO_DEVICE :
-						      DMA_FROM_DEVICE);
+						      DMA_BIDIRECTIONAL);
 			if (dma_mapping_error(&pdev->dev, dma->pbuf[i])) {
 				kfree(dma->vbuf[i]);
 				dma->vbuf[i] = 0;
@@ -641,9 +649,9 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 static void ddb_input_stop(struct ddb_input *input)
 {
 	if (input->dma) {
-		spin_lock_irq(&input->dma->lock);
+		spin_lock_bh(&input->dma->lock);
 		ddb_input_stop_unlocked(input);
-		spin_unlock_irq(&input->dma->lock);
+		spin_unlock_bh(&input->dma->lock);
 	} else {
 		ddb_input_stop_unlocked(input);
 	}
@@ -672,14 +680,10 @@ static void ddb_input_start_unlocked(struct ddb_input *input)
 		ddbwritel(dev, 1, DMA_BASE_WRITE);
 		ddbwritel(dev, 3, DMA_BUFFER_CONTROL(input->dma));
 	}
-	if (dev->link[0].info->type == DDB_OCTONET)
-		ddbwritel(dev, 0x01, TS_CONTROL(input));
-	else {
-		if (raw_stream)
-			ddbwritel(dev, 0x01 | ((raw_stream & 3) << 8), TS_CONTROL(input));
-		else
-			ddbwritel(dev, 0x01 | input->con, TS_CONTROL(input));
-	}
+	if (raw_stream)
+		ddbwritel(dev, 0x01 | (raw_stream & 0x300), TS_CONTROL(input));
+	else
+		ddbwritel(dev, 0x01 | input->con, TS_CONTROL(input));
 	if (input->port->type == DDB_TUNER_DUMMY)
 		ddbwritel(dev, 0x000fff01, TS_CONTROL2(input));
 	if (input->dma)
@@ -689,9 +693,9 @@ static void ddb_input_start_unlocked(struct ddb_input *input)
 static void ddb_input_start(struct ddb_input *input)
 {
 	if (input->dma) {
-		spin_lock_irq(&input->dma->lock);
+		spin_lock_bh(&input->dma->lock);
 		ddb_input_start_unlocked(input);
-		spin_unlock_irq(&input->dma->lock);
+		spin_unlock_bh(&input->dma->lock);
 	} else {
 		ddb_input_start_unlocked(input);
 	}
@@ -799,6 +803,12 @@ static ssize_t ddb_output_write(struct ddb_output *output,
 		}
 		if (len > left)
 			len = left;
+		if (alt_dma)
+			dma_sync_single_for_cpu(dev->dev,
+						output->dma->pbuf[
+							output->dma->cbuf],
+						output->dma->size,
+						DMA_TO_DEVICE);
 		if (copy_from_user(output->dma->vbuf[output->dma->cbuf] +
 				   output->dma->coff,
 				   buf, len))
@@ -869,6 +879,12 @@ static size_t ddb_input_read(struct ddb_input *input,
 						DMA_FROM_DEVICE);
 		ret = copy_to_user(buf, input->dma->vbuf[input->dma->cbuf] +
 				   input->dma->coff, free);
+		if (alt_dma)
+			dma_sync_single_for_device(dev->dev,
+						   input->dma->pbuf[
+							   input->dma->cbuf],
+						   input->dma->size,
+						   DMA_FROM_DEVICE);
 		if (ret)
 			return -EFAULT;
 		input->dma->coff += free;
@@ -958,12 +974,16 @@ static unsigned int ts_poll(struct file *file, poll_table *wait)
 
 	unsigned int mask = 0;
 
-	poll_wait(file, &input->dma->wq, wait);
-	poll_wait(file, &output->dma->wq, wait);
-	if (ddb_input_avail(input) >= 188)
-		mask |= POLLIN | POLLRDNORM;
-	if (ddb_output_free(output) >= 188)
-		mask |= POLLOUT | POLLWRNORM;
+	if (input && input->dma) {
+		poll_wait(file, &input->dma->wq, wait);
+		if (ddb_input_avail(input) >= 188)
+			mask |= POLLIN | POLLRDNORM;
+	}
+	if (output && output->dma) {
+		poll_wait(file, &output->dma->wq, wait);
+		if (ddb_output_free(output) >= 188)
+			mask |= POLLOUT | POLLWRNORM;
+	}
 	return mask;
 }
 
@@ -990,8 +1010,11 @@ static int ts_open(struct inode *inode, struct file *file)
 	int err;
 	struct dvb_device *dvbdev = file->private_data;
 	struct ddb_output *output = dvbdev->priv;
-	struct ddb_input *input = output->port->input[0];
+	struct ddb_input *input;
 
+	if (!output)
+		return -EINVAL;
+	input = output->port->input[0];
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY) {
 		if (!input)
 			return -EINVAL;
@@ -1159,11 +1182,8 @@ static struct dvb_frontend_ops dummy_ops = {
 
 static struct dvb_frontend *dummy_attach(void)
 {
-#if (KERNEL_VERSION(4, 13, 0) > LINUX_VERSION_CODE)
-	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_REPEAT);
-#else
-	struct dvb_frontend *fe = kmalloc(sizeof(*fe), __GFP_RETRY_MAYFAIL);
-#endif
+	struct dvb_frontend *fe = kzalloc(sizeof(*fe), GFP_KERNEL);
+
 	if (fe)
 		fe->ops = dummy_ops;
 	return fe;
@@ -2419,7 +2439,9 @@ static void input_write_dvb(struct ddb_input *input,
 							 dma2->vbuf[dma->cbuf],
 							 dma2->size / 188);
 		}
-		
+		//if (alt_dma)
+		//	dma_sync_single_for_device(dev->dev, dma2->pbuf[dma->cbuf],
+		//				   dma2->size, DMA_FROM_DEVICE);
 		dma->cbuf = (dma->cbuf + 1) % dma2->num;
 		if (ack)
 			ddbwritel(dev, (dma->cbuf << 11),
@@ -2429,18 +2451,13 @@ static void input_write_dvb(struct ddb_input *input,
 	}
 }
 
-static void input_tasklet(unsigned long data)
+static void input_proc(struct ddb_dma *dma)
 {
-	struct ddb_dma *dma = (struct ddb_dma *)data;
 	struct ddb_input *input = (struct ddb_input *)dma->io;
 	struct ddb *dev = input->port->dev;
-	unsigned long flags;
 
-	spin_lock_irqsave(&dma->lock, flags);
-	if (!dma->running) {
-		spin_unlock_irqrestore(&dma->lock, flags);
+	if (!dma->running)
 		return;
-	}
 	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
 	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
 	update_loss(dma);
@@ -2451,82 +2468,62 @@ static void input_tasklet(unsigned long data)
 	if (input->redo)
 		input_write_output(input, input->redo);
 	wake_up(&dma->wq);
-	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
-#ifdef OPTIMIZE_TASKLETS
-static void input_handler(unsigned long data)
+static void input_work(struct work_struct *work)
 {
-	struct ddb_input *input = (struct ddb_input *)data;
+	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
+
+	spin_lock(&dma->lock);
+	input_proc(dma);
+	spin_unlock(&dma->lock);
+}
+
+static void input_tasklet(unsigned long data)
+{
+	struct ddb_dma *dma = (struct ddb_dma *)data;
+
+	spin_lock_bh(&dma->lock);
+	input_proc(dma);
+	spin_unlock_bh(&dma->lock);
+}
+
+static void input_handler(void *data)
+{
+	struct ddb_input *input = (struct ddb_input *) data;
 	struct ddb_dma *dma = input->dma;
 
 	/* If there is no input connected, input_tasklet() will
 	 * just copy pointers and ACK. So, there is no need to go
 	 * through the tasklet scheduler.
 	 */
-	if (input->redi)
-		tasklet_schedule(&dma->tasklet);
-	else
-		input_tasklet(data);
+	if (!input->redi) {
+		input_work(&dma->work);
+	} else {
+		if (use_workqueue)
+			queue_work(ddb_wq, &dma->work);
+		else
+			tasklet_schedule(&dma->tasklet);
+	}
 }
 
-#else
-static void input_handler(void *data)
+static void output_handler(void *data)
 {
-	struct ddb_input *input = (struct ddb_input *)data;
-	struct ddb_dma *dma = input->dma;
-
-	input_tasklet((unsigned long)dma);
-}
-#endif
-
-static void output_tasklet(unsigned long data)
-{
-	struct ddb_dma *dma = (struct ddb_dma *)data;
-	struct ddb_output *output = (struct ddb_output *)dma->io;
+	struct ddb_output *output = (struct ddb_output *)data;
+	struct ddb_dma *dma = output->dma;
 	struct ddb *dev = output->port->dev;
 	unsigned long flags;
 
 	spin_lock_irqsave(&dma->lock, flags);
-	if (!dma->running)
-		goto unlock_exit;
-	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
-	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
-	if (output->redi)
-		output_ack_input(output, output->redi);
-	wake_up(&dma->wq);
-unlock_exit:
+	if (dma->running) {
+		dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
+		dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
+		if (output->redi)
+			output_ack_input(output, output->redi);
+		wake_up(&dma->wq);
+	}
 	spin_unlock_irqrestore(&dma->lock, flags);
 }
-
-#ifdef OPTIMIZE_TASKLETS
-static void output_handler(void *data)
-{
-	struct ddb_output *output = (struct ddb_output *)data;
-	struct ddb_dma *dma = output->dma;
-	struct ddb *dev = output->port->dev;
-
-	spin_lock(&dma->lock);
-	if (!dma->running) {
-		spin_unlock(&dma->lock);
-		return;
-	}
-	dma->stat = ddbreadl(dev, DMA_BUFFER_CURRENT(dma));
-	dma->ctrl = ddbreadl(dev, DMA_BUFFER_CONTROL(dma));
-	if (output->redi)
-		output_ack_input(output, output->redi);
-	wake_up(&dma->wq);
-	spin_unlock(&dma->lock);
-}
-#else
-static void output_handler(void *data)
-{
-	struct ddb_output *output = (struct ddb_output *)data;
-	struct ddb_dma *dma = output->dma;
-
-	tasklet_schedule(&dma->tasklet);
-}
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -2555,7 +2552,6 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 	spin_lock_init(&dma->lock);
 	init_waitqueue_head(&dma->wq);
 	if (out) {
-		tasklet_init(&dma->tasklet, output_tasklet, (unsigned long)dma);
 		dma->regs = rm->odma->base + rm->odma->size * nr;
 		dma->bufregs = rm->odma_buf->base + rm->odma_buf->size * nr;
 		if (io->port->dev->link[0].info->type == DDB_MOD &&
@@ -2569,7 +2565,10 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 			dma->div = 1;
 		}
 	} else {
-		tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)dma);
+		if (use_workqueue)
+			INIT_WORK(&dma->work, input_work);
+		else
+			tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)dma);
 		dma->regs = rm->idma->base + rm->idma->size * nr;
 		dma->bufregs = rm->idma_buf->base + rm->idma_buf->size * nr;
 		dma->num = dma_buf_num;
@@ -2767,12 +2766,21 @@ void ddb_ports_release(struct ddb *dev)
 
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
-		if (port->input[0] && port->input[0]->dma)
-			tasklet_kill(&port->input[0]->dma->tasklet);
-		if (port->input[1] && port->input[1]->dma)
-			tasklet_kill(&port->input[1]->dma->tasklet);
-		if (port->output && port->output->dma)
-			tasklet_kill(&port->output->dma->tasklet);
+		if (use_workqueue) {
+			if (port->input[0] && port->input[0]->dma)
+				cancel_work_sync(&port->input[0]->dma->work);
+			if (port->input[1] && port->input[1]->dma)
+				cancel_work_sync(&port->input[1]->dma->work);
+			//if (port->output && port->output->dma)
+			//	cancel_work_sync(&port->output->dma->work);
+		} else {
+			if (port->input[0] && port->input[0]->dma)
+				tasklet_kill(&port->input[0]->dma->tasklet);
+			if (port->input[1] && port->input[1]->dma)
+				tasklet_kill(&port->input[1]->dma->tasklet);
+			//if (port->output && port->output->dma)
+			//	tasklet_kill(&port->output->dma->tasklet);
+		}
 	}
 }
 
@@ -2874,9 +2882,8 @@ irqreturn_t ddb_irq_handler(int irq, void *dev_id)
 
 		if (s & 0x0000000f)
 			irq_handle_msg(dev, s);
-		if (s & 0x0fffff00) {
+		if (s & 0x0fffff00)
 			irq_handle_io(dev, s);
-		}
 	} while ((s = ddbreadl(dev, INTERRUPT_STATUS)));
 
 	return ret;
@@ -4613,7 +4620,7 @@ int ddb_init_ddbridge(void)
 
 	if (ddb_class_create() < 0)
 		return -1;
-	ddb_wq = alloc_workqueue("ddbridge", 0, 0);
+	ddb_wq = alloc_workqueue("ddbridge", WQ_UNBOUND, 0);
 	if (!ddb_wq)
 		return ddb_exit_ddbridge(1, -1);
 	return 0;

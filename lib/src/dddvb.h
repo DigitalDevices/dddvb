@@ -76,6 +76,8 @@ struct dddvb_fe {
 	uint32_t lock;
 	uint32_t quality;
 	uint32_t pls_code;
+	uint32_t inversion;
+	uint32_t rolloff;
 	int64_t strength;
 	int64_t cnr;
 	int64_t ber;

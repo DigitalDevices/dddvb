@@ -134,25 +134,35 @@ static struct cdev dvb_device_cdev;
 int dvb_generic_open(struct inode *inode, struct file *file)
 {
 	struct dvb_device *dvbdev = file->private_data;
+	int ret = 0;
 
 	if (!dvbdev)
 		return -ENODEV;
 
-	if (!dvbdev->users)
-		return -EBUSY;
+	mutex_lock(&dvbdev->lock);
+	if (!dvbdev->users) {
+		ret = -EBUSY;
+		goto unlock;
+	}
 
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY) {
-		if (!dvbdev->readers)
-			return -EBUSY;
+		if (!dvbdev->readers) {
+			ret = -EBUSY;
+			goto unlock;
+		}
 		dvbdev->readers--;
 	} else {
-		if (!dvbdev->writers)
-			return -EBUSY;
+		if (!dvbdev->writers) {
+			ret = -EBUSY;
+			goto unlock;
+		}
 		dvbdev->writers--;
 	}
 
 	dvbdev->users--;
-	return 0;
+unlock:
+	mutex_unlock(&dvbdev->lock);
+	return ret;
 }
 EXPORT_SYMBOL(dvb_generic_open);
 
@@ -163,12 +173,14 @@ int dvb_generic_release(struct inode *inode, struct file *file)
 	if (!dvbdev)
 		return -ENODEV;
 
+	mutex_lock(&dvbdev->lock);
 	if ((file->f_flags & O_ACCMODE) == O_RDONLY)
 		dvbdev->readers++;
 	else
 		dvbdev->writers++;
 
 	dvbdev->users++;
+	mutex_unlock(&dvbdev->lock);
 
 	dvb_device_put(dvbdev);
 
@@ -524,6 +536,7 @@ int dvb_register_device(struct dvb_adapter *adap, struct dvb_device **pdvbdev,
 	dvbdev->adapter = adap;
 	dvbdev->priv = priv;
 	dvbdev->fops = dvbdevfops;
+	mutex_init(&dvbdev->lock);
 	init_waitqueue_head(&dvbdev->wait_queue);
 	dvbdevfops->owner = adap->module;
 	list_add_tail(&dvbdev->list_head, &adap->device_list);
