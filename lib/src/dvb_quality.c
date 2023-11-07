@@ -334,7 +334,7 @@ static void calc_lq(struct dddvb_fe *fe)
 	
 	get_stat(fe->fd, DTV_STAT_SIGNAL_STRENGTH, &st);
 	str = st.stat[0].svalue;
-	dbgprintf(DEBUG_DVB, "fe%d: str=%lld\n", fe->nr, str);
+	dbgprintf(DEBUG_DVB, "fe%d: str=%lld\n", fe->nr, (long long int)str);
 	fe->strength = str;
 	str = (str * 48) / 10000 + 344;
 	if (str < 0)
@@ -358,7 +358,7 @@ static void calc_lq(struct dddvb_fe *fe)
 	ber_den = st.stat[0].uvalue;
 
 	dbgprintf(DEBUG_DVB, "fe%d: snr=%lld ber=%llu/%llu\n",
-		  fe->nr, snr, ber_num, ber_den);
+		  fe->nr, (long long int)snr,(long long int) ber_num,(long long int) ber_den);
 	dbgprintf(DEBUG_DVB, "fe%d: fec=%u mod=%u\n", fe->nr, fec, mod);
 	get_property(fe->fd, DTV_FREQUENCY, &freq);
 	dbgprintf(DEBUG_DVB, "fe%d: actual frequency=%u\n", fe->nr, freq);
