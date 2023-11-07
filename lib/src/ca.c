@@ -631,6 +631,8 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 	struct dddvb_ca *ca;
 	char fname[80];
 
+	if (dd->dvbca_num >= DDDVB_MAX_DVB_CA)
+		return -1;
 	ca = &dd->dvbca[dd->dvbca_num];
 	ca->dd = dd;
 	ca->anum = a;

@@ -799,6 +799,8 @@ static int dddvb_fe_init(struct dddvb *dd, int a, int f, int fd)
 	int r;
 	uint32_t i, ds;
 
+	if (dd->dvbca_num >= DDDVB_MAX_DVB_CA)
+		return -1;
 	fe = &dd->dvbfe[dd->dvbfe_num];
 
 	r = snprintf(fe->name, sizeof(fe->name), "/dev/dvb/adapter%d/frontend%d", a, f);
@@ -870,7 +872,7 @@ static int scan_dvbfe(struct dddvb *dd)
 	int a, f, fd;
 	char fname[80];
 
-	for (a = 0; a < 16; a++) {
+	for (a = 0; a < 256; a++) {
 		for (f = 0; f < 24; f++) {
 			sprintf(fname, "/dev/dvb/adapter%d/frontend%d", a, f); 
 			fd = open(fname, O_RDONLY);
