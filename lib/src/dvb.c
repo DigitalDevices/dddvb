@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define DTV_SCRAMBLING_SEQUENCE_INDEX 70
 #define DTV_INPUT                     71
@@ -651,12 +652,12 @@ static void get_stats(struct dddvb_fe *fe)
 
 		fe->strength = str = st.stat[0].svalue;
 		dbgprintf(DEBUG_DVB, "fe%d: str=%lld.%03llddB\n",
-			  fe->nr, str/1000, abs(str%1000));
+			  fe->nr, (long long int)str/1000, (long long int)abs(str%1000));
 	}
 	if (!get_stat(fe->fd, DTV_STAT_CNR, &st)) {
 		fe->cnr = cnr = st.stat[0].svalue;
 		dbgprintf(DEBUG_DVB, "fe%d: cnr=%lld.%03llddB\n",
-			  fe->nr, cnr/1000, abs(cnr%1000));
+			  fe->nr, (long long int)cnr/1000, (long long int)abs(cnr%1000));
 	}
 	if (!get_stat(fe->fd, DTV_STAT_PRE_TOTAL_BIT_COUNT, &st) &&
 	    (st.stat[0].scale == FE_SCALE_COUNTER)) {
@@ -668,19 +669,19 @@ static void get_stats(struct dddvb_fe *fe)
 	    (st.stat[0].scale == FE_SCALE_COUNTER)) {
 		uval = st.stat[0].uvalue;
 		dbgprintf(DEBUG_DVB, "fe%d: pre_error_bit_count = %llu\n",
-			  fe->nr, uval);
+			  fe->nr, (long long int)uval);
 	}
 	if (!get_stat(fe->fd, DTV_STAT_ERROR_BLOCK_COUNT, &st) &&
 	    (st.stat[0].scale == FE_SCALE_COUNTER)) {
 		uval = st.stat[0].uvalue;
 		dbgprintf(DEBUG_DVB, "fe%d: error_block_count = %llu\n",
-			  fe->nr, uval);
+			  fe->nr, (long long int)uval);
 	}
 	if (!get_stat(fe->fd, DTV_STAT_TOTAL_BLOCK_COUNT, &st) &&
 	    (st.stat[0].scale == FE_SCALE_COUNTER)) {
 		uval = st.stat[0].uvalue;
 		dbgprintf(DEBUG_DVB, "fe%d: total_block_count = %llu\n",
-			  fe->nr, uval);
+			  fe->nr, (long long int)uval);
 	}
 }
 

@@ -23,7 +23,7 @@ extern uint32_t dddvb_debug;
 	 do { if (dddvb_debug & _mask_) fprintf(stderr, __VA_ARGS__); } while (0) 
 #else
 #define dbgprintf(_mask_, ...) \
-         do { if (dddvb_debug & _mask_) { fprintf(stderr, "[%5u] ", mtime(NULL)); \
+    do { if (dddvb_debug & _mask_) { fprintf(stderr, "[%5u] ",(unsigned int) mtime(NULL)); \
 			            fprintf(stderr, __VA_ARGS__); } } while (0) 
 #endif
 
