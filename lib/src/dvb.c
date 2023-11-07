@@ -733,7 +733,7 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 			} else {
 				max = 1;
 				nolock++;
-				if (nolock > 20)
+				if (nolock > 40)
 					fe->tune = 1;
 			}
 			break;
