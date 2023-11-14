@@ -1,0 +1,172 @@
+MCI API for modulators:
+
+Note:
+
+stream - refers to one modulator slot which take a TS and modulates it
+         e.g. the FSM16 has 16 streams
+
+channel - an actual frequency the stream is sent on
+          the FSM cards in default config have 96 channels at 114 MHz + X * 8 MHz (X=0-95)
+
+
+MCI commands can be sent to modulators with the IOCTL_DDB_MCI_CMD:
+
+#define IOCTL_DDB_MCI_CMD    _IOWR(DDB_MAGIC, 0x0c, struct ddb_mci_msg)
+
+with
+
+struct ddb_mci_msg {
+	__u32 link;
+	struct mci_command cmd;
+	struct mci_result res;
+};
+
+link is always 0 for modulators.
+
+mci_command with the entries relevant to modulators looks like this:
+
+struct mci_command {
+	union {
+		u32 command_word;
+		struct {
+			u8 command;
+			u8 tuner;
+			u8 demod;
+			u8 output;
+		};
+		struct {
+			u8 mod_command;
+			u8 mod_channel;
+			u8 mod_stream;
+			u8 mod_rsvd1;
+		};
+	};
+	union {
+	        ...
+		struct mod_setup_channels mod_setup_channels[4];
+		struct mod_setup_stream mod_setup_stream;
+		struct mod_setup_output mod_setup_output;
+		...
+		};		    
+};
+
+mci_result like this:
+
+struct mci_result {
+	union {
+		u32 status_word;
+		struct {
+			u8  status;
+			u8  mode;
+			u16 time;
+		};
+	};
+	...
+
+};
+
+
+
+mci_command.command can be one of:
+
+#define MOD_SETUP_CHANNELS        (0x60)
+#define MOD_SETUP_OUTPUT          (0x61)
+#define MOD_SETUP_STREAM          (0x62)
+
+which use the following corresponding structs in mci_command:
+
+
+
+MOD_SETUP_CHANNELS:
+
+mod_command = MOD_SETUP_CHANNELS
+mod_channel and mod_stream are not used
+
+
+struct mod_setup_channels {
+	u8   flags;
+	u8   standard;
+	u8   num_channels;
+	u8   rsvd;
+	u32  frequency;
+	u32  offset;            /* used only when Standard == 0 */
+	u32  bandwidth;         /* used only when Standard == 0 */
+};
+
+You can set up to 4 regions of channels.
+
+flags:
+#define MOD_SETUP_FLAG_FIRST      (0x01)
+#define MOD_SETUP_FLAG_LAST       (0x02)
+#define MOD_SETUP_FLAG_VALID      (0x80)
+
+Set first/last if this is the first and/or last region you define.
+Set valid if you actually want to set it.
+
+
+standard:
+
+see MOD_STANDARD_* defines in ddbridge-mci.h
+for FSM cards only MOD_STANDARD_DVBC_6/7/8 are relevant
+
+
+num_channels:
+
+number of channels in this channel region
+
+
+frequency:
+
+start frquency of this region
+frequency offset between channels depends on standard (e.g. 8MHz for DVBC_8)
+
+
+offset/bandwidth: set offsets between channels and bandwidth by hand (not for FSM cards)
+
+
+
+MOD_SETUP_OUTPUT:
+
+set mod_command to MOD_SETUP_OUTPUT
+mod_channel and mod_stream are not used
+
+
+struct mod_setup_output {
+	u8   connector;         /* 0 = OFF, 1 = F, 2 = SMA */
+	u8   num_channels;      /* max active channels, determines max power for each channel. */
+	u8   unit;              /* 0 = dBµV, 1 = dBm, */
+	u8   rsvd;
+	s16  channel_power;
+};
+
+connector:         use the F- or SMA-connector (the FSM cards only has F)
+
+num_channels:      how many channels will have actually have a stream using it (has to be less or equal to card stream capability)
+                   This influences internal multipliers. Setting it lower improves signal quality.
+
+
+unit:              determines unit of channel_power (0 = dBµV, 1 = dBm)
+
+channel_power:     set channel power of output to X dBµV or dBm.
+
+
+
+MOD_SETUP_STREAM:
+
+
+mod_command =   MOD_SETUP_STREAM
+mod_stream  =   stream you want to configure
+mod_channel =   channel the stream is to be sent on
+
+
+struct mod_setup_stream {
+	u8   standard;
+	u8   stream_format;
+	u8   rsvd1[2];
+	u32  symbol_rate;        /* only used when Standard doesn't define a fixed symbol rate */
+	union {
+		struct mod_ofdm_parameter ofdm;
+		struct mod_qam_parameter qam;
+	};
+};
+
