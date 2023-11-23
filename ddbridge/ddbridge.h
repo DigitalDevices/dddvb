@@ -339,6 +339,8 @@ struct mod_base {
 	u32                    frequency;
 	u32                    flat_start;
 	u32                    flat_end;
+	u32                    attenuation;
+	u32                    gain;
 };
 
 struct ddb_mod {
