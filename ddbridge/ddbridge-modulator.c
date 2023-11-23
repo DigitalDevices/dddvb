@@ -574,10 +574,37 @@ static int mod_fsm_setup(struct ddb *dev, u32 MaxUsedChannels)
 	return status;
 }
 
+static int mod_set_power(struct ddb *dev)
+{
+	struct ddb_link *link = &dev->link[0];
+	struct mod_base *base = &dev->mod_base;
+	struct mci_result res;
+	struct mci_command cmd = {
+		.mod_command = MOD_SETUP_OUTPUT,
+		.mod_channel = 0,
+		.mod_stream = 0,
+		.mod_setup_output = {
+			.connector = MOD_CONNECTOR_F,
+			.num_channels = dev->link[0].info->port_num,
+			.unit = MOD_UNIT_DBUV,
+			.channel_power = 9000,
+		},
+	};
+	if (!link->mci_ok)
+		return -EFAULT;
+	cmd.mod_setup_output.channel_power =
+		8232 - base->attenuation * 1000 + base->gain * 12;
+	return ddb_mci_cmd_link(link, &cmd, &res);
+}
+
 static int mod_set_vga(struct ddb *dev, u32 gain)
 {
 	if (gain > 255)
 		return -EINVAL;
+	if (dev->link[0].ids.revision == 1) {
+		dev->mod_base.gain = gain;
+		return mod_set_power(dev);
+	}
 	ddbwritel(dev, gain, RF_VGA);
 	return 0;
 }
@@ -686,23 +713,8 @@ static int mod_set_attenuator(struct ddb *dev, u32 Value)
 	if (Value > 31)
 		return -EINVAL;
 	if (dev->link[0].ids.revision == 1) {
-		struct ddb_link *link = &dev->link[0];
-		struct mci_result res;
-		struct mci_command cmd = {
-			.mod_command = MOD_SETUP_OUTPUT,
-			.mod_channel = 0,
-			.mod_stream = 0,
-			.mod_setup_output = {
-				.connector = MOD_CONNECTOR_F,
-				.num_channels = dev->link[0].info->port_num,
-				.unit = MOD_UNIT_DBUV,
-				.channel_power = 9000 - Value * 100,
-			},
-		};
-		if (!link->mci_ok) {
-			return -EFAULT;
-		}
-		return ddb_mci_cmd_link(link, &cmd, &res);
+		dev->mod_base.attenuation = Value;
+		return mod_set_power(dev);
 	} else
 		ddbwritel(dev, Value, RF_ATTENUATOR);
 	return 0;
@@ -1745,7 +1757,7 @@ static int mod_prop_proc(struct ddb_mod *mod, struct dtv_property *tvp)
 		if (mod->port->dev->link[0].info->version == 2)
 			return mod_set_vga(mod->port->dev, tvp->u.data);
 		return -EINVAL;
-
+		
 	case MODULATOR_RESET:
 		if (mod->port->dev->link[0].info->version == 2)
 			return mod_fsm_setup(mod->port->dev,0 );
@@ -1937,10 +1949,11 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 			(struct ddb_mci_msg __user *) parg;
 		struct ddb_link *link;
 
-		if (dev->link[0].ids.revision != 1)
+		if (dev->link[0].ids.revision != 1) {
+			ret = -EINVAL;
 			break;
-
- 		if (msg->link > 3) {
+		}
+		if (msg->link > 3) {
 			ret = -EFAULT;
 			break;
 		}
@@ -1965,6 +1978,10 @@ static int mod_init_2_1(struct ddb *dev, u32 Frequency)
 	int i, streams = dev->link[0].info->port_num;
 
 	dev->mod_base.frequency = Frequency;
+	dev->mod_base.gain = 64;
+	dev->mod_base.attenuation = 0;
+	mod_set_power(dev);
+
 	for (i = 0; i < streams; i++) {
 		struct ddb_mod *mod = &dev->mod[i];
 		mod->port = &dev->port[i];
@@ -2164,6 +2181,7 @@ static int mod_init_sdr_iq(struct ddb *dev)
 	mod_set_sdr_attenuator(dev, 0);
 	udelay(10);
 	mod_set_sdr_gain(dev, 120);
+	ddb_mci_cmd_link_simple(&dev->link[0], 0xc0, 0x00, 90);
 	return ret;
 }
 
