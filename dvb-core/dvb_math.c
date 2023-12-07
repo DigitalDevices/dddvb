@@ -114,7 +114,9 @@ unsigned int intlog2(u32 value)
 	/* now we return the result */
 	return ((msb << 24) + (logtable[logentry] << 8) + interpolation);
 }
-EXPORT_SYMBOL(intlog2);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
+	EXPORT_SYMBOL(intlog2);
+#endif
 
 unsigned int intlog10(u32 value)
 {
@@ -138,4 +140,6 @@ unsigned int intlog10(u32 value)
 
 	return (log * 646456993) >> 31;
 }
-EXPORT_SYMBOL(intlog10);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
+	EXPORT_SYMBOL(intlog10);
+#endif
