@@ -541,12 +541,15 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		break;
 	case DDB_TUNER_MCI_M8:
 		fm = 3;
-		dvb->fe = ddb_mx_attach(input, demod, tuner, 1);
+		if (!demod)
+			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
+						0xff, (delmode & 0x10) | 3);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 3);
 		dvb->input = 0;
 		break;
 	case DDB_TUNER_MCI_M8A:
 		fm = 3;
-		dvb->fe = ddb_mx_attach(input, demod, tuner, 2);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 3);
 		dvb->input = 0;
 		break;
 	case DDB_TUNER_MCI_M2:
@@ -557,11 +560,11 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		switch (delmode & 1) {
 		case 0:
 			mode = 2;
-			mmode = 2;
+			mmode = 2;  /* M_S */
 			break;
 		case 1:
 			mode = 1;
-			mmode = demod ? 3 : 1;
+			mmode = demod ? 3 : 1; /* demod 1=M/0=M_A */
 			break;
 		}
 		if (!demod)
