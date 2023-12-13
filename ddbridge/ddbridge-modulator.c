@@ -1807,11 +1807,17 @@ static int mod_prop_get(struct ddb_mod *mod, struct dtv_property *tvp)
 		return 0;
 
 	case MODULATOR_GAIN:
-		tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);
+		if (dev->link[0].ids.revision == 1)
+			tvp->u.data = dev->mod_base.gain;
+		else
+			tvp->u.data = 0xff & ddbreadl(dev, RF_VGA);
 		return 0;
 
 	case MODULATOR_ATTENUATOR:
-		tvp->u.data = 0x1f & ddbreadl(dev, RF_ATTENUATOR);
+		if (dev->link[0].ids.revision == 1)
+			tvp->u.data = dev->mod_base.attenuation;
+		else
+			tvp->u.data = 0x1f & ddbreadl(dev, RF_ATTENUATOR);
 		return 0;
 
 	case MODULATOR_STATUS:
