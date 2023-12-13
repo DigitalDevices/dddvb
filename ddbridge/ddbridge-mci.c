@@ -310,7 +310,6 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	p->symbol_rate =
 		mci->signal_info.dvbs2_signal_info.symbol_rate;
 	switch (p->delivery_system) {
-	default:
 	case SYS_DVBS:
 	case SYS_DVBS2:
 	{
@@ -363,6 +362,8 @@ void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p)
 	case SYS_DVBC2:
 		break;
 	case SYS_ISDBT:
+		break;
+	default:
 		break;
 	}
 	/* post is correct, we cannot provide both pre and post at the same time  */
