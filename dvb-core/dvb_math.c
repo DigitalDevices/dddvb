@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
 /*
  * dvb-math provides some complex fixed-point math
  * operations shared between the dvb related stuff
@@ -15,6 +16,7 @@
  * GNU Lesser General Public License for more details.
  */
 
+#if (KERNEL_VERSION(6, 6, 0) > LINUX_VERSION_CODE)
 #include <linux/bitops.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -139,3 +141,6 @@ unsigned int intlog10(u32 value)
 	return (log * 646456993) >> 31;
 }
 EXPORT_SYMBOL(intlog10);
+#else
+#include <linux/int_log.h>
+#endif

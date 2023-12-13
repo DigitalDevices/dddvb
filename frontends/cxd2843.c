@@ -36,7 +36,11 @@
 #include <asm/div64.h>
 
 #include <media/dvb_frontend.h>
+#if (KERNEL_VERSION(6, 6, 0) > LINUX_VERSION_CODE)
 #include <media/dvb_math.h>
+#else
+#include <linux/int_log.h>
+#endif
 #include "cxd2843.h"
 
 #define Log10x100(x) ((s32)(((((u64) intlog2(x) * 0x1e1a5e2e) >> 47 ) + 1) >> 1))
