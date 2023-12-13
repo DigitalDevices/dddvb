@@ -649,9 +649,9 @@ static void ddb_input_stop_unlocked(struct ddb_input *input)
 static void ddb_input_stop(struct ddb_input *input)
 {
 	if (input->dma) {
-		spin_lock_bh(&input->dma->lock);
+		spin_lock_irq(&input->dma->lock);
 		ddb_input_stop_unlocked(input);
-		spin_unlock_bh(&input->dma->lock);
+		spin_unlock_irq(&input->dma->lock);
 	} else {
 		ddb_input_stop_unlocked(input);
 	}
@@ -693,9 +693,9 @@ static void ddb_input_start_unlocked(struct ddb_input *input)
 static void ddb_input_start(struct ddb_input *input)
 {
 	if (input->dma) {
-		spin_lock_bh(&input->dma->lock);
+		spin_lock_irq(&input->dma->lock);
 		ddb_input_start_unlocked(input);
-		spin_unlock_bh(&input->dma->lock);
+		spin_unlock_irq(&input->dma->lock);
 	} else {
 		ddb_input_start_unlocked(input);
 	}
@@ -2474,18 +2474,19 @@ static void input_work(struct work_struct *work)
 {
 	struct ddb_dma *dma = container_of(work, struct ddb_dma, work);
 
-	spin_lock(&dma->lock);
+	spin_lock_irq(&dma->lock);
 	input_proc(dma);
-	spin_unlock(&dma->lock);
+	spin_unlock_irq(&dma->lock);
 }
 
 static void input_tasklet(unsigned long data)
 {
 	struct ddb_dma *dma = (struct ddb_dma *)data;
+	unsigned long flags;
 
-	spin_lock_bh(&dma->lock);
+	spin_lock_irqsave(&dma->lock, flags);
 	input_proc(dma);
-	spin_unlock_bh(&dma->lock);
+	spin_unlock_irqrestore(&dma->lock, flags);
 }
 
 static void input_handler(void *data)
@@ -2498,7 +2499,7 @@ static void input_handler(void *data)
 	 * through the tasklet scheduler.
 	 */
 	if (!input->redi) {
-		input_work(&dma->work);
+		input_tasklet((unsigned long) dma);
 	} else {
 		if (use_workqueue)
 			queue_work(ddb_wq, &dma->work);
