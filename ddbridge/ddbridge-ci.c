@@ -110,7 +110,7 @@ static int slot_reset(struct dvb_ca_en50221 *ca, int slot)
 		  CI_CONTROL(ci));
 	ddbwritel(ci->port->dev, CI_ENABLE | CI_POWER_ON | CI_RESET_CAM,
 		  CI_CONTROL(ci));
-	usleep_range(20, 25);
+	msleep(20);
 	ddbwritel(ci->port->dev, CI_ENABLE | CI_POWER_ON,
 		  CI_CONTROL(ci));
 	return 0;
