@@ -299,12 +299,17 @@ static int dvb_frontend_get_event(struct dvb_frontend *fe,
 	}
 
 	if (events->eventw == events->eventr) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
 		struct wait_queue_entry wait;
+#endif
 		int ret = 0;
 
 		if (flags & O_NONBLOCK)
 			return -EWOULDBLOCK;
-
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 0, 0))
+		ret = wait_event_interruptible(events->wait_queue,
+					       dvb_frontend_test_event(fepriv, events));
+#else
 		init_waitqueue_entry(&wait, current);
 		add_wait_queue(&events->wait_queue, &wait);
 		while (!dvb_frontend_test_event(fepriv, events)) {
@@ -315,6 +320,7 @@ static int dvb_frontend_get_event(struct dvb_frontend *fe,
 			}
 		}
 		remove_wait_queue(&events->wait_queue, &wait);
+#endif
 		if (ret < 0)
 			return ret;
 	}
@@ -496,10 +502,10 @@ static void dvb_frontend_swzigzag(struct dvb_frontend *fe)
 	struct dvb_frontend_private *fepriv = fe->frontend_priv;
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache, tmp;
 
-	if (fepriv->max_drift)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
 		dev_warn_once(fe->dvb->device,
 			      "Frontend requested software zigzag, but didn't set the frequency step size\n");
-
+#endif
 	/* if we've got no parameters, just keep idling */
 	if (fepriv->state & FESTATE_IDLE) {
 		fepriv->delay = 3 * HZ;
