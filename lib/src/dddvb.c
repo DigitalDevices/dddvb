@@ -71,7 +71,7 @@ LIBDDDVB_EXPORTED struct dddvb *dddvb_init(char *config, uint32_t flags)
 	struct dddvb *dd;
 	pthread_mutexattr_t mta;
 
-	dddvb_debug = flags;
+	dddvb_debug = flags & 0xff;
 
 	pthread_mutex_lock(&dddvb_mutex);
 	if (global_dd) {
@@ -90,9 +90,11 @@ LIBDDDVB_EXPORTED struct dddvb *dddvb_init(char *config, uint32_t flags)
 	pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
 	pthread_mutex_init(&dd->lock, &mta);
 	
+	dd->get_ts = (flags & 0x100) ? 0 : 1;
+	dd->use_ca = (flags & 0x200) ? 0 : 1;
+
 	dddvb_dvb_init(dd);
 	global_dd = dd;
-	dd->get_ts = 1;
 fail:
 	pthread_mutex_unlock(&dddvb_mutex);
 	return dd;

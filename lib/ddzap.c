@@ -1,3 +1,4 @@
+#define _LARGEFILE64_SOURCE
 #include "../include/linux/dvb/frontend.h"
 #include "src/libdddvb.h"
 #include <stdio.h>
@@ -14,6 +15,8 @@
 #include <time.h>
 #include <inttypes.h>
 
+#include "dvb_filter.h"
+
 char line_start[16] = "";
 char line_end[16]   = "\r";
 
@@ -22,6 +25,14 @@ uint32_t cc_errors = 0;
 uint32_t packets = 0;
 uint32_t payload_packets = 0;
 uint32_t packet_errors = 0;
+
+
+#define SYS_FILE 200
+uint16_t pmt_pid[16];
+uint32_t numpmt = 0;
+uint8_t *pmts[16];
+int32_t ci = -1;
+uint32_t loop = 1;
 
 uint8_t cc[8192] = { 0 };
 
@@ -196,8 +207,8 @@ void pam_write (int fd, pamdata *iq){
 
 void proc_ts(int i, uint8_t *buf)
 {
-  uint16_t pid=0x1fff&((buf[1]<<8)|buf[2]);
-  uint8_t ccin = buf[3] & 0x1F;
+	uint16_t pid=0x1fff&((buf[1]<<8)|buf[2]);
+	uint8_t ccin = buf[3] & 0x1F;
   
 	if (buf[0] == 0x47 && (buf[1] & 0x80) == 0) {
 		if( pid != 8191 ) {
@@ -225,6 +236,34 @@ void proc_ts(int i, uint8_t *buf)
 
 #define TSBUFSIZE (100*188)
 
+void tscheck_orig(int ts)
+{
+        uint8_t *buf;
+        uint8_t id;
+        int i, nts;
+        int len;
+
+	buf=(uint8_t *)malloc(TSBUFSIZE);
+
+	while(1) {
+                len=read(ts, buf, TSBUFSIZE);
+                if (len<0)
+                        continue;
+		if (len%188) { /* should not happen */
+                        printf("blah\n");
+                        continue;
+                }
+                if (buf[0]!=0x47) {
+                        printf("unaligned\n");
+                        read(ts, buf, 1);
+                        continue;
+                }
+                nts=len/188;
+                for (i=0; i<nts; i++)
+                        proc_ts(i, buf+i*188);
+        }
+}
+		    
 void tscheck(int ts)
 {
         uint8_t *buf;
@@ -234,18 +273,17 @@ void tscheck(int ts)
 
 	buf=(uint8_t *)malloc(TSBUFSIZE);
 
-        
-        while(1) {
+	while(1) {
                 len=read(ts, buf, TSBUFSIZE);
-                if (len<0) {
+                if (len<0)
+                        continue;
+		if (len%188) { /* should not happen */
+                        printf("blah\n");
                         continue;
                 }
                 if (buf[0]!=0x47) {
+                        printf("unaligned\n");
                         read(ts, buf, 1);
-                        continue;
-                }
-                if (len%188) { /* should not happen */
-                        printf("blah\n");
                         continue;
                 }
                 nts=len/188;
@@ -265,6 +303,63 @@ static uint32_t root2gold(uint32_t root)
 	}
 	return 0xffffffff;
 }
+
+ssize_t rread(int fd, void *buf, size_t count)
+{
+	size_t len, todo=count;
+	
+	while (todo) {
+		len = read(fd, buf, todo);
+		if (len < 0)
+			return len;
+		if (len == 0 && fd && loop!=1) {
+			lseek64(fd, SEEK_SET, 0);
+			loop -= loop ? 1 : 0;
+		}
+		buf+=len;
+		todo-=len;
+	}
+	return count;
+}
+
+static void decode(struct dddvb *dd, int fd)
+{
+	uint8_t buf[200*188];
+	uint8_t ts[188];
+	struct dvbf_pid pidf[16];
+	int pmt;
+	ssize_t len;
+	
+	
+	for (pmt = 0; pmt < numpmt; pmt++) {
+		dvbf_init_pid(&pidf[pmt], pmt_pid[pmt]);
+		do {
+			len=rread(fd,ts,188);
+			if (len < 0) {
+				dprintf(2, "Error reading stream\n");
+				exit(-1);
+			}
+			write(fileno(stdout),ts,188);
+		}
+		while (proc_pidf(&pidf[pmt], ts)<=0);
+		dprintf(2, "PMT %u of %u\n", pmt, numpmt);
+		dump(stderr, pidf[pmt].buf, pidf[pmt].len);
+		pmts[pmt]=pidf[pmt].buf;
+	}
+	while (dddvb_ca_set_pmts(dd, ci, pmts) < 0)
+		sleep(1);
+	while (1) {
+		rread(fd, buf, sizeof(buf));
+		if (len < 0) {
+			dprintf(2, "Error reading stream\n");
+			exit(-1);
+		}
+		dddvb_ca_write(dd, ci, buf, sizeof(buf));
+		dddvb_ca_read(dd, ci, buf, sizeof(buf));
+		write(fileno(stdout),buf, sizeof(buf));
+	}
+}
+
 
 int main(int argc, char **argv)
 {
@@ -286,7 +381,7 @@ int main(int argc, char **argv)
 	int color = 0;
         pamdata iq;
 
-	
+	memset(pmts, 0, sizeof(pmts));
 	while (1) {
 		int cur_optind = optind ? optind : 1;
                 int option_index = 0;
@@ -311,16 +406,35 @@ int main(int argc, char **argv)
 			{"nodvr", no_argument , 0, 'q'},
 			{"pam", no_argument , 0, 'P'},
 			{"pam_color", no_argument , 0, 'e'},
+			{"decode", required_argument, 0, 'x'},
+			{"loop", required_argument, 0, 'L'},
 			{"help", no_argument , 0, 'h'},
 			{0, 0, 0, 0}
 		};
                 c = getopt_long(argc, argv, 
-				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:qP",
+				"e:c:i:f:s:d:p:hg:r:n:b:l:v:m:ota:qPx:L:",
 				long_options, &option_index);
 		if (c==-1)
  			break;
 		
 		switch (c) {
+		case 'x':
+		{
+			int j;
+			char *str,*estr;
+
+			for (numpmt = 0, str = optarg; numpmt < 17 && *str; numpmt++, str=*estr?estr+1:estr) {
+				if (numpmt)
+					pmt_pid[numpmt-1] = strtoul(str, &estr, 10);
+				else
+					ci = strtoul(str, &estr, 10);
+			}
+			numpmt--;
+		        odvr = 4;
+			break;
+		}
+		case 'L':
+		        loop = strtoul(optarg, NULL, 0);
 		case 'e':
 		        color = strtoul(optarg, NULL, 0);
 		case 'P':
@@ -423,6 +537,8 @@ int main(int argc, char **argv)
 				delsys = SYS_ISDBT;
 			if (!strcmp(optarg, "ISDBS"))
 				delsys = SYS_ISDBS;
+			if (!strcmp(optarg, "FILE"))
+				delsys = SYS_FILE;
 			break;
 		case 'p':
 			if (!strcmp(optarg, "h") || !strcmp(optarg, "H"))
@@ -446,6 +562,7 @@ int main(int argc, char **argv)
 			       "      [-a [display line] (display continuity check in line)]\n"
 			       "      [-P (output IQ diagram as pam)]\n"
 			       "      [-e [color] (use color for pam 0=green)]\n"
+			       "      [-x cinum[,pmt0,pmt1,..,.pmt15]]\n"
 			       "\n"
 			       "      delivery_system = C,S,S2,T,T2,J83B,ISDBC,ISDBT\n"
 			       "      polarity        = h/H,v/V\n"
@@ -456,9 +573,20 @@ int main(int argc, char **argv)
 			
 		}
 	}
-	if (optind < argc) {
-	    fprintf(fout,"Warning: unused arguments\n");
+	if (delsys==SYS_FILE) {
+		if (optind >= argc) {
+			fd = 0;
+		} else {
+			fd = open(argv[optind], O_RDONLY);
+			if (fd < 0) {
+				fprintf(stderr,"error opening %s\n", argv[optind]);
+				exit(-1);
+			}
+			optind++;
+		}
 	}
+	if (optind < argc)
+		fprintf(fout,"Warning: unused arguments\n");
 
 	if (delsys == ~0) {
 	    fprintf(fout,"You have to choose a delivery system: -d (C|S|S2|T|T2)\n");
@@ -476,7 +604,12 @@ int main(int argc, char **argv)
 	    fprintf(fout,"dddvb_init failed\n");
 		exit(-1);
 	}
-	fprintf(fout,"dvbnum = %u\n", dd->dvbfe_num);
+	if (delsys==SYS_FILE) {
+		if (ci>=0)
+			decode(dd, fd);
+		fprintf(fout, "FILE delsys only alowed for decoding.\n");
+		exit(-1);
+	}
 	dddvb_get_ts(dd, get_ts);
 
 	if (num != DDDVB_UNDEF)
@@ -499,14 +632,6 @@ int main(int argc, char **argv)
 	dddvb_set_ssi(&p, ssi);
 	dddvb_dvb_tune(fe, &p);
 
-#if 0
-	{
-		uint8_t ts[188];
-		
-		dddvb_ca_write(dd, 0, ts, 188);
-
-	}
-#endif
 	if (!odvr){
 		while (1) {
 			fe_status_t stat;
@@ -523,9 +648,9 @@ int main(int argc, char **argv)
 		sleep(1);
 		}
 	} else {
-#define BUFFSIZE (1024*188)
 	        fe_status_t stat;
 		char filename[150];
+#define BUFFSIZE (1024*188)
 		uint8_t buf[BUFFSIZE];
 		
 		stat = 0;
@@ -571,6 +696,8 @@ int main(int argc, char **argv)
 		    }
 		    tscheck(fd);
 		    break;
+		case 4:
+			decode(dd, fd);
 		}
 	}
 }

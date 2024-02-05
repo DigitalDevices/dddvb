@@ -7,6 +7,7 @@
 #include <linux/dvb/frontend.h>
 #include <linux/dvb/video.h>
 #include <linux/dvb/net.h>
+#include <linux/dvb/ca.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -252,6 +253,24 @@ static int handle_pmts(struct dddvb_ca *ca)
 	return 0;
 }
 
+void dump(FILE *fp, uint8_t *b, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) { 
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				fprintf(fp, "%02x ", b[i]);
+			else
+				fprintf(fp, "   ");
+		fprintf(fp, " | ");
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				fprintf(fp, "%c", (b[i] > 31 && b[i] < 127) ? b[i] : '.');
+		fprintf(fp, "\n");
+	}
+}
+
 static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 {
 	int listmgmt = CA_LIST_MANAGEMENT_ONLY;
@@ -273,10 +292,26 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 		len = ((sec[1] & 0x0f) << 8) | sec[2];
 		len += 3;
 		memcpy(sec, pmts[i], len);
+		//dump(stderr, sec, len);
 		section = section_codec(sec, len);
+		if (!section) {
+			dbgprintf(DEBUG_CA, "section_codec failed\n");;
+			continue;
+		}
 		section_ext = section_ext_decode(section, 0);
+		if (!section_ext) {
+			dbgprintf(DEBUG_CA, "section_ext_decode failed\n");;
+			continue;
+		}
 		pmt = mpeg_pmt_section_codec(section_ext);
-
+		//pmt = (struct mpeg_pmt_section *) section_ext;
+		if (!pmt) {
+			dbgprintf(DEBUG_CA, "mpeg_pmt_section_codec failed\n");;
+			continue;
+		}
+		
+		dbgprintf(DEBUG_CA, "PMT = %p  section=%p\n", pmt, section);
+		
 		ca->ca_pmt_version[i] = section_ext->version_number;
 		if (ca->sentpmt) {
 			//return 0;
@@ -291,14 +326,16 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 					listmgmt = CA_LIST_MANAGEMENT_LAST;
 			}
 		}
-		dbgprintf(DEBUG_CA, "set ca_pmt\n");
-	
+		//dump(stderr, (uint8_t *) pmt, len);
+		dbgprintf(DEBUG_CA, "format ca_pmt %p length %u\n", pmt, len);
+
 		if ((size = en50221_ca_format_pmt(pmt, capmt, sizeof(capmt), ca->moveca, listmgmt,
 						  CA_PMT_CMD_ID_OK_DESCRAMBLING)) < 0) {
 			dbgprintf(DEBUG_CA, "Failed to format PMT\n");
 			return -1;
 		}
 		//dump(capmt, size);
+		dbgprintf(DEBUG_CA, "set ca_pmt\n");
 		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
 			dbgprintf(DEBUG_CA, "Failed to send PMT\n");
 			return -1;
@@ -585,7 +622,7 @@ static int mmi_menu_callback(void *arg, uint8_t slot_id, uint16_t snum,
 
 
 static int init_ca_stack(struct dddvb_ca *ca)
-{
+{	
 	ca->tl = en50221_tl_create(1, 16);
 	if (ca->tl == NULL) {
 		dbgprintf(DEBUG_CA, "Failed to create transport layer\n");
@@ -625,6 +662,19 @@ static int init_ca_stack(struct dddvb_ca *ca)
 	return 0;
 }
 
+void cam_reset(int fd)
+{
+        ca_slot_info_t info;
+
+        info.num = 0;
+        if (ioctl(fd, CA_GET_SLOT_INFO, &info))
+                return;
+        if (info.flags & CA_CI_MODULE_READY)
+		return;
+        if (!(info.flags & CA_CI_MODULE_PRESENT))
+		return;
+	ioctl(fd, CA_RESET);
+}
 
 static int init_ca(struct dddvb *dd, int a, int f, int fd)
 {
@@ -640,6 +690,8 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 	ca->nr = dd->dvbca_num + 1;
 	ca->fd = fd;
 	pthread_mutex_init(&ca->mutex, 0);
+
+	//cam_reset(fd);
 	
 	init_ca_stack(ca);
 
@@ -671,7 +723,7 @@ int dddvb_ca_set_pmts(struct dddvb *dd, uint32_t nr, uint8_t **pmts)
 {
 	struct dddvb_ca *ca = &dd->dvbca[nr];
 
-	dbgprintf(DEBUG_CA, "ca_set_pmt\n");
+	dbgprintf(DEBUG_CA, "ca%u.%u.%u:ca_set_pmt\n", ca->nr,ca->anum,ca->fnum);
 	return set_pmts(ca, pmts);
 }
 

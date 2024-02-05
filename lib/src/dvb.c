@@ -605,6 +605,7 @@ int open_dmx(struct dddvb_fe *fe)
 	struct dmx_pes_filter_params pesFilterParams; 
 	
 	sprintf(fname, "/dev/dvb/adapter%u/demux%u", fe->anum, fe->fnum); 
+	dbgprintf(DEBUG_DVB, "open %s\n", fname);
 
 	fe->dmx = open(fname, O_RDWR);
 	if (fe->dmx < 0) 
@@ -690,7 +691,6 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 	uint32_t newtune, count = 0, max, nolock = 0;
 	int ret;
 
-	
 	if (fe->dd->get_ts)
 		open_dmx(fe);
 	while (fe->state == 1) {
@@ -727,13 +727,14 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 				break;
 			count = 0;
 			get_stats(fe);
+			dbgprintf(DEBUG_DVB, "fe: nolock = %u, stat = %u\n", nolock, fe->stat);
 			if (fe->lock) {
 				max = 20;
 				nolock = 0;
 			} else {
 				max = 1;
 				nolock++;
-				if (nolock > 40)
+				if (nolock > 200 || fe->stat == FE_TIMEDOUT)
 					fe->tune = 1;
 			}
 			break;
@@ -799,7 +800,7 @@ static int dddvb_fe_init(struct dddvb *dd, int a, int f, int fd)
 	int r;
 	uint32_t i, ds;
 
-	if (dd->dvbca_num >= DDDVB_MAX_DVB_CA)
+	if (dd->dvbfe_num >= DDDVB_MAX_DVB_FE)
 		return -1;
 	fe = &dd->dvbfe[dd->dvbfe_num];
 
@@ -1034,7 +1035,8 @@ int dddvb_dvb_init(struct dddvb *dd)
 		if (dd->cam_port == 0)
 			dd->cam_port = 8888;
 	}
-	scan_dvbca(dd);
+	if (dd->use_ca)
+		scan_dvbca(dd);
 }
 
 

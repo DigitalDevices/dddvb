@@ -158,7 +158,8 @@ struct dddvb {
 	unsigned int cam_proto;
 	unsigned int cam_port;
 
-	unsigned int get_ts:1;
+	unsigned int get_ts;
+	unsigned int use_ca;
 };
 
 int dddvb_dvb_init(struct dddvb *dd);
