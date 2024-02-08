@@ -294,6 +294,7 @@
 
 #define CI_CAM_READY                    (0x00010000)
 #define CI_CAM_DETECT                   (0x00020000)
+#define CI_POWER_ERROR                  (0x00100000)
 #define CI_READY                        (0x80000000)
 #define CI_BLOCKIO_ACTIVE               (0x40000000)
 #define CI_BLOCKIO_RCVDATA              (0x20000000)
