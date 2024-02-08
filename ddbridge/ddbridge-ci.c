@@ -45,14 +45,15 @@ static int read_attribute_mem(struct dvb_ca_en50221 *ca,
 			      int slot, int address)
 {
 	struct ddb_ci *ci = ca->data;
-	u32 val, off = (address >> 1) & (CI_BUFFER_SIZE - 1);
+	u32 off = (address >> 1) & (CI_BUFFER_SIZE - 1);
+	u8 val;
 
 	if (address > CI_BUFFER_SIZE)
 		return -1;
 	ddbwritel(ci->port->dev, CI_READ_CMD | (1 << 16) | address,
 		  CI_DO_READ_ATTRIBUTES(ci));
 	wait_ci_ready(ci);
-	val = 0xff & ddbreadl(ci->port->dev, CI_BUFFER(ci->nr) + off);
+	ddbcpyfrom(ci->port->dev, &val, CI_BUFFER(ci->nr) + off, 1);
 	return val;
 }
 
