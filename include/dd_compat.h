@@ -25,15 +25,7 @@
 #define DVB_DEVICE_NS 7
 #define DVB_DEVICE_NSD 8
 
-#define SYS_DVBC2 19
-#define ROLLOFF_15 4
-#define ROLLOFF_10 5
-#define ROLLOFF_5 6
-
-#define	FEC_1_4 13
-#define	FEC_1_3 14
-
-#define APSK_64 14
-#define APSK_128 15
-#define APSK_256 16
+#define APSK_128 21
+#define APSK_256 22
+#define APSK_256_L 23
 #endif
