@@ -559,7 +559,9 @@ static enum dvbfe_algo get_algo(struct dvb_frontend *fe)
 static int set_input(struct dvb_frontend *fe, int input)
 {
 	struct sx8 *state = fe->demodulator_priv;
+#ifndef KERNEL_DVB_CORE
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+#endif
 
 	if (input >= SX8_TUNER_NUM)
 		return -EINVAL;

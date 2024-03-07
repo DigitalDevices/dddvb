@@ -823,7 +823,9 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 static int set_input(struct dvb_frontend *fe, int input)
 {
 	struct mxl *state = fe->demodulator_priv;
+#ifndef KERNEL_DVB_CORE
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+#endif
 
 	state->tuner = input;
 #ifndef KERNEL_DVB_CORE
