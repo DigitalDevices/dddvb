@@ -4213,32 +4213,9 @@ static void gtl_link_handler(void *priv)
 		 (1 & ddbreadl(dev, regs)));
 }
 
-static void link_tasklet(unsigned long data)
-{
-	struct ddb_link *link = (struct ddb_link *)data;
-	struct ddb *dev = link->dev;
-	u32 s, tag = DDB_LINK_TAG(link->nr);
-	u32 l = link->nr;
-
-	s = ddbreadl(dev, tag | INTERRUPT_STATUS);
-	dev_info(dev->dev, "gtl_irq %08x = %08x\n", tag | INTERRUPT_STATUS, s);
-
-	if (!s)
-		return;
-	ddbwritel(dev, s, tag | INTERRUPT_ACK);
-	LINK_IRQ_HANDLE(l, 0);
-	LINK_IRQ_HANDLE(l, 1);
-	LINK_IRQ_HANDLE(l, 2);
-	LINK_IRQ_HANDLE(l, 3);
-	LINK_IRQ_HANDLE(l, 24);
-}
-
 static void gtl_irq_handler(void *priv)
 {
 	struct ddb_link *link = (struct ddb_link *)priv;
-#ifdef USE_LINK_TASKLET
-	tasklet_schedule(&link->tasklet);
-#else
 	struct ddb *dev = link->dev;
 	u32 s, l = link->nr, tag = DDB_LINK_TAG(link->nr);
 
@@ -4250,7 +4227,6 @@ static void gtl_irq_handler(void *priv)
 		LINK_IRQ_HANDLE(l, 3);
 		LINK_IRQ_HANDLE(l, 24);
 	}
-#endif
 }
 
 static int ddb_gtl_init_link(struct ddb *dev, u32 l)
@@ -4318,7 +4294,6 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 	dev_info(dev->dev, "GTL ID %08x\n",
 		 ddbreadl(dev, DDB_LINK_TAG(l) | 8));
 
-	tasklet_init(&link->tasklet, link_tasklet, (unsigned long)link);
 	ddbwritel(dev, 0xffffffff, DDB_LINK_TAG(l) | INTERRUPT_ACK);
 	ddbwritel(dev, 0x0100000f, DDB_LINK_TAG(l) | INTERRUPT_ENABLE);
 
