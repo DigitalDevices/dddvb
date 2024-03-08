@@ -660,7 +660,7 @@ typedef struct dvb_devices_t {
 } dvb_devices;
 
 
-#define MAXNAME 60
+#define MAXNAME 128
 static int check_tuner(int adapt)
 {
   char device[MAXNAME];
