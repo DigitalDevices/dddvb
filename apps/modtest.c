@@ -660,14 +660,15 @@ typedef struct dvb_devices_t {
 } dvb_devices;
 
 
+#define MAXNAME 128
 static int check_tuner(int adapt)
 {
-  char device[35];
+  char device[MAXNAME];
   int front = 0;
   int done = 0;
 
   while (!done) {
-      snprintf(device,34,"/dev/dvb/adapter%d/frontend%d",adapt,front);
+      snprintf(device,MAXNAME-1,"/dev/dvb/adapter%d/frontend%d",adapt,front);
 //      fprintf(stderr,"Checking for %s\n", device);
       if(access(device, F_OK) < 0)
           done=1;
@@ -680,12 +681,12 @@ static int check_tuner(int adapt)
 
 static int check_ca(int adapt)
 {
-  char device[25];
+  char device[MAXNAME];
   int ca = 0;
   int done = 0;
 
   while (!done) {
-      snprintf(device,24,"/dev/dvb/adapter%d/ci%d",adapt,ca);
+      snprintf(device,MAXNAME-1,"/dev/dvb/adapter%d/ci%d",adapt,ca);
       if(access(device, F_OK) < 0)
           done=1;
       else {
@@ -697,12 +698,12 @@ static int check_ca(int adapt)
 
 static int check_modulator(int adapt)
 {
-  char device[25];
+  char device[MAXNAME];
   int mod = 0;
   int done = 0;
 
   while (!done) {
-      snprintf(device,24,"/dev/dvb/adapter%d/mod%d",adapt,mod);
+      snprintf(device,MAXNAME-1,"/dev/dvb/adapter%d/mod%d",adapt,mod);
       if(access(device, F_OK) < 0)
           done=1;
       else {
