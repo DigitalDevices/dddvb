@@ -1,12 +1,17 @@
 MCI API for modulators:
 
-Note:
+Notes:
+
+The API is not meant to be used directly but via the app/modconfig command.
+Example config files for DVB-T and DVB-C are in apps/modulator.conf and
+apps/modulator-c.conf, respectively.
 
 stream - refers to one modulator slot which take a TS and modulates it
          e.g. the FSM16 has 16 streams
 
 channel - an actual frequency the stream is sent on
           the FSM cards in default config have 96 channels at 114 MHz + X * 8 MHz (X=0-95)
+
 
 
 MCI commands can be sent to modulators with the IOCTL_DDB_MCI_CMD:
@@ -122,6 +127,10 @@ frequency offset between channels depends on standard (e.g. 8MHz for DVBC_8)
 
 
 offset/bandwidth: set offsets between channels and bandwidth by hand (not for FSM cards)
+
+
+NOTE: After changing the channel setup you have to set the streams you want to use at least once
+      before you use them. Otherwise, they will not have the new channel frequency.
 
 
 
