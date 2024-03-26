@@ -477,9 +477,11 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 
 static struct dvb_frontend_ops m4_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B, SYS_DVBC_ANNEX_C,
-		    SYS_ISDBC, SYS_DVBC2,
-		    SYS_DVBT, SYS_DVBT2, SYS_ISDBT,
-		    SYS_DVBS, SYS_DVBS2, SYS_ISDBS, },
+		    SYS_DVBC2, SYS_DVBT, SYS_DVBT2, SYS_DVBS, SYS_DVBS2,
+#ifndef KERNEL_DVB_CORE
+		    SYS_ISDBC, SYS_ISDBS, SYS_ISDBT,
+#endif
+	},
 	.info = {
 		.name = "M4",
 		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
@@ -531,9 +533,11 @@ static struct mci_cfg ddb_max_m4_cfg = {
 
 static struct dvb_frontend_ops m_ops = {
 	.delsys = { SYS_DVBC_ANNEX_A, SYS_DVBC_ANNEX_B, SYS_DVBC_ANNEX_C,
-		    SYS_ISDBC, 
-		    SYS_DVBT, SYS_DVBT2, SYS_ISDBT,
-		    SYS_DVBS, SYS_DVBS2, SYS_ISDBS, },
+		    SYS_DVBT, SYS_DVBT2, SYS_DVBS, SYS_DVBS2,
+#ifndef KERNEL_DVB_CORE
+		    SYS_ISDBC, SYS_ISDBS, SYS_ISDBT,
+#endif
+	},
 	.info = {
 		.name = "M_AS",
 		.frequency_min_hz = 47125000,	/* DVB-T: 47125000 */
