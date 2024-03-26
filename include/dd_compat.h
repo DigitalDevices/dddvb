@@ -21,9 +21,9 @@
 
 #ifdef KERNEL_DVB_CORE
 #define DVB_DEVICE_CI 0
-#define DVB_DEVICE_MOD 6
-#define DVB_DEVICE_NS 7
-#define DVB_DEVICE_NSD 8
+#define DVB_DEVICE_NS 6
+#define DVB_DEVICE_NSD 7
+#define DVB_DEVICE_MOD 8
 
 #define APSK_128 21
 #define APSK_256 22
