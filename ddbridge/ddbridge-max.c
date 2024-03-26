@@ -48,6 +48,11 @@ static int no_voltage;
 module_param(no_voltage, int, 0444);
 MODULE_PARM_DESC(no_voltage, "Do not enable voltage on LNBH (will also disable 22KHz tone).");
 
+static u8 input_diseqc_sequence[6] = { 0x00 };
+static int input_diseqc_sequence_length = 1;
+module_param_array(input_diseqc_sequence, byte, &input_diseqc_sequence_length, 0444);
+MODULE_PARM_DESC(input_diseqc_sequence, "DiSEqC sequence to select input. Last byte & 15 selects input.");
+
 /* MAX LNB interface related functions */
 
 static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
@@ -72,8 +77,7 @@ static int lnb_command(struct ddb *dev, u32 link, u32 lnb, u32 cmd)
 
 static int max_set_input(struct dvb_frontend *fe, int in);
 
-static int max_emulate_switch(struct dvb_frontend *fe,
-			      u8 *cmd, u32 len)
+static int max_emulate_switch(struct dvb_frontend *fe, u8 *cmd, u32 len)
 {
 	int input;
 
@@ -106,6 +110,11 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	if (fmode == 4)
 		if (!max_emulate_switch(fe, cmd->msg, cmd->msg_len))
 			return 0;
+
+	if (cmd->msg_len &&
+	    cmd->msg_len == input_diseqc_sequence_length &&
+	    !memcmp(cmd->msg, input_diseqc_sequence, cmd->msg_len - 1))
+		return max_set_input(fe, cmd->msg[cmd->msg_len - 1] & 0x0f);
 
 	if (dvb->diseqc_send_master_cmd)
 		dvb->diseqc_send_master_cmd(fe, cmd);
