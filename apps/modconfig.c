@@ -24,11 +24,30 @@ struct mconf {
 	int set_output;
 	int set_channels;
 	int fd;
-
+	int chanset;
+	
 	struct mci_command channels;
 	struct mci_command stream;
 	struct mci_command output;
 };
+
+void dump(uint8_t *b, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) { 
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				printf("%02x ", b[i]);
+			else
+				printf("   ");
+		printf(" | ");
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
+		printf("\n");
+	}
+}
 
 void strim(char *s)
 {
@@ -39,13 +58,15 @@ void strim(char *s)
 	s[l] = 0;
 }
 
-void parse(char *fname, char *sec, void *priv, void (*cb)(void *, char *, char *))
+int parse(char *fname, char *sec, void *priv, void (*cb)(void *, char *, char *))
 {
 	char line[256], csec[80], par[80], val[80], *p;
 	FILE *f;
 
-	if ((f = fopen(fname, "r")) == NULL)
-		return;
+	if ((f = fopen(fname, "r")) == NULL) {
+		dprintf(2, "Could not open %s\n", fname);
+		return -1;
+	}
 	while ((p = fgets(line, sizeof(line), f))) {
 		if (*p == '\r' || *p == '\n' || *p == '#')
 			continue;
@@ -75,6 +96,7 @@ void parse(char *fname, char *sec, void *priv, void (*cb)(void *, char *, char *
 	if (!strcmp(sec, csec) && cb)
 		cb(priv, NULL, NULL);
 	fclose(f);
+	return 0;
 }
 
 struct param_table_entry {
@@ -249,24 +271,6 @@ int parse_param(char *val, struct param_table_entry *table, int *value) {
 	return -1;
 }
 
-void dump(const uint8_t *b, int l)
-{
-	int i, j;
-	
-	for (j = 0; j < l; j += 16, b += 16) { 
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				printf("%02x ", b[i]);
-			else
-				printf("   ");
-		printf(" | ");
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				putchar((b[i] > 31 && b[i] < 127) ? b[i] : '.');
-		printf("\n");
-	}
-}
-
 int mci_cmd(int dev, struct mci_command *cmd)
 {
 	int ret;
@@ -276,7 +280,7 @@ int mci_cmd(int dev, struct mci_command *cmd)
 	memset(&msg, 0, sizeof(msg));
 	msg.link = 0;
 	memcpy(&msg.cmd, cmd, sizeof(msg.cmd));
-	//dump((const uint8_t *) &msg.cmd, sizeof(msg.cmd));
+	dump((uint8_t *) &msg.cmd, sizeof(msg.cmd));
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
 	    dprintf(2, "mci_cmd error %d (%s)\n", errno, strerror(errno));
@@ -301,7 +305,7 @@ struct mci_command msg_channels = {
 	.mod_channel = 0,
 	.mod_stream = 0,
 	.mod_setup_channels[0] = {
-		.flags = MOD_SETUP_FLAG_FIRST|MOD_SETUP_FLAG_LAST|MOD_SETUP_FLAG_VALID,
+		.flags = 0,
 		.standard = MOD_STANDARD_DVBT_8,
 		.num_channels = 25,
 		.frequency = 474000000,
@@ -371,23 +375,29 @@ void channels_cb(void *priv, char *par, char *val)
 		return;
 	}
 	if (!strcasecmp(par, "frequency")) {
-		mc->channels.mod_setup_channels[0].frequency =	(uint32_t) (strtod(val, NULL) * 1000000.0);
-		printf("frequency = %u\n", mc->channels.mod_setup_channels[0].frequency);
-	} else if (!strcasecmp(par, "channels")) {
-		mc->channels.mod_setup_channels[0].num_channels = strtol(val, NULL, 10);
-		printf("channels = %u\n", mc->channels.mod_setup_channels[0].num_channels);
+		mc->chanset++;
+		if (mc->chanset > 3)
+			return;
+		mc->channels.mod_setup_channels[mc->chanset].frequency = (uint32_t) (strtod(val, NULL) * 1000000.0);
+		printf("frequency %u = %u\n", mc->chanset + 1, mc->channels.mod_setup_channels[mc->chanset].frequency);
+	} else 
+		if (mc->chanset>=0 && mc->chanset < 4) {
+	if (!strcasecmp(par, "channels")) {
+		mc->channels.mod_setup_channels[mc->chanset].num_channels = strtol(val, NULL, 10);
+		printf("channels = %u\n", mc->channels.mod_setup_channels[mc->chanset].num_channels);
 	} else if (!strcasecmp(par, "standard")) {
 		if (!parse_param(val,mod_standard_table, &value))
-			mc->channels.mod_setup_channels[0].standard = value;
+			mc->channels.mod_setup_channels[mc->chanset].standard = value;
 		printf("standard = %u\n", value);
 	} else if (!strcasecmp(par, "offset")) {
-		mc->channels.mod_setup_channels[0].offset = (uint32_t) (strtod(val, NULL) * 1000000.0);
+		mc->channels.mod_setup_channels[mc->chanset].offset = (uint32_t) (strtod(val, NULL) * 1000000.0);
 	} else if (!strcasecmp(par, "bandwidth")) {
-		mc->channels.mod_setup_channels[0].bandwidth = (uint32_t) (strtod(val, NULL) * 1000000.0);
-		mc->channels.mod_setup_channels[0].offset =
-			mc->channels.mod_setup_channels[0].bandwidth / 2;
+		mc->channels.mod_setup_channels[mc->chanset].bandwidth = (uint32_t) (strtod(val, NULL) * 1000000.0);
+		mc->channels.mod_setup_channels[mc->chanset].offset =
+			mc->channels.mod_setup_channels[mc->chanset].bandwidth / 2;
 	} else
 		printf("invalid channels parameter: %s\n", par);
+		}
 }
 
 void streams_cb(void *priv, char *par, char *val)
@@ -462,7 +472,7 @@ int mci_lic(int dev)
 		printf("MATYPE1: %02x\n", res->bb_header.matype_1);
 		printf("MATYPE2: %02x\n", res->bb_header.matype_2);
 	}
-	dump((const uint8_t *)&res->license, sizeof(res->license));
+	//dump((const uint8_t *)&res->license, sizeof(res->license));
 	return ret;
 }
 
@@ -471,7 +481,6 @@ int main(int argc, char*argv[])
 	int fd = -1;
 	char fn[128];
 	uint32_t device = 0;
-	uint32_t frequency = 0;
 	char *configname = "modulator.conf";
 	struct mconf mc;
 
@@ -479,7 +488,8 @@ int main(int argc, char*argv[])
 	mc.channels = msg_channels;
 	mc.stream = msg_stream;
 	mc.output = msg_output;
-
+	mc.chanset = -1;
+	
 	while (1) {
 		int cur_optind = optind ? optind : 1;
 		int option_index = 0;
@@ -521,9 +531,14 @@ int main(int argc, char*argv[])
 	}
 	//mci_lic(fd);
 	mc.fd = fd;
-	parse(configname, "channels", (void *) &mc, channels_cb);
+	if (parse(configname, "channels", (void *) &mc, channels_cb))
+		exit(-1);
 	if (mc.set_channels) {
-		printf("setting channels.\n");
+		for (int i = 0; i <= mc.chanset; i++)
+			mc.channels.mod_setup_channels[i].flags = MOD_SETUP_FLAG_VALID;
+		mc.channels.mod_setup_channels[0].flags |= MOD_SETUP_FLAG_FIRST;
+		mc.channels.mod_setup_channels[mc.chanset].flags |= MOD_SETUP_FLAG_LAST;
+		printf("setting channels, %u groups.\n", mc.chanset + 1);
 		mci_cmd(fd, &mc.channels);
 	}
 	parse(configname, "streams", (void *) &mc, streams_cb);
