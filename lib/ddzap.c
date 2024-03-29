@@ -14,8 +14,7 @@
 #include <math.h>
 #include <time.h>
 #include <inttypes.h>
-
-#include "dvb_filter.h"
+#include <errno.h>
 
 char line_start[16] = "";
 char line_end[16]   = "\r";
@@ -304,7 +303,7 @@ static uint32_t root2gold(uint32_t root)
 	return 0xffffffff;
 }
 
-ssize_t rread(int fd, void *buf, size_t count)
+ssize_t rread(int fd, uint8_t *buf, size_t count)
 {
 	size_t len, todo=count;
 	
@@ -328,35 +327,48 @@ static void decode(struct dddvb *dd, int fd)
 	uint8_t ts[188];
 	struct dvbf_pid pidf[16];
 	int pmt;
-	ssize_t len;
-	
+	ssize_t len, len2;
+	uint32_t count = 0;
 	
 	for (pmt = 0; pmt < numpmt; pmt++) {
 		dvbf_init_pid(&pidf[pmt], pmt_pid[pmt]);
 		do {
 			len=rread(fd,ts,188);
-			if (len < 0) {
+			if (len != 188) {
 				dprintf(2, "Error reading stream\n");
 				exit(-1);
 			}
-			write(fileno(stdout),ts,188);
+			if (ts[0] != 0x47)
+				dprintf(2, "Alignment error ts\n");
+			//write(fileno(stdout),ts,188);
 		}
 		while (proc_pidf(&pidf[pmt], ts)<=0);
 		dprintf(2, "PMT %u of %u\n", pmt, numpmt);
-		dump(stderr, pidf[pmt].buf, pidf[pmt].len);
+		//dump(stderr, pidf[pmt].buf, pidf[pmt].len);
 		pmts[pmt]=pidf[pmt].buf;
 	}
+	//sleep(10);
 	while (dddvb_ca_set_pmts(dd, ci, pmts) < 0)
 		sleep(1);
 	while (1) {
-		rread(fd, buf, sizeof(buf));
+		len = rread(fd, buf, sizeof(buf));
 		if (len < 0) {
-			dprintf(2, "Error reading stream\n");
+			dprintf(2, "Error reading stream %d\n", errno);
 			exit(-1);
 		}
-		dddvb_ca_write(dd, ci, buf, sizeof(buf));
-		dddvb_ca_read(dd, ci, buf, sizeof(buf));
-		write(fileno(stdout),buf, sizeof(buf));
+		if (buf[0] != 0x47) {
+			rread(fd, buf, 1);
+			continue;
+		}
+		len2 = dddvb_ca_write(dd, ci, buf, len);
+		if (len2 != len)
+			dprintf(2, "Written less to CI %d\n", len);
+		len = dddvb_ca_read(dd, ci, buf, len2);
+		if (len < 0)
+			continue;
+		len2 = write(fileno(stdout), buf, len);
+		if (len2 != len)
+			dprintf(2, "Written less to output %d\n", len);
 	}
 }
 

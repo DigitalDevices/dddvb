@@ -31,6 +31,23 @@
 #define MMI_STATE_ENQ 2
 #define MMI_STATE_MENU 3
 
+void dump(FILE *fp, uint8_t *b, int l)
+{
+	int i, j;
+	
+	for (j = 0; j < l; j += 16, b += 16) { 
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				fprintf(fp, "%02x ", b[i]);
+			else
+				fprintf(fp, "   ");
+		fprintf(fp, " | ");
+		for (i = 0; i < 16; i++)
+			if (i + j < l)
+				fprintf(fp, "%c", (b[i] > 31 && b[i] < 127) ? b[i] : '.');
+		fprintf(fp, "\n");
+	}
+}
 
 int set_nonblock(int fd)
 {
@@ -166,24 +183,23 @@ static int handle_pmt(struct dvbca *ca, uint8_t *buf, int size)
 #endif
 
 
-#if 0
 static void handle_tdt(struct dddvb_ca *ca)
 {
 	struct section *section;
 	struct dvb_tdt_section *tdt;
-        uint8_t sec[4096];
+        uint8_t *sec=ca->dvbf_tdt.buf;
 	time_t dvb_time;
-	int len;
-	
+	int len=ca->dvbf_tdt.len;
+
+	if (sec[0] != 0x70)
+		return;
+	dbgprintf(DEBUG_CA, "got tdt\n");
+	//dump(stderr, sec,len);
 	if (ca->stdcam == NULL)
 		return;
 	if (ca->stdcam->dvbtime == NULL)
 		return;
-	len = getsec(ca->input, 0x14, 0, 0x70, sec); 
-	if (len < 0)
-		return;
-	dbgprintf(DEBUG_CA, "got tdt\n");
-
+	
 	section = section_codec(sec, len);
 	if (section == NULL)
 		return;
@@ -196,7 +212,7 @@ static void handle_tdt(struct dddvb_ca *ca)
 	if (ca->stdcam->dvbtime)
 		ca->stdcam->dvbtime(ca->stdcam, dvb_time);
 }
-#endif
+
 
 static int handle_pmts(struct dddvb_ca *ca)
 {
@@ -253,24 +269,6 @@ static int handle_pmts(struct dddvb_ca *ca)
 	return 0;
 }
 
-void dump(FILE *fp, uint8_t *b, int l)
-{
-	int i, j;
-	
-	for (j = 0; j < l; j += 16, b += 16) { 
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				fprintf(fp, "%02x ", b[i]);
-			else
-				fprintf(fp, "   ");
-		fprintf(fp, " | ");
-		for (i = 0; i < 16; i++)
-			if (i + j < l)
-				fprintf(fp, "%c", (b[i] > 31 && b[i] < 127) ? b[i] : '.');
-		fprintf(fp, "\n");
-	}
-}
-
 static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 {
 	int listmgmt = CA_LIST_MANAGEMENT_ONLY;
@@ -303,6 +301,8 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 			dbgprintf(DEBUG_CA, "section_ext_decode failed\n");;
 			continue;
 		}
+		//dump(stderr, (uint8_t *) section, len);
+		//dump(stderr, (uint8_t *) section_ext, len);
 		pmt = mpeg_pmt_section_codec(section_ext);
 		//pmt = (struct mpeg_pmt_section *) section_ext;
 		if (!pmt) {
@@ -310,7 +310,7 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 			continue;
 		}
 		
-		dbgprintf(DEBUG_CA, "PMT = %p  section=%p\n", pmt, section);
+		//dbgprintf(DEBUG_CA, "PMT = %p  section=%p\n", pmt, section);
 		
 		ca->ca_pmt_version[i] = section_ext->version_number;
 		if (ca->sentpmt) {
@@ -334,7 +334,7 @@ static int set_pmts(struct dddvb_ca *ca, uint8_t **pmts)
 			dbgprintf(DEBUG_CA, "Failed to format PMT\n");
 			return -1;
 		}
-		//dump(capmt, size);
+		//dump(stderr, capmt, size);
 		dbgprintf(DEBUG_CA, "set ca_pmt\n");
 		if (en50221_app_ca_pmt(ca->stdcam->ca_resource, ca->stdcam->ca_session_number, capmt, size)) {
 			dbgprintf(DEBUG_CA, "Failed to send PMT\n");
@@ -697,6 +697,7 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 
 	pthread_create(&ca->poll_pt, NULL, (void *) ci_poll, ca); 
 	pthread_create(&ca->pt, NULL, (void *) handle_ci, ca); 
+	dvbf_init_pid(&ca->dvbf_tdt, 0x14);
 
 	sprintf(fname, "/dev/dvb/adapter%d/ci%d", a, f); 
 	ca->ci_wfd = open(fname, O_WRONLY);
@@ -708,7 +709,16 @@ static int init_ca(struct dddvb *dd, int a, int f, int fd)
 int dddvb_ca_write(struct dddvb *dd, uint32_t nr, uint8_t *buf, uint32_t len)
 {
 	struct dddvb_ca *ca = &dd->dvbca[nr];
+	uint32_t i;
 
+	if (len%188)
+		return -EINVAL;
+	
+	for (i = 0; i < len; i+=188) {
+		if (proc_pidf(&ca->dvbf_tdt, buf+i)>0)
+			handle_tdt(ca);
+	}
+	
 	return write(ca->ci_wfd, buf, len);
 }
 
