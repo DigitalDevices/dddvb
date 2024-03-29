@@ -13,6 +13,10 @@
 #include <linux/dvb/net.h>
 
 
+#include <libucsi/dvb/section.h>
+#include <libucsi/mpeg/section.h>
+#include <libucsi/section.h>
+#include <libucsi/section_buf.h>
 #include <libdvben50221/en50221_stdcam.h>
 
 #define DDDVB_MAX_DVB_FE 256
@@ -92,6 +96,8 @@ struct dddvb_fe {
 	struct dddvb_status status;
 };
 
+#include "dvb_filter.h"
+
 struct dddvb_ca {
 	struct dddvb *dd;
 	struct osstrm *stream;
@@ -128,6 +134,8 @@ struct dddvb_ca {
 	uint8_t mmi_buf[16];
 	int mmi_bufp;
 	int sock;
+
+	struct dvbf_pid dvbf_tdt;
 };
 	
 struct dddvb {
