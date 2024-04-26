@@ -6,6 +6,7 @@ install: all
 	cp -d src/libdddvb.so* /usr/local/lib
 	cp -d src/libdddvb.h /usr/local/include/
 	cp -d src/dddvb.h /usr/local/include/
+	cp -d src/dvb_filter.h /usr/local/include/
 	cp -d ddzap /usr/local/bin
 	ldconfig
 
