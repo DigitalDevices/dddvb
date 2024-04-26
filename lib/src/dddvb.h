@@ -96,7 +96,16 @@ struct dddvb_fe {
 	struct dddvb_status status;
 };
 
-#include "dvb_filter.h"
+struct dvbf_pid {
+	uint16_t pid;
+	uint8_t cc;
+	uint16_t bufp;
+	uint16_t len;
+	uint8_t buf[4096];
+	
+	int (*cb) (struct dvbf_pid *);
+	void *cbd;
+};
 
 struct dddvb_ca {
 	struct dddvb *dd;

@@ -27,18 +27,6 @@ static inline int tspaystart(const uint8_t *tsp)
 }
 
 
-
-struct dvbf_pid {
-	uint16_t pid;
-	uint8_t cc;
-	uint16_t bufp;
-	uint16_t len;
-	uint8_t buf[4096];
-	
-	int (*cb) (struct dvbf_pid *);
-	void *cbd;
-};
-
 static inline void pidf_reset(struct dvbf_pid *pidf)
 {
 	pidf->bufp = pidf->len = 0;

@@ -2,6 +2,7 @@
 #include "dddvb.h"
 #include "tools.h"
 #include "debug.h"
+#include "dvb_filter.h"
 
 #include <linux/dvb/dmx.h>
 #include <linux/dvb/frontend.h>

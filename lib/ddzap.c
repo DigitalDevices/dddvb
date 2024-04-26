@@ -1,6 +1,7 @@
 #define _LARGEFILE64_SOURCE
 #include "../include/linux/dvb/frontend.h"
 #include "src/libdddvb.h"
+#include "src/dvb_filter.h"
 #include <stdio.h>
 #include <string.h>
 #include <getopt.h>
