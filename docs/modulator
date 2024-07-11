@@ -83,6 +83,7 @@ limit depends on # of channels active.
 
 
 MODULATOR_INPUT_BITRATE:
+  THIS FEATURE ONLY WORKS FOR DVB-C MODULATORS
 
 The modulator will ALWAY insert null packets if it
 does not get enough data.
@@ -94,6 +95,21 @@ So, this property should be set last.
 
 unit - 2^-32 Hz
 
+  FOR DVB-T MODULATORS THIS FEATURE DOES NOT WORK
+
+You should write a steady stream of transport packets with the
+rate given by the modulation. The easiest way to keep a steady rate
+is to write as much as the device will receive until it blocks. In that
+way you ensure that the device will not get an underrun of data and
+you can use the acceptance rate as a guide for you input rate.
+All you should do is to correct the PCR of your transport stream according
+to the calculated packet rate and use a buffer that assures that you are
+always ready to write as sson as the modulator device allows it.
+E.g you have a circular output buffer that you fill to say 50% and than start
+writing into the device in a seperate thread. You feed the output buffer
+with you input TS and see that it does not underrun, you may need to insert
+empty packets to do that. The output thread should always have enough data
+to write to the device as soon as it no longer blocks.
 
 
 Debugging features:
