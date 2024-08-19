@@ -24,6 +24,7 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 #include "ddbridge-mci.h"
+#include "ddbridge-sx8.h"
 
 static int default_mod = 3;
 module_param(default_mod, int, 0444);

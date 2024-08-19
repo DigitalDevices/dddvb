@@ -1308,6 +1308,8 @@ static struct dvb_tuner_ops tuner_ops = {
 };
 
 struct dvb_frontend *tda18271c2dd_attach(struct dvb_frontend *fe,
+					 struct i2c_adapter *i2c, u8 adr);
+struct dvb_frontend *tda18271c2dd_attach(struct dvb_frontend *fe,
 					 struct i2c_adapter *i2c, u8 adr)
 {
 	struct tda_state *state;

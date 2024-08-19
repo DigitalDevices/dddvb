@@ -25,6 +25,7 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 #include "ddbridge-mci.h"
+#include "ddbridge-m4.h"
 
 struct m4_base {
 	struct mci_base mci_base;

@@ -25,9 +25,8 @@
 
 #include <linux/net.h>
 #include "dvb_netstream.h"
+#include "ddbridge-core.h"
 
-int ddb_dvb_usercopy(struct file *file, unsigned int cmd, unsigned long arg,
-		     int (*func)(struct file *file, unsigned int cmd, void *arg));
 
 static ssize_t ns_write(struct file *file, const char *buf,
 			size_t count, loff_t *ppos)
