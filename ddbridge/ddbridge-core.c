@@ -25,6 +25,7 @@
 #include "ddbridge-i2c.h"
 #include "ddbridge-io.h"
 #include "ddbridge-ioctl.h"
+#include "ddbridge-core.h"
 #include <media/dvb_net.h>
 
 struct workqueue_struct *ddb_wq;
@@ -104,6 +105,7 @@ DVB_DEFINE_MOD_OPT_ADAPTER_NR(adapter_nr);
 /****************************************************************************/
 
 /* copied from dvb-core/dvbdev.c because kernel version does not export it */
+
 
 int ddb_dvb_usercopy(struct file *file,
 		     unsigned int cmd, unsigned long arg,
@@ -4070,7 +4072,7 @@ static struct class ddb_class = {
 	.devnode        = ddb_devnode,
 };
 
-int ddb_class_create(void)
+static int ddb_class_create(void)
 {
 	ddb_major = register_chrdev(0, DDB_NAME, &ddb_fops);
 	if (ddb_major < 0)
@@ -4080,7 +4082,7 @@ int ddb_class_create(void)
 	return 0;
 }
 
-void ddb_class_destroy(void)
+static void ddb_class_destroy(void)
 {
 	class_unregister(&ddb_class);
 	unregister_chrdev(ddb_major, DDB_NAME);

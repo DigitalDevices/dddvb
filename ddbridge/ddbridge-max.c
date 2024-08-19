@@ -25,6 +25,8 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 #include "ddbridge-i2c.h"
+#include "ddbridge-sx8.h"
+#include "ddbridge-m4.h"
 
 /* MAX LNB interface related module parameters */
 
@@ -519,11 +521,6 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 	dvb->input = tuner;
 	return 0;
 }
-
-/* MAX MCI related functions */
-struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
-				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
-struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type);
 
 
 int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
