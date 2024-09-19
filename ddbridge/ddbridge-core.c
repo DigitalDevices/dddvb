@@ -4292,9 +4292,11 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 
 	dev_info(dev->dev, "GTL %s\n", dev->link[l].info->name);
 
-	dev_info(dev->dev, "GTL HW %08x REGMAP %08x\n",
+	dev_info(dev->dev, "GTL HW %08x REGMAP %08x FW %u.%u\n",
 		 dev->link[l].ids.hwid,
-		 dev->link[l].ids.regmapid);
+		 dev->link[l].ids.regmapid,
+		 (dev->link[l].ids.hwid & 0xff0000) >> 16,
+		 dev->link[l].ids.hwid & 0xffff);
 	dev_info(dev->dev, "GTL ID %08x\n",
 		 ddbreadl(dev, DDB_LINK_TAG(l) | 8));
 
