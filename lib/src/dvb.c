@@ -99,7 +99,15 @@ static int get_stat_num(int fd, uint32_t cmd, struct dtv_fe_stats *stats, int nu
 	return 0;
 }
 
+static int set_property_input(int fd, uint32_t input)
+{
+	struct dvb_diseqc_master_cmd cmd = {.msg = {input}, .msg_len = 1};
 
+	if (ioctl(fd, FE_DISEQC_SEND_MASTER_CMD, &cmd) == -1)
+		perror("FE_DISEQC_SEND_MASTER_CMD for setting input failed");
+	return 0;
+	//return set_property(fd, DTV_INPUT, input);
+}
 
 static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 			uint32_t sr, fe_delivery_system_t ds,
@@ -129,7 +137,7 @@ static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
 		return -1;
 	}
 	if (input != DDDVB_UNDEF)
-		set_property(fd, DTV_INPUT, input);
+		set_property_input(fd, input);
 	//fprintf(stderr, "bw =%u\n", fe->param.param[PARAM_BW_HZ]);
 	if (fe->param.param[PARAM_BW_HZ] != DDDVB_UNDEF)
 		set_property(fd, DTV_BANDWIDTH_HZ, fe->param.param[PARAM_BW_HZ]);
@@ -214,7 +222,7 @@ static int set_en50494(struct dddvb_fe *fe, uint32_t freq_khz, uint32_t sr,
 		(slot << 5) | ((sat & 0x3f) ? 0x10 : 0) | (band ? 4 : 0) | (hor ? 8 : 0);
 	cmd.msg[4] = t & 0xff;
 
-	set_property(fd, DTV_INPUT, input);
+	set_property_input(fd, input);
 	if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
 		perror("FE_SET_TONE failed");
 	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
@@ -253,7 +261,7 @@ static int set_en50607(struct dddvb_fe *fe, uint32_t freq_khz, uint32_t sr,
 	cmd.msg[2] = (t & 0xff);
 	cmd.msg[3] = ((sat & 0x3f) << 2) | (hor ? 2 : 0) | (band ? 1 : 0);
 
-	set_property(fd, DTV_INPUT, input);
+	set_property_input(fd, input);
 	if (ioctl(fd, FE_SET_TONE, SEC_TONE_OFF) == -1)
 		perror("FE_SET_TONE failed");
 	if (ioctl(fd, FE_SET_VOLTAGE, SEC_VOLTAGE_18) == -1)
@@ -345,7 +353,7 @@ static int tune_sat(struct dddvb_fe *fe)
 		if (input != DDDVB_UNDEF) {
 			input = 3 & (input >> 6);
 			dbgprintf(DEBUG_DVB, "input = %u\n", input);
-			set_property(fe->fd, DTV_INPUT, input);
+			set_property_input(fe->fd, input);
 		}
 		if (fe->scif_type == 3)
 			set_vol_tone(fe->fd, fe->param.param[PARAM_POL], hi);
@@ -831,27 +839,6 @@ static int dddvb_fe_init(struct dddvb *dd, int a, int f, int fd)
 	fe->fnum = f;
 	fe->nr = dd->dvbfe_num;
 	
-	dps.num = 1;
-	dps.props = dp;
-	dp[0].cmd = DTV_INPUT;
-	r = ioctl(fd, FE_GET_PROPERTY, &dps);
-	if (r < 0)
-		return -1;
-#if 0
-	for (i = 0; i < dp[0].u.buffer.len; i++) {
-		fe->input[i] = dp[0].u.buffer.data[i];
-		//dbgprintf(DEBUG_DVB, "input prop %u = %u\n", i, fe->input[i]);
-	}
-	if (fe->input[3]) {
-		dd->has_feswitch = 1;
-		if (!dd->scif_type && !msmode) {
-			if (fe->input[2] >= fe->input[1]) {
-				fe->type = 0;
-				return -1;
-			}
-		}
-	}
-#endif
 	if (fe->type & (1UL << SYS_DVBS2))
 		dd->dvbs2num++;
 	if (fe->type & (1UL << SYS_DVBT2))
