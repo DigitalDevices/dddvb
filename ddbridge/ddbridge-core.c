@@ -4450,9 +4450,20 @@ static int ddb_init_boards(struct ddb *dev)
 			    ((link->info->type == DDB_MOD) &&
 			     (link->ids.revision == 1)))
 				mci_init(link);
-		}
+			else if (link->info->version == 17)
+				mci_init(link);
+		} 
 		if (l)
 			continue;
+		if (dev->link[0].info->type == DDB_MOD &&
+		    dev->link[0].info->version == 18) {
+			u32 lic = ddbreadl(dev, 0x260) >> 24;
+			
+			if (lic == 16)
+				dev->link[0].info =
+					get_ddb_info(0xdd01, 0x0222, 0xdd01, 0x0002);
+		}
+			
 		if (dev->link[0].info->type == DDB_MOD &&
 		    dev->link[0].info->version == 2) {
 			u32 lic = ddbreadl(dev, 0x1c) & 7;
