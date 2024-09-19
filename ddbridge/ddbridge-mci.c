@@ -210,9 +210,9 @@ int ddb_mci_cmd(struct mci *state,
 }
 
 
-int ddb_mci_cmd_raw(struct mci *state,
-		    struct mci_command *command, u32 command_len,
-		    struct mci_result *result, u32 result_len)
+static int ddb_mci_cmd_raw(struct mci *state,
+			   struct mci_command *command, u32 command_len,
+			   struct mci_result *result, u32 result_len)
 {
 	struct ddb_link *link = state->base->link;
 	int stat;

@@ -32,6 +32,7 @@
 #include <asm/div64.h>
 
 #include <media/dvb_frontend.h>
+#include "stv6111.h"
 
 static inline u32 MulDiv32(u32 a, u32 b, u32 c)
 {

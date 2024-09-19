@@ -580,5 +580,10 @@ struct ddb_irq *ddb_irq_set(struct ddb *dev, u32 link, u32 nr,
 			    void (*handler)(void *), void *data);
 
 struct dvb_frontend *ddb_mci_attach(struct ddb_input *input, struct mci_cfg *cfg, int nr, int tuner);
+struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
+				    int (**fn_set_input)(struct dvb_frontend *fe, int input));
+struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type);
 
+int ddb_dvb_usercopy(struct file *file, unsigned int cmd, unsigned long arg,
+		     int (*func)(struct file *file, unsigned int cmd, void *arg));
 #endif

@@ -1570,7 +1570,6 @@ static int ofdm_lock(struct stv_state *state)
 
 	if (!(OFDM_Status & 0x40))
 		return -1;
-	//printk("lock 1\n");
 
 	readreg(state, R367_OFDM_SYR_STAT,&SYR_STAT);
 	FFTMode = (SYR_STAT & 0x0C) >> 2;
@@ -1609,9 +1608,9 @@ static int ofdm_lock(struct stv_state *state)
 	    writereg(state, R367_TSGENERAL,tmp2 & ~0x01);
 	}
 	msleep(FECTimeOut);
-	if( (OFDM_Status & 0x98) != 0x98 )
+	if( (OFDM_Status & 0x98) != 0x98 ) {
 		;//return -1;
-	//printk("lock 2\n");
+	}
 
 	{
 	    u8 Guard = (SYR_STAT & 0x03);

@@ -62,16 +62,6 @@ static bool IsQAM(struct drxk_state *state)
 		state->m_OperationMode == OM_QAM_ITU_C;
 }
 
-bool IsA1WithPatchCode(struct drxk_state *state)
-{
-	return state->m_DRXK_A1_PATCH_CODE;
-}
-
-bool IsA1WithRomCode(struct drxk_state *state)
-{
-	return state->m_DRXK_A1_ROM_CODE;
-}
-
 #define NOA1ROM 0
 
 #ifndef CHK_ERROR
@@ -492,7 +482,7 @@ static int WriteBlock(struct drxk_state *state, u32 Address,
 #define DRXK_MAX_RETRIES_POWERUP 20
 #endif
 
-int PowerUpDevice(struct drxk_state *state)
+static int PowerUpDevice(struct drxk_state *state)
 {
 	int status;
 	u8 data = 0;

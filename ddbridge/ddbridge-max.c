@@ -482,8 +482,9 @@ int ddb_fe_attach_mxl5xx(struct ddb_input *input)
 
 	cfg = mxl5xx;
 	cfg.fw_priv = link;
-	if (dev->link[0].info->type == DDB_OCTONET)
+	if (dev->link[0].info->type == DDB_OCTONET) {
 		;/*cfg.ts_clk = 69;*/
+	}
 
 	demod = input->nr;
 	tuner = demod & 3;

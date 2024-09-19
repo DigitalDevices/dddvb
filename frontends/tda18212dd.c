@@ -33,6 +33,7 @@
 #include <asm/div64.h>
 
 #include <media/dvb_frontend.h>
+#include "tda18212dd.h"
 
 #ifndef CHK_ERROR
 #define CHK_ERROR(s) if ((status = s) < 0) break
