@@ -2157,7 +2157,6 @@ static int mod_init_3(struct ddb *dev, u32 Frequency)
 	return ret;
 }
 
-
 static int mod_init_sdr_iq(struct ddb *dev)
 {
 	int streams = dev->link[0].info->port_num;
@@ -2173,7 +2172,6 @@ static int mod_init_sdr_iq(struct ddb *dev)
 		dev_err(dev->dev, "RFDAC setup failed\n");
 	
 	ddbwritel(dev, 0x01, 0x240);
-
 
 	//mod3_set_base_frequency(dev, 602000000);
 	dev->mod_base.frequency = 570000000;
@@ -2193,39 +2191,35 @@ static int mod_init_sdr_iq(struct ddb *dev)
 	return ret;
 }
 
+static int mod_init_dvbt(struct ddb *dev)
+{
+	int i;
+
+	dev->mod_base.frequency = 570000000;
+	for (i = 0; i < dev->link[0].info->port_num; i++)
+		dev->mod[i].port = &dev->port[i];
+	return 0;
+}
+
 int ddbridge_mod_init(struct ddb *dev)
 {
 	dev_info(dev->dev, "Revision: %u\n", dev->link[0].ids.revision);
-	if (dev->link[0].ids.revision == 1) {
-		switch (dev->link[0].info->version) {
-		case 0:
-		case 1:
-			return mod_init_1(dev, 722000000);
-		case 2: /* FSM */
-			if ((dev->link[0].ids.hwid & 0xffffff) >= 9065)
-				return mod_init_2_1(dev, 114000000);
-			return mod_init_2(dev, 114000000);
-		case 16: /* PAL */
-			return mod_init_3(dev, 503250000);
-		case 17: /* raw IQ */
-		case 18: /* IQ+FFT */
-			return mod_init_sdr_iq(dev);
-		default:
-			return -1;
-		}
-	}
 	switch (dev->link[0].info->version) {
 	case 0:
 	case 1:
 		return mod_init_1(dev, 722000000);
 	case 2: /* FSM */
+		if (dev->link[0].ids.revision == 1) {
+			if ((dev->link[0].ids.hwid & 0xffffff) >= 9065)
+				return mod_init_2_1(dev, 114000000);
+		}
 		return mod_init_2(dev, 114000000);
 	case 16: /* PAL */
 		return mod_init_3(dev, 503250000);
 	case 17: /* raw IQ */
 		return mod_init_sdr_iq(dev);
-	case 18: /* IQ+FFT */
-		return mod_init_sdr_iq(dev);
+	case 18: /* IQ+FFT (DVB-T) */
+		return mod_init_dvbt(dev);
 	default:
 		return -1;
 	}
