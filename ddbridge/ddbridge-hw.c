@@ -624,6 +624,16 @@ static const struct ddb_info ddb_sdr_dvbt = {
 	.tempmon_irq = 8,
 };
 
+static const struct ddb_info ddb_sdr_dvbt_16 = {
+	.type     = DDB_MOD,
+	.name     = "Digital Devices DVBT",
+	.version  = 18,
+	.regmap   = &octopus_sdr_map,
+	.port_num = 16,
+	.temp_num = 1,
+	.tempmon_irq = 8,
+};
+
 static const struct ddb_info ddb_s2_48 = {
 	.type     = DDB_OCTOPUS_MAX,
 	.name     = "Digital Devices MAX S8 4/8",
@@ -923,6 +933,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0220, 0x0001, ddb_sdr_atv),
 	DDB_DEVID(0x0221, 0x0001, ddb_sdr_iq),
 	DDB_DEVID(0x0222, 0x0001, ddb_sdr_dvbt),
+	DDB_DEVID(0x0222, 0x0002, ddb_sdr_dvbt_16), /* dummy entry ! */
 	DDB_DEVID(0x0223, 0x0001, ddb_sdr_iq2),
 
 	DDB_DEVID(0xffff, 0xffff, ddb_none),
