@@ -452,18 +452,20 @@ int ddbridge_mod_output_start(struct ddb_output *output)
 
 static int mod_write_max2871(struct ddb *dev, u32 val)
 {
+	u32 retry = 100;
 	ddbwritel(dev, val, MAX2871_OUTDATA);
 	ddbwritel(dev, MAX2871_CONTROL_CE | MAX2871_CONTROL_WRITE,
 		  MAX2871_CONTROL);
-	while (1) {
+	while (--retry) {
 		u32 ControlReg = ddbreadl(dev, MAX2871_CONTROL);
 
 		if (ControlReg == 0xFFFFFFFF)
-			return -EIO;
-		if ((ControlReg & MAX2871_CONTROL_WRITE) == 0)
 			break;
+		if ((ControlReg & MAX2871_CONTROL_WRITE) == 0)
+			return 0;
+		udelay(10);
 	}
-	return 0;
+	return -EIO;
 }
 
 static u32 max2871_fsm[6] = {
