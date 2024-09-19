@@ -3,8 +3,11 @@ The libdddvb provides a userspace library to simplify tuning and
 CI use. It detects DVB cards and their capabilities and selects
 free frontends depending on a given delivery system.
 
+Please note that the libdddvb library and the ddzap tool are
+provided as examples and for testing purposes.
 
-In order to install the libdddvb library you need the dvben50221.
+
+In order to install the libdddvb library you need the libdvben50221.
 
 On an Ubuntu and other Debian based system you can install it like this:
 
