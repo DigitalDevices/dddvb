@@ -659,7 +659,7 @@ static struct mci_cfg *ddb_max_cfgs [] = {
 
 struct dvb_frontend *ddb_mx_attach(struct ddb_input *input, int nr, int tuner, int type)
 {
-	return ddb_mci_attach(input, ddb_max_cfgs[type], nr, tuner);
+	return ddb_mci_attach(input, ddb_max_cfgs[type & 3], nr, tuner);
 }
 
 EXPORT_SYMBOL(ddb_mx_attach);
