@@ -503,6 +503,7 @@ static void dvb_frontend_swzigzag(struct dvb_frontend *fe)
 	struct dtv_frontend_properties *c = &fe->dtv_property_cache, tmp;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	if (fepriv->max_drift)
 		dev_warn_once(fe->dvb->device,
 			      "Frontend requested software zigzag, but didn't set the frequency step size\n");
 #endif
