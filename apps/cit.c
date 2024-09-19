@@ -84,8 +84,8 @@ void proc_buf(uint8_t *buf, uint32_t *d)
 	c=(buf[4]<<24)|(buf[5]<<16)|(buf[6]<<8)|buf[7];
 	if (c!=*d) {
 		printf("CONT ERROR: got %08x  expected %08x\n", c, *d);
-		if (!*d && (c+100) > 100)
-			return;
+		//if (!*d && (c+100) > 100)
+		//	return;
 		*d=c;
 	} else {
 		if (memcmp(ts+8, buf+8, 180))
