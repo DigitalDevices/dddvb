@@ -3334,6 +3334,8 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return -EFAULT;
 		if ((reg.reg & 0xfffffff) >= dev->regs_len)
 			return -EINVAL;
+		if (reg.reg & 3)
+			return -EINVAL;
 		reg.val = ddbreadl(dev, reg.reg);
 		if (copy_to_user(parg, &reg, sizeof(reg)))
 			return -EFAULT;
@@ -3346,6 +3348,8 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		if (copy_from_user(&reg, parg, sizeof(reg)))
 			return -EFAULT;
 		if ((reg.reg & 0xfffffff) >= dev->regs_len)
+			return -EINVAL;
+		if (reg.reg & 3)
 			return -EINVAL;
 		ddbwritel(dev, reg.val, reg.reg);
 		break;
