@@ -30,7 +30,7 @@ char *Rolloff[8] = {
 	"rsvd",
 };
 
-void dump(const uint8_t *b, int l)
+void dump(uint8_t *b, int l)
 {
 	int i, j;
 	
@@ -43,6 +43,15 @@ void dump(const uint8_t *b, int l)
 				printf("   ");
 		printf("\n");
 	}
+}       
+
+void ldump(uint8_t *b, int l)
+{
+	int i;
+	
+	for (i = 0; i < l; i++)
+		printf("%02X", b[i]);
+	printf("\n");
 }       
 
 void print_temp(struct mci_result *res)
@@ -344,17 +353,18 @@ int readreg(int dev, uint32_t reg, uint32_t link, uint32_t *val)
 	return 0;
 }
 
-void mci_firmware(int dev, uint32_t link)
+void mci_firmware(int dev, uint32_t link, uint32_t base)
 {
 	union {
 		uint32_t u[4];
 		char  s[16];
 	} version;
-	
-	readreg(dev, MIC_INTERFACE_VER     , link, &version.u[0]);
-	readreg(dev, MIC_INTERFACE_VER +  4, link, &version.u[1]);
-	readreg(dev, MIC_INTERFACE_VER +  8, link, &version.u[2]);
-	readreg(dev, MIC_INTERFACE_VER + 12, link, &version.u[3]);
+
+	base += 0xf0;
+	readreg(dev, base     , link, &version.u[0]);
+	readreg(dev, base +  4, link, &version.u[1]);
+	readreg(dev, base +  8, link, &version.u[2]);
+	readreg(dev, base + 12, link, &version.u[3]);
     
 	printf("MCI firmware: %s.%d\n", &version.s, version.s[15]);
 }
@@ -368,7 +378,6 @@ int mci_info(int dev, uint32_t link, uint8_t demod)
 		.cmd.demod = demod
 	};
 	int ret;
-	int i;
 	
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
@@ -377,6 +386,35 @@ int mci_info(int dev, uint32_t link, uint8_t demod)
 	}
 
 	print_info(dev, link, demod, &msg.res);
+	return ret;
+}
+
+void print_license(int dev,  struct mci_result *res)
+{
+	if (res->license.serial_number[0] == 0xff)
+		res->license.serial_number[0] = 0;
+	printf("SERNBR:%s\n", (char *) &res->license.serial_number);
+	printf("ID:");
+	ldump(res->license.ID, 8);
+	printf("LK:");
+	ldump(res->license.LK, 24);
+}
+
+int mci_license(int dev)
+{
+	struct ddb_mci_msg msg = {
+		.link = 0,
+		.cmd.command = CMD_GET_SERIALNUMBER,
+	};
+	int ret;
+	
+	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
+	if (ret < 0) {
+		printf("Error: %d %d\n", ret, errno);
+		return ret;
+	}
+
+	print_license(dev, &msg.res);
 	return ret;
 }
 
@@ -416,6 +454,8 @@ static int get_id(int fd, int link, struct ddb_id *id)
 static char *id2name(uint16_t id)
 {
 	switch (id) {
+	case 0x210:
+		return "FSM";
 	case 0x222:
 		return "MOD";
 	case 0x0009:
@@ -476,13 +516,21 @@ static int card_info(int ddbnum, int demod)
 				num = 4;
 			if (id.device == 0x0014)
 				num = 2;
-			mci_firmware(ddb, link);
+			mci_firmware(ddb, link, 0x600);
 			if (demod >= 0)
 				mci_info(ddb, link, demod);
 			else {
 				for (i = 0; i < num; i++)
 					mci_info(ddb, link, i);
 			}
+			break;
+		case 0x0210:
+			if (!(id.hw & 0x01000000))
+				break;
+			mci_firmware(ddb, link, 0x300);
+			printf("VEN:DD01\n");
+			printf("DEV:0210\n");
+			mci_license(ddb);
 			break;
 		default:
 			break;

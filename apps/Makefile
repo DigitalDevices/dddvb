@@ -1,4 +1,4 @@
-TARGETS = cit ddtest setmod1 setmod2 modconfig ddinfo getiq modtest
+TARGETS = cit ddtest setmod1 setmod2 modconfig ddinfo getiq modtest ddlicense
 
 all: $(TARGETS) 
 
