@@ -39,7 +39,9 @@
 #include <linux/mutex.h>
 #include <linux/vmalloc.h>
 #include <asm/div64.h>
+#if (KERNEL_VERSION(6, 12, 0) > LINUX_VERSION_CODE)
 #include <asm/unaligned.h>
+#endif
 
 #include <media/dvb_frontend.h>
 #include "mxl5xx.h"

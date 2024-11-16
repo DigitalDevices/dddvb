@@ -24,7 +24,11 @@
 #include "ddbridge.h"
 #include "ddbridge-io.h"
 
+#if (KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE)
 static int __exit octonet_remove(struct platform_device *pdev)
+#else
+static void __exit octonet_remove(struct platform_device *pdev)
+#endif
 {
 	struct ddb *dev;
 
@@ -43,7 +47,9 @@ static int __exit octonet_remove(struct platform_device *pdev)
 	ddb_ports_release(dev);
 	ddb_unmap(dev);
 	platform_set_drvdata(pdev, 0);
+#if (KERNEL_VERSION(6, 11, 0) > LINUX_VERSION_CODE)
 	return 0;
+#endif
 }
 
 static int __init octonet_probe(struct platform_device *pdev)
