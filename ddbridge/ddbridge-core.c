@@ -2034,6 +2034,7 @@ static int init_xo2_ci(struct ddb_port *port)
 	if (res < 0)
 		return res;
 
+	dev_info(dev->dev, "Port %d: version %u.%u\n", data[0], data[1]);
 	if (data[0] > 1)  {
 		dev_info(dev->dev, "Port %d: invalid XO2 CI %02x\n",
 			 port->nr, data[0]);
