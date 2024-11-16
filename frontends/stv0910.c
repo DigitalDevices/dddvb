@@ -118,6 +118,7 @@ struct stv {
 
 	enum fe_code_rate        puncture_rate;
 	enum fe_stv0910_modcod   modcod;
+	u8                       pls;
 	enum dvbs2_fec_type      fec_type;
 	u32                      pilots;
 	enum fe_stv0910_roll_off fe_roll_off;
@@ -508,6 +509,7 @@ static int get_signal_parameters(struct stv *state)
 
 	if (state->receive_mode == RCVMODE_DVBS2) {
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
+		state->pls = tmp & 0x7f;
 		state->modcod = (enum fe_stv0910_modcod)((tmp & 0x7c) >> 2);
 		state->pilots = (tmp & 0x01) != 0;
 		state->fec_type = (enum dvbs2_fec_type)((tmp & 0x02) >> 1);
@@ -1333,6 +1335,7 @@ static int get_frontend(struct dvb_frontend *fe, struct dtv_frontend_properties 
 		};
 		read_reg(state, RSTV0910_P2_DMDMODCOD + state->regoff, &tmp);
 		mc = ((tmp & 0x7c) >> 2);
+		p->transmission_mode = tmp & 0x7f;
 		p->pilot = (tmp & 0x01) ? PILOT_ON : PILOT_OFF;
 		p->modulation = modcod2mod[mc];
 		p->fec_inner = modcod2fec[mc];
