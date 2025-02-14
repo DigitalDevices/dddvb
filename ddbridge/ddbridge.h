@@ -536,7 +536,7 @@ struct DDMOD_FLASH {
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.40"
+#define DDBRIDGE_VERSION "0.9.41"
 
 /* linked function prototypes */
 
