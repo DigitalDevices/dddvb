@@ -919,6 +919,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
 	DDB_DEVID(0x0022, 0x0052, ddb_m8),
 	DDB_DEVID(0x0024, 0x0053, ddb_m8a),
+	DDB_DEVID(0x0026, 0x0055, ddb_m8),
 
 	/* Modulators */
 	DDB_DEVID(0x0201, 0x0001, ddb_mod),
