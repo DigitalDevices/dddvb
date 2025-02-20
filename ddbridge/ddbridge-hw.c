@@ -785,6 +785,19 @@ static const struct ddb_info ddb_ci_m2 = {
 	.lnb_base = 0x480,
 };
 
+static const struct ddb_info ddb_m2 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices Max M2",
+	.regmap   = &octopus_mci_map,
+	.port_num = 1,
+	.i2c_mask = 0x00,
+	.tempmon_irq = 24,
+	.mci_ports = 1,
+	.mci_type = DDB_TUNER_MCI_M2,
+	.temp_num = 1,
+	.lnb_base = 0x400,
+};
+
 /****************************************************************************/
 
 static const struct ddb_info ddb_gtl_mini = {
@@ -919,6 +932,7 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
 	DDB_DEVID(0x0022, 0x0052, ddb_m8),
 	DDB_DEVID(0x0024, 0x0053, ddb_m8a),
+	DDB_DEVID(0x0025, 0x0054, ddb_m2),
 	DDB_DEVID(0x0026, 0x0055, ddb_m8),
 
 	/* Modulators */
