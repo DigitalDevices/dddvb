@@ -325,6 +325,7 @@ struct ddb_port {
 #define DDB_TUNER_MCI_M8        (DDB_TUNER_MCI + 2)
 #define DDB_TUNER_MCI_M8A       (DDB_TUNER_MCI + 3)
 #define DDB_TUNER_MCI_M2        (DDB_TUNER_MCI + 4)
+#define DDB_TUNER_MCI_M8E       (DDB_TUNER_MCI + 5)
 
 	struct ddb_input      *input[2];
 	struct ddb_output     *output;
