@@ -1860,6 +1860,7 @@ static int dvb_input_attach(struct ddb_input *input)
 	case DDB_TUNER_MCI_M4:
 	case DDB_TUNER_MCI_M8:
 	case DDB_TUNER_MCI_M8A:
+	case DDB_TUNER_MCI_M8E:
 	case DDB_TUNER_MCI_M2:
 		if (ddb_fe_attach_mci(input, port->type) < 0)
 			return -ENODEV;
