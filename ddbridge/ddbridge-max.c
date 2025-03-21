@@ -567,8 +567,8 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	{
 		u32 mode, mmode;
 		
-                // delmode: 0 - sat,sat  1-cable,cable/sat 
-		switch (delmode & 1) {
+                // delmode: 0 - sat,sat  1-cable,cable/sat 2-cable,cable
+		switch (delmode & 3) {
 		case 0:
 			mode = 2;
 			mmode = 2;  /* M_S */
@@ -576,6 +576,10 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		case 1:
 			mode = 1;
 			mmode = demod ? 3 : 1; /* demod 1=M/0=M_A */
+			break;
+		case 2:
+			mode = 1;
+			mmode = 1;  /* both M_A only */
 			break;
 		}
 		if (!demod)
