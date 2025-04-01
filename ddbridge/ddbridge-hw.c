@@ -806,7 +806,7 @@ static const struct ddb_info ddb_m2 = {
 	.mci_ports = 1,
 	.mci_type = DDB_TUNER_MCI_M2,
 	.temp_num = 1,
-	.lnb_base = 0x480,
+	.lnb_base = 0x400,
 };
 
 /****************************************************************************/
