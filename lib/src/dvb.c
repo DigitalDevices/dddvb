@@ -101,12 +101,15 @@ static int get_stat_num(int fd, uint32_t cmd, struct dtv_fe_stats *stats, int nu
 
 static int set_property_input(int fd, uint32_t input)
 {
+#if 0
 	struct dvb_diseqc_master_cmd cmd = {.msg = {input}, .msg_len = 1};
-
+	
 	if (ioctl(fd, FE_DISEQC_SEND_MASTER_CMD, &cmd) == -1)
 		perror("FE_DISEQC_SEND_MASTER_CMD for setting input failed");
 	return 0;
-	//return set_property(fd, DTV_INPUT, input);
+#else
+	return set_property(fd, DTV_INPUT, input);
+#endif
 }
 
 static int set_fe_input(struct dddvb_fe *fe, uint32_t fr,
