@@ -20,7 +20,6 @@ int main(int argc, char *argv[])
 {
 	int fd, len;
 	struct input_event ev;
-	uint32_t time;
 
 	fd = open("/dev/input/event0", O_RDONLY);
 
@@ -30,7 +29,8 @@ int main(int argc, char *argv[])
 	while (1) {
 		if ((len = read(fd, &ev, sizeof(ev)) < sizeof(struct input_event)))
 			return -1;
-		printf("%u.%06u %u %u %u\n", ev.time.tv_sec, ev.time.tv_usec, ev.type, ev.code, ev.value); 
+		//printf("%u.%06u %u %u %u\n", ev.time.tv_sec, ev.time.tv_usec, ev.type, ev.code, ev.value); 
+		printf("%u %u %u\n", ev.type, ev.code, ev.value); 
 	}
 	
 
