@@ -745,7 +745,7 @@ void dddvb_fe_handle(struct dddvb_fe *fe)
 			} else {
 				max = 1;
 				nolock++;
-				if (nolock > 200 || fe->stat == FE_TIMEDOUT)
+				if (nolock > 400 || fe->stat == FE_TIMEDOUT)
 					fe->tune = 1;
 			}
 			break;
@@ -1025,8 +1025,10 @@ int dddvb_dvb_init(struct dddvb *dd)
 		if (dd->cam_port == 0)
 			dd->cam_port = 8888;
 	}
+#ifdef LIBEN50221
 	if (dd->use_ca)
 		scan_dvbca(dd);
+#endif
 }
 
 
