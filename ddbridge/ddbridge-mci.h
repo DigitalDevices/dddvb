@@ -964,9 +964,7 @@ struct mci_base {
 	struct list_head     mci_list;
 	void                *key;
 	struct ddb_link     *link;
-//	struct completion    completion;
 	struct mutex         tuner_lock;
-//	struct mutex         mci_lock;
 	int                  count;
 	int                  type;
 };
@@ -979,6 +977,9 @@ struct mci {
 	int                  demod;
 	int                  tuner;
 
+	struct mutex         lock;
+	struct mci_command   cmd;
+	struct mci_result    result;
 	struct mci_result    signal_info;
 };
 
