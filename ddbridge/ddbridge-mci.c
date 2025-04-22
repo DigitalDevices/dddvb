@@ -170,10 +170,6 @@ int ddb_mci_cmd_link(struct ddb_link *link,
 					(u32 *)result,
 					sizeof(*result)/sizeof(u32));
 	mutex_unlock(&link->mci_lock);
-	if (command && result && (result->status & 0x80))
-		dev_warn(link->dev->dev,
-			 "mci_command 0x%02x, error=0x%02x\n",
-			 command->command, result->status);
 	return stat;
 }
 
