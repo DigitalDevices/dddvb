@@ -53,7 +53,8 @@ static int read_attribute_mem(struct dvb_ca_en50221 *ca,
 	ddbwritel(ci->port->dev, CI_READ_CMD | (1 << 16) | address,
 		  CI_DO_READ_ATTRIBUTES(ci));
 	wait_ci_ready(ci);
-	ddbcpyfrom(ci->port->dev, &val, CI_BUFFER(ci->nr) + off, 1);
+	ddbcpyfrom(ci->port->dev, &val,
+		   DDB_LINK_TAG(ci->port->lnr) | (CI_BUFFER(ci->nr) + off), 1);
 	return val;
 }
 
