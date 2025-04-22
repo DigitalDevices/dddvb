@@ -130,6 +130,28 @@ static int ddb_mci_cmd_raw_unlocked(struct ddb_link *link,
 	return 0;
 }
 
+static int ddb_mci_cmd_link_raw(struct ddb_link *link,
+				struct mci_command *command, u32 command_len,
+				struct mci_result *result, u32 result_len)
+{
+	int stat;
+
+	if (!link->mci_ok)
+		return -EFAULT;
+	if (!command)
+		return -EINVAL;
+	if (!command_len)
+		command_len = sizeof(*command)/sizeof(u32);
+	if (result && !result_len)
+		result_len = sizeof(*result)/sizeof(u32);
+	mutex_lock(&link->mci_lock);
+	stat = ddb_mci_cmd_raw_unlocked(link,
+					(u32 *)command, command_len,
+					(u32 *)result, result_len);
+	mutex_unlock(&link->mci_lock);
+	return stat;
+}
+
 int ddb_mci_cmd_link(struct ddb_link *link,
 		     struct mci_command *command,
 		     struct mci_result *result)
