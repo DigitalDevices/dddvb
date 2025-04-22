@@ -92,9 +92,12 @@ static int ddb_mci_cmd_raw_unlocked(struct ddb_link *link,
 	val = ddblreadl(link, control);
 	if (val & (MCI_CONTROL_RESET | MCI_CONTROL_START_COMMAND))
 		return -EIO;
-	if (cmd && cmd_len)
+	if (cmd && cmd_len) {
 		for (i = 0; i < cmd_len; i++)
 			ddblwritel(link, cmd[i], command + i * 4);
+		for (; i < sizeof(struct mci_command) / 4; i++)
+			ddblwritel(link, 0, command + i * 4);
+	}
 	val |= (MCI_CONTROL_START_COMMAND |
 		MCI_CONTROL_ENABLE_DONE_INTERRUPT);
 	ddblwritel(link, val, control);
