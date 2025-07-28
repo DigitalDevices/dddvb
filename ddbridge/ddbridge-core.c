@@ -61,11 +61,7 @@ static int raw_stream;
 module_param(raw_stream, int, 0444);
 MODULE_PARM_DESC(raw_stream, "send data as raw stream to DVB layer");
 
-#if defined(__arm__) || defined(__aarch64__)
 static int alt_dma = 1;
-#else
-static int alt_dma;
-#endif
 module_param(alt_dma, int, 0444);
 MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
 
