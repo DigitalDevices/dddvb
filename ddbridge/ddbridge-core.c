@@ -65,11 +65,7 @@ static int alt_dma = 1;
 module_param(alt_dma, int, 0444);
 MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
 
-#if defined(__arm__) || defined(__aarch64__)
 static int use_workqueue = 1;
-#else
-static int use_workqueue;
-#endif
 module_param(use_workqueue, int, 0444);
 MODULE_PARM_DESC(use_workqueue, "use workqueue instead of tasklet");
 
