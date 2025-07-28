@@ -4261,6 +4261,11 @@ static int ddb_gtl_init_link(struct ddb *dev, u32 l)
 		}
 	}
 	id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
+	if (!id) {
+		dev_info(dev->dev, "GT link ID 0. Reading again.");
+		msleep(200);
+		id = ddbreadl(dev, DDB_LINK_TAG(l) | 8);
+	}
 	subid = ddbreadl(dev, DDB_LINK_TAG(l) | 12);
 	link->info = get_ddb_info(id & 0xffff, id >> 16,
 				  subid & 0xffff, subid >> 16);
