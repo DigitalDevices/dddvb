@@ -1277,7 +1277,6 @@ int ddb_mci_get_info(struct mci *mci);
 int ddb_mci_get_strength(struct dvb_frontend *fe);
 void ddb_mci_proc_info(struct mci *mci, struct dtv_frontend_properties *p);
 int mci_init(struct ddb_link *link);
-int mci_cmd_val(struct ddb_link *link, u32 cmd, u32 val);
 
 #endif
 

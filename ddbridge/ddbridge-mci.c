@@ -156,13 +156,10 @@ int ddb_mci_cmd_link(struct ddb_link *link,
 		     struct mci_command *command,
 		     struct mci_result *result)
 {
-	struct mci_result res;
 	int stat;
 
 	if (!link->mci_ok)
 		return -EFAULT;
-	if (!result)
-		result = &res;
 	mutex_lock(&link->mci_lock);
 	stat = ddb_mci_cmd_raw_unlocked(link,
 					(u32 *)command,
@@ -181,7 +178,7 @@ int ddb_mci_cmd_link_simple(struct ddb_link *link, u8 command, u8 demod, u8 valu
 	cmd.command = command;
 	cmd.demod = demod;
 	cmd.params8[0] = value;
-	return ddb_mci_cmd_link(link, &cmd, 0);
+	return ddb_mci_cmd_link_raw(link, &cmd, 2, NULL, 0);
 }
 
 static void mci_handler(void *priv)
@@ -210,16 +207,6 @@ int mci_init(struct ddb_link *link)
 	return result;
 }
 
-int mci_cmd_val(struct ddb_link *link, uint32_t cmd, uint32_t val)
-{
-	struct mci_result result;
-	struct mci_command command;
-
-	command.command_word = cmd;
-	command.params[0] = val;
-	return ddb_mci_cmd_link(link, &command, &result);
-}
-
 /****************************************************************************/
 /****************************************************************************/
 
@@ -227,32 +214,15 @@ int ddb_mci_cmd(struct mci *state,
 		struct mci_command *command,
 		struct mci_result *result)
 {
-	return ddb_mci_cmd_link(state->base->link, command, result);
-}
-
-
-static int ddb_mci_cmd_raw(struct mci *state,
-			   struct mci_command *command, u32 command_len,
-			   struct mci_result *result, u32 result_len)
-{
-	struct ddb_link *link = state->base->link;
-	int stat;
-
-	mutex_lock(&link->mci_lock);
-	stat = ddb_mci_cmd_raw_unlocked(link,
-					(u32 *)command, command_len,
-					(u32 *)result, result_len);
-	mutex_unlock(&link->mci_lock);
-	return stat;
+	return ddb_mci_cmd_link_raw(state->base->link, command, 0, result, 0);
 }
 
 int ddb_mci_get_status(struct mci *mci, struct mci_result *res)
 {
-	struct mci_command cmd;
+	struct mci_command cmd =
+		{ .command = MCI_CMD_GETSTATUS, .demod = mci->demod};
 
-	cmd.command = MCI_CMD_GETSTATUS;
-	cmd.demod = mci->demod;
-	return ddb_mci_cmd_raw(mci, &cmd, 1, res, 1);
+	return ddb_mci_cmd_link_raw(mci->base->link, &cmd, 1, res, 1);
 }
 
 int ddb_mci_get_snr(struct dvb_frontend *fe)
@@ -282,14 +252,10 @@ int ddb_mci_get_strength(struct dvb_frontend *fe)
 
 int ddb_mci_get_info(struct mci *mci)
 {
-	int stat;
-	struct mci_command cmd;
-
-	memset(&cmd, 0, sizeof(cmd));
-	cmd.command = MCI_CMD_GETSIGNALINFO;
-	cmd.demod = mci->demod;
-	stat = ddb_mci_cmd(mci, &cmd, &mci->signal_info);
-	return stat;
+	memset(&mci->cmd, 0, sizeof(struct mci_command));
+	mci->cmd.command = MCI_CMD_GETSIGNALINFO;
+	mci->cmd.demod = mci->demod;
+	return ddb_mci_cmd(mci, &mci->cmd, &mci->signal_info);
 }
 
 /****************************************************************************/

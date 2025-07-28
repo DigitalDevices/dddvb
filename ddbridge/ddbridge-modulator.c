@@ -201,7 +201,6 @@ static int mod_set_stream(struct ddb_output *output)
 	u32 stream = output->nr;
 	struct ddb_mod *mod = &dev->mod[output->nr];
 	struct ddb_link *link = &dev->link[0];
-	struct mci_result res;
 	u32 channel;
 	struct mci_command cmd = {
 		.mod_command = MOD_SETUP_STREAM,
@@ -234,7 +233,7 @@ static int mod_set_stream(struct ddb_output *output)
 	cmd.mod_channel = channel;
 	cmd.mod_setup_stream.symbol_rate = mod->symbolrate;
 	cmd.mod_setup_stream.qam.modulation = mod->modulation - 1;
-	return ddb_mci_cmd_link(link, &cmd, &res);
+	return ddb_mci_cmd_link(link, &cmd, 0);
 }
 
 static int mod_set_symbolrate(struct ddb_mod *mod, u32 srate)
@@ -580,7 +579,6 @@ static int mod_set_power(struct ddb *dev)
 {
 	struct ddb_link *link = &dev->link[0];
 	struct mod_base *base = &dev->mod_base;
-	struct mci_result res;
 	struct mci_command cmd = {
 		.mod_command = MOD_SETUP_OUTPUT,
 		.mod_channel = 0,
@@ -596,7 +594,7 @@ static int mod_set_power(struct ddb *dev)
 		return -EFAULT;
 	cmd.mod_setup_output.channel_power =
 		8232 - base->attenuation * 1000 + base->gain * 12;
-	return ddb_mci_cmd_link(link, &cmd, &res);
+	return ddb_mci_cmd_link(link, &cmd, 0);
 }
 
 static int mod_set_vga(struct ddb *dev, u32 gain)
