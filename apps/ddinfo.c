@@ -391,13 +391,13 @@ int mci_info(int dev, uint32_t link, uint8_t demod)
 
 void print_license(int dev,  struct mci_result *res)
 {
-	if (res->license.serial_number[0] == 0xff)
-		res->license.serial_number[0] = 0;
-	printf("SERNBR:%s\n", (char *) &res->license.serial_number);
+	if (res->get_license.serial_number[0] == 0xff)
+		res->get_license.serial_number[0] = 0;
+	printf("SERNBR:%s\n", (char *) &res->get_license.serial_number);
 	printf("ID:");
-	ldump(res->license.ID, 8);
+	ldump(res->get_license.ID, 8);
 	printf("LK:");
-	ldump(res->license.LK, 24);
+	ldump(res->get_license.LK, 24);
 }
 
 int mci_license(int dev)

@@ -61,9 +61,9 @@ static int mci_get_license(int dev, uint8_t *ID, uint8_t *LK, uint8_t *SN)
 		dprintf(2, "MCI error: %02x, check firmware and license file.\n", msg.res.status);
 		return -1;
 	}
-	memcpy(ID, msg.res.license.ID, 8);
-	memcpy(LK, msg.res.license.LK, 24);
-	memcpy(SN, msg.res.license.serial_number, 24);
+	memcpy(ID, msg.res.get_license.ID, 8);
+	memcpy(LK, msg.res.get_license.LK, 24);
+	memcpy(SN, msg.res.get_license.serial_number, 24);
 	return 0;
 }
 
@@ -75,8 +75,8 @@ static int mci_set_license(int dev, uint8_t *ID, uint8_t *LK)
 	};
 	int ret;
 
-	memcpy(msg.cmd.license.ID, ID, 8);
-	memcpy(msg.cmd.license.LK, LK, 24);
+	memcpy(msg.cmd.set_license.ID, ID, 8);
+	memcpy(msg.cmd.set_license.LK, LK, 24);
 	
 	ret = ioctl(dev, IOCTL_DDB_MCI_CMD, &msg);
 	if (ret < 0) {
