@@ -29,3 +29,27 @@
 #define APSK_256 22
 #define APSK_256_L 23
 #endif
+
+#if 0
+#if (KERNEL_VERSION(6, 6, 3) >= LINUX_VERSION_CODE)
+#include <linux/overflow.h>
+/**
+ * memdup_array_user - duplicate array from user space
+ * @src: source address in user space
+ * @n: number of array members to copy
+ * @size: size of one array member
+ *
+ * Return: an ERR_PTR() on failure. Result is physically
+ * contiguous, to be freed by kfree().
+ */
+static inline void *memdup_array_user(const void __user *src, size_t n, size_t size)
+{
+	size_t nbytes;
+
+	if (check_mul_overflow(n, size, &nbytes))
+		return ERR_PTR(-EOVERFLOW);
+
+	return memdup_user(src, nbytes);
+}
+#endif
+#endif
