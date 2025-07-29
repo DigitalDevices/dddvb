@@ -689,10 +689,12 @@ int main(int argc, char **argv)
 		}
 		switch (odvr){
 		case 1:
-		    while(1){
-			read(fd,buf,BUFFSIZE);
-			write(fileno(stdout),buf,BUFFSIZE);
-		    }
+			memset(buf, 0, BUFFSIZE);
+			while(1){
+				int r = read(fd,buf,BUFFSIZE);
+				if (r == BUFFSIZE)
+					write(fileno(stdout),buf,r);
+			}
 		    break;
 		case 2:
 		    fprintf(stderr,"writing pamdata\n");
