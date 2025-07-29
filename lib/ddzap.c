@@ -564,7 +564,7 @@ int main(int argc, char **argv)
 			break;
 		case 'h':
 		    fprintf(fout,"ddzap [-d delivery_system] [-p polarity] [-c config_dir]\n"
-			       "      [-f frequency(Hz for terr./kHz for SAT)]\n"
+			       "      [-f frequency(kHz)]\n"
 			       "      [-m 16APSK/32APSK/64APSK/128APSK/256APSK]\n"
 			       "          (only needed for higher modulations than 8PSK) on some cards\n"
 			       "      [-b bandwidth(Hz)] [-s symbol_rate(Hz)]\n"
