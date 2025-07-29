@@ -555,8 +555,8 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		fm = 3;
 		if (!demod)
 			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
-						0xff, (delmode & 0x10) | 3);
-		dvb->fe = ddb_mx_attach(input, demod, tuner, 3);
+						0xff, 3);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 3 | (delmode & 4));
 		dvb->input = 0;
 		break;
 	case DDB_TUNER_MCI_M8A:
@@ -586,8 +586,8 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 		}
 		if (!demod)
 			ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG,
-						0xff, mode | (delmode & 0x10));
-		dvb->fe = ddb_mx_attach(input, demod, tuner, mmode);
+						0xff, mode);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, mmode | (delmode & 4));
 		dvb->input = tuner;
 		fm = 0;
 		break;

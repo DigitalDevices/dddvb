@@ -659,5 +659,5 @@ struct dvb_frontend *ddb_sx8_attach(struct ddb_input *input, int nr, int tuner,
 				    int (**fn_set_input)(struct dvb_frontend *fe, int input))
 {
 	*fn_set_input = set_input;
-	return ddb_mci_attach(input, &ddb_max_sx8_cfg, nr, tuner);
+	return ddb_mci_attach(input, &ddb_max_sx8_cfg, nr, tuner, 0);
 }
