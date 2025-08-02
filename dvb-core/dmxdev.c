@@ -214,6 +214,7 @@ static int dvb_dvr_release(struct inode *inode, struct file *file)
 		dmxdev->demux->connect_frontend(dmxdev->demux,
 						dmxdev->dvr_orig_fe);
 	}
+
 	if (((file->f_flags & O_ACCMODE) == O_RDONLY) ||
 	    dmxdev->may_do_mmap) {
 #ifdef CONFIG_DVB_MMAP
@@ -359,8 +360,12 @@ static int dvb_dmxdev_set_buffer_size(struct dmxdev_filter *dmxdevfilter,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))
 static void dvb_dmxdev_filter_timeout(struct timer_list *t)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+	struct dmxdev_filter *dmxdevfilter = timer_container_of(dmxdevfilter,
+								t, timer);
+#else
 	struct dmxdev_filter *dmxdevfilter = from_timer(dmxdevfilter, t, timer);
-
+#endif
 	dmxdevfilter->buffer.error = -ETIMEDOUT;
 	spin_lock_irq(&dmxdevfilter->dev->lock);
 	dmxdevfilter->state = DMXDEV_STATE_TIMEDOUT;
@@ -372,7 +377,11 @@ static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 {
 	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+	timer_delete(&dmxdevfilter->timer);
+#else
 	del_timer(&dmxdevfilter->timer);
+#endif
 	if (para->timeout) {
 		dmxdevfilter->timer.expires =
 		    jiffies + 1 + (HZ / 2 + HZ * para->timeout) / 1000;
@@ -428,7 +437,11 @@ static int dvb_dmxdev_section_callback(const u8 *buffer1, size_t buffer1_len,
 		spin_unlock(&dmxdevfilter->dev->lock);
 		return 0;
 	}
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+	timer_delete(&dmxdevfilter->timer);
+#else
 	del_timer(&dmxdevfilter->timer);
+#endif
 	dprintk("section callback %*ph\n", 6, buffer1);
 #ifdef CONFIG_DVB_MMAP
 	if (dvb_vb2_is_streaming(&dmxdevfilter->vb2_ctx)) {
@@ -532,7 +545,11 @@ static int dvb_dmxdev_feed_stop(struct dmxdev_filter *dmxdevfilter)
 
 	switch (dmxdevfilter->type) {
 	case DMXDEV_TYPE_SEC:
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+		timer_delete(&dmxdevfilter->timer);
+#else
 		del_timer(&dmxdevfilter->timer);
+#endif
 		dmxdevfilter->feed.sec->stop_filtering(dmxdevfilter->feed.sec);
 		break;
 	case DMXDEV_TYPE_PES:
@@ -781,7 +798,8 @@ static int dvb_dmxdev_filter_start(struct dmxdev_filter *filter)
 		ret = (*secfeed)->allocate_filter(*secfeed, secfilter);
 		if (ret < 0) {
 			dvb_dmxdev_feed_restart(filter);
-			filter->feed.sec->start_filtering(*secfeed);
+			*secfeed = NULL;
+			//filter->feed.sec->start_filtering(*secfeed);
 			dprintk("could not get filter\n");
 			return ret;
 		}
