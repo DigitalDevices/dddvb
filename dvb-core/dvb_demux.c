@@ -619,7 +619,7 @@ void dvb_dmx_swfilter_raw(struct dvb_demux *demux, const u8 *buf, size_t count)
 
 	spin_lock_irqsave(&demux->lock, flags);
 
-#if 1
+#if 0
 	demux->feed->cb.ts(buf, count, NULL, 0, &demux->feed->feed.ts,
 			   &demux->feed->buffer_flags);
 #else
