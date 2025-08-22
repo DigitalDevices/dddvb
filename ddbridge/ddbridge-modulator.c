@@ -1601,9 +1601,26 @@ static int mod3_set_frequency(struct ddb_mod *mod, u32 frequency)
 	return 0;
 }
 
+static int mod_set_ari(struct ddb_mod *mod, u32 rate)
+{
+	struct ddb *dev = mod->port->dev;
+	struct ddb_link *link = &dev->link[0];
+	u32 stream = mod->port->nr;
+	struct mci_command cmd = {
+		.mod_command = MOD_CLOCK_CORRECTION,
+		.mod_channel = stream,
+		.mod_stream = stream,
+		.params8[0] = MOD_CLOCK_COR_LEGACY_SET,
+		.params[1] = rate,
+	};
+	printk("ari: %u %04x\n", stream, rate);
+	return ddb_mci_cmd_link(link, &cmd, 0);
+}
+
 static int mod3_set_ari(struct ddb_mod *mod, u32 rate)
 {
-	ddbwritel(mod->port->dev, rate, SDR_CHANNEL_ARICW(mod->port->nr));
+	if (mod_set_ari(mod, rate))
+		ddbwritel(mod->port->dev, rate, SDR_CHANNEL_ARICW(mod->port->nr));
 	return 0;
 }
 
