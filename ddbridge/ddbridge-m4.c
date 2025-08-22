@@ -331,22 +331,62 @@ static int search_isdbt(struct dvb_frontend *fe)
 	return stat;
 }
 
+#ifdef AUTOMODE
+static u8 del2modetab[22] = {
+	0, 1, 1, 1, 2, 2, 2, 1,
+	1, 2, 1, 1, 1, 1, 1, 1,
+	1, 2, 1, 1, 1, 2,
+};
+
+static u8 del2mode(enum fe_delivery_system delivery_system)
+{
+	switch (delivery_system) {
+	case SYS_UNDEFINED:
+	default:
+		return 0;
+	case SYS_DVBS:
+	case SYS_DVBS2:
+	case SYS_ISDBS:
+		return 2;
+	case SYS_DVBC_ANNEX_A:
+	case SYS_DVBC_ANNEX_B:
+	case SYS_DVBT:
+	case SYS_DVBT2:
+	case SYS_DVBC2:
+	case SYS_ISDBT:
+	case SYS_DVBC_ANNEX_C:
+	case SYS_ISDBC:
+	case SYS_ATSC:
+		return 1;
+	}
+}
+#endif
 
 static int set_parameters(struct dvb_frontend *fe)
 {
 	struct m4 *state = fe->demodulator_priv;
+#ifdef AUTOMODE
+	struct ddb_link *link = state->mci.base->link;
+#endif
 	int res;
-	//struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	enum fe_delivery_system ds =
+		fe->dtv_property_cache.delivery_system;
 
 	stop(fe);
-
 	state->t2_signalling_valid = 0;
 	state->iq_constellation_point = 0;
 	state->iq_constellation_point_max = 0;
-
 	state->iq_constellation_tap = 0;
-	//printk("bw = %u\n", p->bandwidth_hz);
-	switch (fe->dtv_property_cache.delivery_system) {
+
+#ifdef AUTOMODE
+	if ((link->ids.device == 0x0014 ||
+	     link->ids.device == 0x0025) &&
+	    state->mci.demod == 0) {
+		u8 mode = (ds <= SYS_ISDBS3) ? del2modetab[ds] : 0;
+		ddb_mci_cmd_link_simple(link, MCI_CMD_SET_INPUT_CONFIG, 0xff, mode);
+	}
+#endif
+	switch (ds) {
 	case SYS_DVBS:
 	case SYS_DVBS2:
 		res = search_s2(fe);
