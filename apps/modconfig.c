@@ -456,7 +456,7 @@ void streams_cb(void *priv, char *par, char *val)
 int mci_lic(int dev)
 {
 	struct ddb_mci_msg msg = {
-		.cmd.command = CMD_EXPORT_LICENSE,
+		.cmd.command = MCI_CMD_EXPORT_LICENSE,
 		.cmd.get_bb_header.select = 0,
 	};
 	struct mci_result *res = &msg.res;

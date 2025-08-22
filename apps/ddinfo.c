@@ -63,7 +63,7 @@ int temp_info(int dev, uint32_t link)
 {
 	struct ddb_mci_msg msg = {
 		.link = link,
-		.cmd.command = SX8_CMD_GETBIST,
+		.cmd.command = MCI_CMD_GETBIST,
 	};
 	int ret;
 	int i;
@@ -404,7 +404,7 @@ int mci_license(int dev)
 {
 	struct ddb_mci_msg msg = {
 		.link = 0,
-		.cmd.command = CMD_GET_SERIALNUMBER,
+		.cmd.command = MCI_CMD_GET_SERIALNUMBER,
 	};
 	int ret;
 	

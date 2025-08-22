@@ -48,7 +48,7 @@ static int mci_get_license(int dev, uint8_t *ID, uint8_t *LK, uint8_t *SN)
 {
 	struct ddb_mci_msg msg = {
 		.link = 0,
-		.cmd.command = CMD_GET_SERIALNUMBER,
+		.cmd.command = MCI_CMD_GET_SERIALNUMBER,
 	};
 	int ret;
 	
@@ -71,7 +71,7 @@ static int mci_set_license(int dev, uint8_t *ID, uint8_t *LK)
 {
 	struct ddb_mci_msg msg = {
 		.link = 0,
-		.cmd.command = CMD_IMPORT_LICENSE,
+		.cmd.command = MCI_CMD_IMPORT_LICENSE,
 	};
 	int ret;
 

@@ -24,21 +24,6 @@
 #ifndef _DDBRIDGE_MCI_H_
 #define _DDBRIDGE_MCI_H_
 
-#define SX8_TSINPUT             (0x280)
-#define MIC_CONTROL             (0x500)
-#define MIC_PROGMEM_OLD         (0x4000)
-#define MIC_PROGMEM_OLD_SIZE    (0x4000)
-
-#define MIC_PROGMEM             (0x8000)
-#define MIC_PROGMEM_SIZE        (0x8000)
-
-#define MIC_DATAMEM             (0x8000)
-#define MIC_DATAMEM_SIZE        (0x2000)
-
-#define MIC_INTERFACE_IN        (0x0600)
-#define MIC_INTERFACE_OUT       (0x0680)
-#define MIC_INTERFACE_VER       (0x06F0)
-
 #define MCI_COMMAND_SIZE                    (0x80)
 #define MCI_RESULT_SIZE                     (0x80)
 
@@ -88,19 +73,9 @@
 
 /********************************************************/
 
-#define MCI_DEMOD_STOPPED        (0)
-#define MCI_DEMOD_WAIT_SIGNAL    (2)
-#define MCI_DEMOD_TIMEOUT        (14)
-#define MCI_DEMOD_LOCKED         (15)
-
-#define SX8_DEMOD_IQ_MODE        (1)
-#define SX8_DEMOD_WAIT_MATYPE    (3)
-
-#define MX_DEMOD_WAIT_TS         (6)
-#define MX_DEMOD_C2SCAN          (16)
-
 #define MCI_STATUS_OK                 (0x00)
 #define MCI_STATUS_UNSUPPORTED        (0x80)
+#define MCI_STATUS_POWERED_DOWN       (0xF0)
 #define MCI_STATUS_DISABLED           (0xF9)
 #define MCI_STATUS_BUSY               (0xFA)
 #define MCI_STATUS_HARDWARE_ERROR     (0xFB)
@@ -108,6 +83,8 @@
 #define MCI_STATUS_RETRY              (0xFD)
 #define MCI_STATUS_NOT_READY          (0xFE)
 #define MCI_STATUS_ERROR              (0xFF)
+
+// Receiver defines
 
 #define MCI_CMD_STOP             (0x01)
 #define MCI_CMD_GETSTATUS        (0x02)
@@ -121,6 +98,7 @@
 
 #define MCI_CMD_SEARCH_DVBS     (0x10)
 #define MCI_CMD_SEARCH_ISDBS    (0x11)
+#define MCI_CMD_SEARCH_ISDBS3   (0x12)
 
 #define MCI_CMD_SEARCH_DVBC     (0x20)
 #define MCI_CMD_SEARCH_DVBT     (0x21)
@@ -135,21 +113,6 @@
 #define MCI_CMD_SEARCH_ATSC3    (0x28)
 
 #define MCI_CMD_GET_IQSYMBOL     (0x30)
-
-#define MCI_BANDWIDTH_UNKNOWN    (0)
-#define MCI_BANDWIDTH_1_7MHZ     (1)
-#define MCI_BANDWIDTH_5MHZ       (5)
-#define MCI_BANDWIDTH_6MHZ       (6)
-#define MCI_BANDWIDTH_7MHZ       (7)
-#define MCI_BANDWIDTH_8MHZ       (8)
-
-#define SX8_CMD_GETBIST          (0x0F)
-#define SX8_CMD_INPUT_ENABLE     (0x40)
-#define SX8_CMD_INPUT_DISABLE    (0x41)
-#define SX8_CMD_START_IQ         (0x42)
-#define SX8_CMD_STOP_IQ          (0x43)
-#define SX8_CMD_ENABLE_IQOUTPUT  (0x44)
-#define SX8_CMD_DISABLE_IQOUTPUT (0x45)
 
 #define MX_CMD_GET_L1INFO         (0x50)
 #define MX_CMD_GET_IDS            (0x51)
@@ -177,6 +140,14 @@
 #define MX_L1INFO_SEL_PLPINFO_C   (3)
 #define MX_L1INFO_SEL_SETID       (MX_T2_FLAGS_SETPLP_ID)
 #define MX_L1INFO_MAGIC           (0x3254)
+
+#define MCI_BANDWIDTH_UNKNOWN    (0)
+#define MCI_BANDWIDTH_1_7MHZ     (1)
+#define MCI_BANDWIDTH_5MHZ       (5)
+#define MCI_BANDWIDTH_6MHZ       (6)
+#define MCI_BANDWIDTH_7MHZ       (7)
+#define MCI_BANDWIDTH_8MHZ       (8)
+#define MCI_BANDWIDTH_10MHZ      (10)
 
 #define MCI_BANDWIDTH_EXTENSION  (0x80)   // currently used only for J83B in Japan
 
@@ -223,9 +194,6 @@
 #define MX_SIGNALINFO_FLAG_CHANGE (0x01)
 #define MX_SIGNALINFO_FLAG_EWS    (0x02)
 
-#define MX_SIGNALINFO_FLAG_CHANGE (0x01)
-#define MX_SIGNALINFO_FLAG_EWS    (0x02)
-
 #define MX_DISABLE_INPUTS         (0)
 #define MX_ENABLE_TER_INPUT       (1)
 #define MX_ENABLE_SAT_INPUT       (2)
@@ -259,14 +227,13 @@
 #define MX_DEMOD_WAIT_TS         (6)
 #define MX_DEMOD_C2SCAN          (16)
 
-#define MCI_SUCCESS(status)     ((status & MCI_STATUS_UNSUPPORTED) == 0)
-
-/********************************************************/
+// Modulator defines
 
 #define MOD_SETUP_CHANNELS        (0x60)
 #define MOD_SETUP_OUTPUT          (0x61)
 #define MOD_SETUP_STREAM          (0x62)
-#define MOD_SET_STREAM_CHANNEL    (0x63)
+//#define MOD_SET_STREAM_CHANNEL    (0x63)
+#define MOD_CLOCK_CORRECTION      (0x64)
 
 #define MOD_SETUP_FLAG_FIRST      (0x01)
 #define MOD_SETUP_FLAG_LAST       (0x02)
@@ -352,11 +319,12 @@
 #define MOD_QAM_ISDBC_64          (0x08)
 #define MOD_QAM_ISDBC_256         (0x09)
 
-#define CMD_GET_SERIALNUMBER      (0xF0)
-#define CMD_EXPORT_LICENSE        (0xF0)
-#define CMD_IMPORT_LICENSE        (0xF1)
-#define CMD_POWER_DOWN            (0xF2)
-#define CMD_POWER_UP              (0xF3)
+// Sub Commands for MOD_CLOCK_CORRECTION
+// Only available on SDR Modulator (ATV,IQ,IQ2)
+#define MOD_CLOCK_COR_RESET         (0)
+#define MOD_CLOCK_COR_SET           (1)
+#define MOD_CLOCK_COR_LEGACY_SET    (120)
+#define MOD_CLOCK_COR_LEGACY_QUERY  (121)
 
 struct mod_setup_channels {
 	u8   flags;
