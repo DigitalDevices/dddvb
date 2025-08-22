@@ -1985,6 +1985,8 @@ int ddbridge_mod_do_ioctl(struct file *file, unsigned int cmd, void *parg)
 			ret = -EFAULT;
 			break;
 		}
+		if (msg->cmd.mod_stream == 0xff)
+			msg->cmd.mod_stream = output->nr;
 		ret = ddb_mci_cmd_link(link, &msg->cmd, &msg->res);
 		break;
 	}
