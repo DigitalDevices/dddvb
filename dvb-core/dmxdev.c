@@ -377,7 +377,7 @@ static void dvb_dmxdev_filter_timer(struct dmxdev_filter *dmxdevfilter)
 {
 	struct dmx_sct_filter_params *para = &dmxdevfilter->params.sec;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 	timer_delete(&dmxdevfilter->timer);
 #else
 	del_timer(&dmxdevfilter->timer);
@@ -437,7 +437,7 @@ static int dvb_dmxdev_section_callback(const u8 *buffer1, size_t buffer1_len,
 		spin_unlock(&dmxdevfilter->dev->lock);
 		return 0;
 	}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 	timer_delete(&dmxdevfilter->timer);
 #else
 	del_timer(&dmxdevfilter->timer);
@@ -545,7 +545,7 @@ static int dvb_dmxdev_feed_stop(struct dmxdev_filter *dmxdevfilter)
 
 	switch (dmxdevfilter->type) {
 	case DMXDEV_TYPE_SEC:
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 16, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0))
 		timer_delete(&dmxdevfilter->timer);
 #else
 		del_timer(&dmxdevfilter->timer);
