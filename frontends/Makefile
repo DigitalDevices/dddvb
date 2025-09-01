@@ -18,6 +18,8 @@ EXTRA_CFLAGS += -DCONFIG_DVB_MXL5XX
 EXTRA_CFLAGS += -DCONFIG_DVB_CXD2099
 EXTRA_CFLAGS += -DDBVALS
 
+ccflags-y += $(EXTRA_CFLAGS)
+
 drxk-objs := drxk_hard.o 
 obj-$(CONFIG_DVB_DRXK) += drxk.o
 
