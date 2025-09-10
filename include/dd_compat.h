@@ -28,6 +28,9 @@
 #define APSK_128 21
 #define APSK_256 22
 #define APSK_256_L 23
+
+#define SYS_ATSC3 (SYS_DVBC2+1)
+#define SYS_ISDBS3 (SYS_ATSC3+1)
 #endif
 
 #if 0

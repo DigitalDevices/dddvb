@@ -114,10 +114,14 @@ static int max_send_master_cmd(struct dvb_frontend *fe,
 	if (cmd->msg_len &&
 	    cmd->msg_len == input_diseqc_sequence_length &&
 	    !memcmp(cmd->msg, input_diseqc_sequence, cmd->msg_len - 1)) {
+#ifdef KERNEL_DVB_CORE
+		return max_set_input(fe, cmd->msg[cmd->msg_len - 1] & 0x0f);
+#else
 		if (dvb->fe->ops.set_input == max_set_input)
 			return max_set_input(fe, cmd->msg[cmd->msg_len - 1] & 0x0f);
 		else
 			return 0;
+#endif
 	}
 	if (dvb->diseqc_send_master_cmd)
 		dvb->diseqc_send_master_cmd(fe, cmd);
