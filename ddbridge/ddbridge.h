@@ -203,7 +203,6 @@ struct ddb_dma {
 	u32                    bufval;
 
 	struct work_struct     work;
-	struct tasklet_struct  tasklet;
 	spinlock_t             lock; /* DMA lock */
 	wait_queue_head_t      wq;
 	int                    running;

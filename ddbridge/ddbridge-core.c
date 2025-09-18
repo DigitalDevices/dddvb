@@ -65,10 +65,6 @@ static int alt_dma = 1;
 module_param(alt_dma, int, 0444);
 MODULE_PARM_DESC(alt_dma, "use alternative DMA buffer handling");
 
-static int use_workqueue = 1;
-module_param(use_workqueue, int, 0444);
-MODULE_PARM_DESC(use_workqueue, "use workqueue instead of tasklet");
-
 static int no_init;
 module_param(no_init, int, 0444);
 MODULE_PARM_DESC(no_init, "do not initialize most devices");
@@ -2472,33 +2468,23 @@ static void input_work(struct work_struct *work)
 	spin_unlock_irq(&dma->lock);
 }
 
-static void input_tasklet(unsigned long data)
-{
-	struct ddb_dma *dma = (struct ddb_dma *)data;
-	unsigned long flags;
-
-	spin_lock_irqsave(&dma->lock, flags);
-	input_proc(dma);
-	spin_unlock_irqrestore(&dma->lock, flags);
-}
-
 static void input_handler(void *data)
 {
 	struct ddb_input *input = (struct ddb_input *) data;
 	struct ddb_dma *dma = input->dma;
 
-	/* If there is no input connected, input_tasklet() will
+	/* If there is no input connected, input_proc() will
 	 * just copy pointers and ACK. So, there is no need to go
-	 * through the tasklet scheduler.
+	 * through the workqueue scheduler.
 	 */
 	if (!input->redi) {
-		input_tasklet((unsigned long) dma);
-	} else {
-		if (use_workqueue)
-			queue_work(ddb_wq, &dma->work);
-		else
-			tasklet_schedule(&dma->tasklet);
-	}
+		unsigned long flags;
+
+		spin_lock_irqsave(&dma->lock, flags);
+		input_proc(dma);
+		spin_unlock_irqrestore(&dma->lock, flags);
+	} else
+		queue_work(ddb_wq, &dma->work);
 }
 
 static void output_handler(void *data)
@@ -2559,10 +2545,7 @@ static void ddb_dma_init(struct ddb_io *io, int nr, int out, int irq_nr)
 			dma->div = 1;
 		}
 	} else {
-		if (use_workqueue)
-			INIT_WORK(&dma->work, input_work);
-		else
-			tasklet_init(&dma->tasklet, input_tasklet, (unsigned long)dma);
+		INIT_WORK(&dma->work, input_work);
 		dma->regs = rm->idma->base + rm->idma->size * nr;
 		dma->bufregs = rm->idma_buf->base + rm->idma_buf->size * nr;
 		dma->num = dma_buf_num;
@@ -2760,21 +2743,12 @@ void ddb_ports_release(struct ddb *dev)
 
 	for (i = 0; i < dev->port_num; i++) {
 		port = &dev->port[i];
-		if (use_workqueue) {
-			if (port->input[0] && port->input[0]->dma)
-				cancel_work_sync(&port->input[0]->dma->work);
-			if (port->input[1] && port->input[1]->dma)
-				cancel_work_sync(&port->input[1]->dma->work);
-			//if (port->output && port->output->dma)
-			//	cancel_work_sync(&port->output->dma->work);
-		} else {
-			if (port->input[0] && port->input[0]->dma)
-				tasklet_kill(&port->input[0]->dma->tasklet);
-			if (port->input[1] && port->input[1]->dma)
-				tasklet_kill(&port->input[1]->dma->tasklet);
-			//if (port->output && port->output->dma)
-			//	tasklet_kill(&port->output->dma->tasklet);
-		}
+		if (port->input[0] && port->input[0]->dma)
+			cancel_work_sync(&port->input[0]->dma->work);
+		if (port->input[1] && port->input[1]->dma)
+			cancel_work_sync(&port->input[1]->dma->work);
+		//if (port->output && port->output->dma)
+		//	cancel_work_sync(&port->output->dma->work);
 	}
 }
 
