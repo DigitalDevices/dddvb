@@ -923,6 +923,7 @@ static const struct devids ids[] = {
 	DEV(0x0007, "Octopus 4/8", "DVBBridgeV2A_DD01_0007_MXL.fpga"),
 	DEV(0x0008, "Octopus 4/8", "DVBBridgeV2A_DD01_0008_CXD.fpga"),
 	DEV(0x0009, "Octopus MAXSX8", "DVBBridgeV2A_DD01_0009_SX8.fpga"),
+	DEV(0x0023, "Octopus MAXSX8 V2", "DVBBridgeV3A_DD01_0023_SX8.fpga"),
 	DEV(0x000b, "Octopus MAXSX8 Basic", "DVBBridgeV2A_DD01_000B_SX8.fpga"),
 	DEV(0x000a, "Octopus MAXM4", "DVBBridgeV2A_DD01_000A_M4.fpga"),
 	DEV(0x0011, "Octopus CI", "DVBBridgeV2B_DD01_0011.fpga"),

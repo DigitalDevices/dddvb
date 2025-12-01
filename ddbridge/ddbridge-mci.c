@@ -197,9 +197,6 @@ int mci_init(struct ddb_link *link)
 	result = mci_reset(link);
 	if (result < 0)
 		return result;
-	if (link->ids.device == 0x0009  || link->ids.device == 0x000b)
-		ddblwritel(link, SX8_TSCONFIG_MODE_NORMAL, SX8_TSCONFIG);
-	
 	ddb_irq_set(link->dev, link->nr,
 		    link->info->regmap->irq_base_mci,
 		    mci_handler, link);

@@ -126,8 +126,6 @@ static int ddb_mci_tsconfig(struct mci *state, u32 config)
 {
 	struct ddb_link *link = state->base->link;
 
-	if (link->ids.device != 0x0009  && link->ids.device != 0x000b)
-		return -EINVAL;
 	ddblwritel(link, config, SX8_TSCONFIG);
 	return 0;
 }
@@ -374,8 +372,8 @@ unlock:
 		cmd.demod = state->mci.demod;
 		cmd.output = p->stream_id & 0x0f;
 		ddb_mci_cmd(&state->mci, &cmd, NULL);
-		ddb_mci_tsconfig(&state->mci, ts_config);
 	}
+	ddb_mci_tsconfig(&state->mci, ts_config);
 	if (p->stream_id != NO_STREAM_ID_FILTER && !(p->stream_id & 0xf0000000))
 		flags |= 0x80;
 	//printk("bw %u\n", p->bandwidth_hz);
