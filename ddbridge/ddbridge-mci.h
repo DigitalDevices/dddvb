@@ -465,6 +465,24 @@ struct j83b_search {
 	u32  frequency;
 };
 
+struct atsc_search {
+	u8   flags;
+	u8   rsvd0;
+	u8   rsvd1;
+	u8   retry;
+	u32  frequency;
+};
+
+struct atsc3_search {
+	u8   flags;
+	u8   bandwidth;
+	u8   rsvd1;
+	u8   retry;
+	u32  frequency;
+	u32  reserved;
+	u8   plp[4];
+};
+
 struct get_signalinfo {
 	u8   flags; /*  Bit 0 : 1 = short info (1st 4 Bytes) */
 };
@@ -473,6 +491,21 @@ struct get_iq_symbol {
 	u8   tap;
 	u8   rsvd;
 	u16  point;
+};
+
+struct get_ids {
+	u8   offset;        /* Offset into list, must be multiple of 64 */
+	u8   select;        /* 0 = Slices, 1 = PLPs  (C2 Only) */
+	u8   data_slice;    /* DataSlice to get PLPList (C2 Only) */
+};
+
+struct get_l1_info {
+	u8   select;        /* 0 = Base, 1 = DataSilce, 2 = PLP,  Bit 7:  Set new ID */
+	u8   id;            /* DataSliceID, PLPId */
+};
+
+struct get_bb_header {
+	u8   select;        /* 0 = Data PLP, 1 = Common PLP, only DVB-T2 and DVB-C2 */
 };
 
 struct sx8_start_iq {
@@ -497,21 +530,6 @@ struct sx8_input_enable {
 	     Bit 5: Freeze RF Gain (Turn AGC off at current gain, only when already enabled)
 	     Bit 7: Optimize RF Gain and freeze for FFT */
 	u8   rf_gain;       /*   0 .. 50 dB */
-};
-
-struct get_ids {
-	u8   offset;        /* Offset into list, must be multiple of 64 */
-	u8   select;        /* 0 = Slices, 1 = PLPs  (C2 Only) */
-	u8   data_slice;    /* DataSlice to get PLPList (C2 Only) */
-};
-
-struct get_l1_info {
-	u8   select;        /* 0 = Base, 1 = DataSilce, 2 = PLP,  Bit 7:  Set new ID */
-	u8   id;            /* DataSliceID, PLPId */
-};
-
-struct get_bb_header {
-	u8   select;        /* 0 = Data PLP, 1 = Common PLP, only DVB-T2 and DVB-C2 */
 };
 
 struct sx8_packet_filter {
@@ -552,16 +570,22 @@ struct common_signal_info {
 	u8  Flags;
 	
 	u32 frequency;          /* actual frequency in Hz */
-	u32 rsvd1;
+	u32 symbol_rate;        /* actual symbolrate in Hz */
 	s16 channel_power;      /* channel power in dBm x 100 */
 	s16 rsvd2;
 	s16 signal_to_noise;    /* SNR in dB x 100, Note: negativ values are valid in DVB-S2 */
 	u16 signal_loss_counter;/* Counts signal losses and automatic retunes */
-	u32 rsvd4;
+	u32 packet_errors;      /* Counter for packet errors. (set to 0 on Start command) */
 	u32 ber_numerator;      /* Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X */
 	u32 ber_denominator;
-	u32 ber_rsvd1;          /* Place holder for modulation bit error rate */
+	u32 ber_rsvd1;
 	u32 ber_rsvd2;
+	u32 ber_rsvd3;
+	u32 ber_rsvd4;
+	u32 packet_counter;
+	u32 ber_rsvd5;          /* reserved to extend PacketCounter to 64 bit */
+	u32 packet_loss_counter;
+	u32 packet_error_counter;
 };
 
 struct dvbs2_signal_info {
@@ -674,6 +698,23 @@ struct isdbt_signal_info {
 	u32 ber_numeratorC;     // Bit error rate: PreRS Segment C
 };
 
+struct j83b_signal_info {
+	u8  constellation;
+	u8  interleaving;
+	u8  rsvd0;
+	u8  flags;
+	
+	u32 frequency;         // actual frequency in Hz
+	u32 symbol_rate;        // actual symbolrate in Hz
+	s16 channel_power;      // channel power in dBm x 100
+	s16 band_power;         // band power in dBm x 100
+	s16 signal_to_noise;   // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+	s16 rsvd2;
+	u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
+	u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+	u32 ber_denominator;
+};
+
 struct isdbc_signal_info {
 	u8  constellation;
 	u8  rsvd0[2];
@@ -690,20 +731,33 @@ struct isdbc_signal_info {
 	u32 ber_denominator;
 };
 
-struct j83b_signal_info {
-	u8  constellation;
-	u8  interleaving;
-	u8  rsvd0;
+struct atsc_signal_info {
+	u8  rsvd0[3];
 	u8  flags;
 	
 	u32 frequency;         // actual frequency in Hz
-	u32 symbol_rate;        // actual symbolrate in Hz
+	u32 rsvd1;             //
 	s16 channel_power;      // channel power in dBm x 100
 	s16 band_power;         // band power in dBm x 100
-	s16 signal_to_noise;   // SNR in dB x 100, Note: negativ values are valid in DVB-S2
-	s16 rsvd2;
-	u32 packet_errors;      // Counter for packet errors. (set to 0 on Start command)
-	u32 ber_numerator;      // Bit error rate: PreRS in DVB-S, PreBCH in DVB-S2X
+	s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+	u16 signal_loss_counter; // Counts signal losses and automatic retunes
+	u32 packet_errors;     // Counter for packet errors. (set to 0 on Start command)
+	u32 ber_numerator;     // Bit error rate: PreRS
+	u32 ber_denominator;
+};
+
+struct atsc3_signal_info {
+	u8  rsvd0[3];
+	u8  flags;
+	
+	u32 frequency;         // actual frequency in Hz
+	u32 rsvd1;             //
+	s16 channel_power;      // channel power in dBm x 100
+	s16 band_power;         // band power in dBm x 100
+	s16 signal_to_noise;     // SNR in dB x 100, Note: negativ values are valid in DVB-S2
+	u16 signal_loss_counter; // Counts signal losses and automatic retunes
+	u32 packet_errors;     // Counter for packet errors. (set to 0 on Start command)
+	u32 ber_numerator;     // Bit error rate: PreRS
 	u32 ber_denominator;
 };
 
@@ -1064,6 +1118,8 @@ struct mci_command {
 		struct isdbt_search       isdbt_search;
 		struct isdbc_search       isdbc_search;
 		struct j83b_search        j83b_search;
+		struct atsc_search        atsc_search;
+		struct atsc3_search       atsc3_search;
 		
 		struct get_signalinfo     get_signalinfo;
 		struct get_iq_symbol      get_iq_symbol;
@@ -1102,15 +1158,16 @@ struct mci_result {
 		struct dvbt2_signal_info        dvbt2_signal_info;
 		struct dvbc2_signal_info        dvbc2_signal_info;
 		struct isdbt_signal_info        isdbt_signal_info;
-		struct isdbc_signal_info        isdbc_signal_info;
 		struct j83b_signal_info         j83b_signal_info;
+		struct isdbc_signal_info        isdbc_signal_info;
+		struct atsc_signal_info         atsc_signal_info;
+		struct atsc3_signal_info        atsc3_signal_info;
 		struct iq_symbol                iq_symbol;
 		struct dvbt_tps_info            dvbt_tps_info;
 		struct dvbt2_l1_info            dvbt2_l1_info;
 		struct dvbt2_plp_info           dvbt2_plp_info;
 		struct dvbt2_l1_info_old        dvbt2_l1_info_old;
 		struct dvbt2_plp_info_old       dvbt2_plp_info_old;
-		
 		struct dvbc2_l1_part2           dvbc2_l1_part2;
 		struct dvbc2_id_list            dvbc2_id_list;
 		struct dvbc2_slice_info         dvbc2_slice_info;

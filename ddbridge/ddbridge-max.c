@@ -541,10 +541,10 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	int demod, tuner;
 	int fm = fmode;
 
-	demod = input->nr;
-	tuner = demod & 3;
+	tuner = demod = input->nr;
 	switch (type) {
 	case DDB_TUNER_MCI_SX8:
+		tuner = demod & 3;
 		if (fm >= 3)
 			tuner = 0;
 		dvb->fe = ddb_sx8_attach(input, demod, tuner, &dvb->set_input);
@@ -566,7 +566,7 @@ int ddb_fe_attach_mci(struct ddb_input *input, u32 type)
 	case DDB_TUNER_MCI_M8A:
 	case DDB_TUNER_MCI_M8E:
 		fm = 3;
-		dvb->fe = ddb_mx_attach(input, demod, tuner, 3);
+		dvb->fe = ddb_mx_attach(input, demod, tuner, 7);
 		dvb->input = 0;
 		break;
 	case DDB_TUNER_MCI_M2:

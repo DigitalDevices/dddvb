@@ -224,6 +224,7 @@ static enum dvbv3_emulation_type dvbv3_type(u32 delivery_system)
 	case SYS_ATSC:
 	case SYS_ATSCMH:
 	case SYS_DVBC_ANNEX_B:
+	case SYS_ATSC3:
 		return DVBV3_ATSC;
 	case SYS_UNDEFINED:
 	case SYS_ISDBC:

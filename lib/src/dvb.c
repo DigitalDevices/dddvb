@@ -18,6 +18,8 @@
 #define DTV_SCRAMBLING_SEQUENCE_INDEX 70
 #define DTV_INPUT                     71
 #define SYS_DVBC2                    19
+#define SYS_ATSC3                    20
+#define SYS_ISDBS3                   21
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -391,9 +393,33 @@ static int tune_c(struct dddvb_fe *fe)
 	c.props = p;
 	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
 	if (ret < 0) {
-		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		dbgprintf(DEBUG_DVB, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
+	return 0;
+}
+
+static int tune_isdbc(struct dddvb_fe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ISDBC);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		dbgprintf(DEBUG_DVB, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	if (fe->set & (1UL << PARAM_ISI))
+		set_property(fe->fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
+	set_property(fe->fd, DTV_TUNE, 0);
 	return 0;
 }
 
@@ -547,6 +573,49 @@ static int tune_isdbt(struct dddvb_fe *fe)
 	return 0;
 }
 
+static int tune_atsc(struct dddvb_fe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ATSC);
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
+static int tune_atsc3(struct dddvb_fe *fe)
+{
+	struct dtv_property p[] = {
+		{ .cmd = DTV_CLEAR },
+		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
+		{ .cmd = DTV_TUNE },
+	};		
+	struct dtv_properties c;
+	int ret;
+
+	set_property(fe->fd, DTV_DELIVERY_SYSTEM, SYS_ATSC3);
+
+	c.num = ARRAY_SIZE(p);
+	c.props = p;
+	ret = ioctl(fe->fd, FE_SET_PROPERTY, &c);
+	if (ret < 0) {
+		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
+		return -1;
+	}
+	return 0;
+}
+
 static int tune_isdbs(struct dddvb_fe *fe)
 {
 	struct dtv_property p[] = {
@@ -589,6 +658,10 @@ static int tune(struct dddvb_fe *fe)
 	case SYS_DVBC_ANNEX_B:
 		ret = tune_j83b(fe);
 		break;
+	case SYS_DVBC_ANNEX_C:
+	case SYS_ISDBC:
+		ret = tune_isdbc(fe);
+		break;
 	case SYS_DVBT:
 		ret = tune_terr(fe);
 		break;
@@ -603,6 +676,12 @@ static int tune(struct dddvb_fe *fe)
 		break;
 	case SYS_ISDBS:
 		ret = tune_isdbs(fe);
+		break;
+	case SYS_ATSC:
+		ret = tune_atsc(fe);
+		break;
+	case SYS_ATSC3:
+		ret = tune_atsc3(fe);
 		break;
 	default:
 		break;

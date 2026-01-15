@@ -550,6 +550,10 @@ int main(int argc, char **argv)
 				delsys = SYS_ISDBT;
 			if (!strcmp(optarg, "ISDBS"))
 				delsys = SYS_ISDBS;
+			if (!strcmp(optarg, "ATSC3"))
+				delsys = SYS_ATSC3;
+			if (!strcmp(optarg, "ATSC"))
+				delsys = SYS_ATSC;
 			if (!strcmp(optarg, "FILE"))
 				delsys = SYS_FILE;
 			break;

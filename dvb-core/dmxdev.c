@@ -8,7 +8,6 @@
 
 #define pr_fmt(fmt) "dmxdev: " fmt
 
-#include <linux/version.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
 #include <linux/slab.h>
@@ -22,6 +21,7 @@
 #ifdef CONFIG_DVB_MMAP
 #include <media/dvb_vb2.h>
 #endif
+#include <linux/version.h>
 
 static int debug;
 

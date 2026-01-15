@@ -50,12 +50,50 @@ static int stop(struct dvb_frontend *fe)
 	if (!state->started)
 		return -1;
 	state->started = 0;
-	state->t2_signalling_valid = 0;
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_STOP;
 	cmd.demod = state->mci.demod;
 	ddb_mci_cmd(&state->mci, &cmd, NULL);
+	state->t2_signalling_valid = 0;
+	state->iq_constellation_point = 0;
+	state->iq_constellation_point_max = 0;
+	state->iq_constellation_tap = 0;
 	return 0;
+}
+
+static int search_atsc(struct dvb_frontend *fe)
+{
+	struct m4 *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	struct mci_command cmd = {
+		.command = MCI_CMD_SEARCH_ATSC,
+		.tuner = state->mci.tuner,
+		.demod = state->mci.demod,
+		.output = state->mci.nr,
+		.atsc_search.flags = 0,
+		.atsc_search.frequency = p->frequency,
+	};
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
+}
+
+static int search_atsc3(struct dvb_frontend *fe)
+{
+	struct m4 *state = fe->demodulator_priv;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	struct mci_command cmd = {
+		.command = MCI_CMD_SEARCH_ATSC3,
+		.tuner = state->mci.tuner,
+		.demod = state->mci.demod,
+		.output = state->mci.nr,
+	};
+	cmd.atsc3_search.frequency = p->frequency;
+	if (p->bandwidth_hz <= 6000000)
+		cmd.atsc3_search.bandwidth = MCI_BANDWIDTH_6MHZ;
+	else if (p->bandwidth_hz <= 7000000)
+		cmd.atsc3_search.bandwidth = MCI_BANDWIDTH_7MHZ;
+	else
+		cmd.atsc3_search.bandwidth = MCI_BANDWIDTH_8MHZ;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_s2(struct dvb_frontend *fe)
@@ -63,7 +101,6 @@ static int search_s2(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBS;
@@ -80,10 +117,7 @@ static int search_s2(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_c(struct dvb_frontend *fe)
@@ -91,7 +125,6 @@ static int search_c(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBC;
@@ -107,10 +140,7 @@ static int search_c(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_t(struct dvb_frontend *fe)
@@ -118,7 +148,6 @@ static int search_t(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBT;
@@ -142,10 +171,7 @@ static int search_t(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_isdbs(struct dvb_frontend *fe)
@@ -153,7 +179,6 @@ static int search_isdbs(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_ISDBS;
@@ -163,14 +188,11 @@ static int search_isdbs(struct dvb_frontend *fe)
 		cmd.isdbs_search.tsid = p->stream_id;
 	}
 	cmd.isdbs_search.frequency = p->frequency * 1000;
-	cmd.tuner = state->mci.nr;
-	cmd.demod = state->mci.tuner;
+	cmd.tuner = state->mci.tuner;
+	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_isdbc(struct dvb_frontend *fe)
@@ -178,7 +200,6 @@ static int search_isdbc(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_ISDBC;
@@ -190,13 +211,11 @@ static int search_isdbc(struct dvb_frontend *fe)
 	}
 	cmd.isdbc_search.bandwidth = MCI_BANDWIDTH_6MHZ;
 	cmd.isdbc_search.frequency = p->frequency;
-	cmd.demod = state->mci.tuner;
+	cmd.tuner = state->mci.tuner;
+	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_j83b(struct dvb_frontend *fe)
@@ -204,7 +223,6 @@ static int search_j83b(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_J83B;
@@ -214,13 +232,11 @@ static int search_j83b(struct dvb_frontend *fe)
 	if (p->symbol_rate > 5500000)
 		cmd.j83b_search.bandwidth |= MCI_BANDWIDTH_EXTENSION;
 	cmd.j83b_search.frequency = p->frequency;
-	cmd.demod = state->mci.tuner;
+	cmd.tuner = state->mci.tuner;
+	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_t2(struct dvb_frontend *fe)
@@ -228,7 +244,6 @@ static int search_t2(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBT2;
@@ -260,10 +275,7 @@ static int search_t2(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_c2(struct dvb_frontend *fe)
@@ -271,7 +283,6 @@ static int search_c2(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_DVBC2;
@@ -293,10 +304,7 @@ static int search_c2(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 static int search_isdbt(struct dvb_frontend *fe)
@@ -304,7 +312,6 @@ static int search_isdbt(struct dvb_frontend *fe)
 	struct m4 *state = fe->demodulator_priv;
 	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
 	struct mci_command cmd;
-	int stat;
 
 	memset(&cmd, 0, sizeof(cmd));
 	cmd.command = MCI_CMD_SEARCH_ISDBT;
@@ -325,10 +332,7 @@ static int search_isdbt(struct dvb_frontend *fe)
 	cmd.demod = state->mci.demod;
 	cmd.output = state->mci.nr;
 
-	stat = ddb_mci_cmd(&state->mci, &cmd, NULL);
-	if (stat)
-		stop(fe);
-	return stat;
+	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
 #ifdef AUTOMODE
@@ -337,29 +341,6 @@ static u8 del2modetab[22] = {
 	1, 2, 1, 1, 1, 1, 1, 1,
 	1, 2, 1, 1, 1, 2,
 };
-
-static u8 del2mode(enum fe_delivery_system delivery_system)
-{
-	switch (delivery_system) {
-	case SYS_UNDEFINED:
-	default:
-		return 0;
-	case SYS_DVBS:
-	case SYS_DVBS2:
-	case SYS_ISDBS:
-		return 2;
-	case SYS_DVBC_ANNEX_A:
-	case SYS_DVBC_ANNEX_B:
-	case SYS_DVBT:
-	case SYS_DVBT2:
-	case SYS_DVBC2:
-	case SYS_ISDBT:
-	case SYS_DVBC_ANNEX_C:
-	case SYS_ISDBC:
-	case SYS_ATSC:
-		return 1;
-	}
-}
 #endif
 
 static int set_parameters(struct dvb_frontend *fe)
@@ -369,15 +350,10 @@ static int set_parameters(struct dvb_frontend *fe)
 	struct ddb_link *link = state->mci.base->link;
 #endif
 	int res;
-	enum fe_delivery_system ds =
-		fe->dtv_property_cache.delivery_system;
+	struct dtv_frontend_properties *p = &fe->dtv_property_cache;
+	enum fe_delivery_system ds = p->delivery_system;
 
 	stop(fe);
-	state->t2_signalling_valid = 0;
-	state->iq_constellation_point = 0;
-	state->iq_constellation_point_max = 0;
-	state->iq_constellation_tap = 0;
-
 #ifdef AUTOMODE
 	if ((link->ids.device == 0x0014 ||
 	     link->ids.device == 0x0025) &&
@@ -417,22 +393,29 @@ static int set_parameters(struct dvb_frontend *fe)
 	case SYS_ISDBC:
 		res = search_isdbc(fe);
 		break;
+	case SYS_ATSC:
+		res = search_atsc(fe);
+		break;
+	case SYS_ATSC3:
+		res = search_atsc3(fe);
+		break;
 	default:
 		return -EINVAL;
 	}
 	if (!res) {
 		state->started = 1;
 		state->first_time_lock = 1;
-	}
+	} else
+		stop(fe);
 	return res;
 }
 
 static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 {
-	int stat;
 	struct m4 *state = fe->demodulator_priv;
 	struct mci_result res;
-
+	int stat;
+	
 	*status = 0x00;
 	if (!state->started)
 		return 0;
