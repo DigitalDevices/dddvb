@@ -6,6 +6,8 @@ octonet-objs = octonet-main.o ddbridge-hw.o ddbridge-i2c.o ddbridge-ns.o ddbridg
 
 obj-$(CONFIG_DVB_DDBRIDGE) += ddbridge.o
 
+ccflags-y += $(EXTRA_CFLAGS)
+
 ifneq ($(KERNEL_DVB_CORE),y)
 obj-$(CONFIG_DVB_OCTONET) += octonet.o
 endif
