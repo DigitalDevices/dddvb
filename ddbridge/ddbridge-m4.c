@@ -95,13 +95,13 @@ static int search_atsc3(struct dvb_frontend *fe)
 		cmd.atsc3_search.bandwidth = MCI_BANDWIDTH_7MHZ;
 	else
 		cmd.atsc3_search.bandwidth = MCI_BANDWIDTH_8MHZ;
-	if (id != NO_STREAM_ID_FILTER) {
-		cmd.atsc3_search.plp[0] = id & 0x3f;
-		cmd.atsc3_search.plp[1] = (id >> 6) & 0x3f;
-		cmd.atsc3_search.plp[2] = (id >> 12) & 0x3f;
-		cmd.atsc3_search.plp[3] = (id >> 18) & 0x3f;
-		ts_mode = id >> 24;
-	}
+	if (id == NO_STREAM_ID_FILTER)
+		id = 0;
+	cmd.atsc3_search.plp[0] = id & 0x3f;
+	cmd.atsc3_search.plp[1] = (id >> 6) & 0x3f;
+	cmd.atsc3_search.plp[2] = (id >> 12) & 0x3f;
+	cmd.atsc3_search.plp[3] = (id >> 18) & 0x3f;
+	ts_mode = id >> 24;
 	state->mci.input->con = ts_mode << 8;
 	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
