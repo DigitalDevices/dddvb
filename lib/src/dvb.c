@@ -417,7 +417,7 @@ static int tune_isdbc(struct dddvb_fe *fe)
 		dbgprintf(DEBUG_DVB, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
-	if (fe->set & (1UL << PARAM_ISI))
+	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
 		set_property(fe->fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
 	set_property(fe->fd, DTV_TUNE, 0);
 	return 0;
@@ -599,7 +599,6 @@ static int tune_atsc3(struct dddvb_fe *fe)
 	struct dtv_property p[] = {
 		{ .cmd = DTV_CLEAR },
 		{ .cmd = DTV_FREQUENCY, .u.data = fe->param.param[PARAM_FREQ] * 1000 },
-		{ .cmd = DTV_TUNE },
 	};		
 	struct dtv_properties c;
 	int ret;
@@ -613,6 +612,9 @@ static int tune_atsc3(struct dddvb_fe *fe)
 		fprintf(stderr, "FE_SET_PROPERTY returned %d\n", ret);
 		return -1;
 	}
+	if (fe->param.param[PARAM_ISI] != DDDVB_UNDEF)
+		set_property(fe->fd, DTV_STREAM_ID, fe->param.param[PARAM_ISI]);
+	set_property(fe->fd, DTV_TUNE, 0);
 	return 0;
 }
 
