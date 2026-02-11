@@ -102,7 +102,8 @@ static int search_atsc3(struct dvb_frontend *fe)
 	cmd.atsc3_search.plp[2] = (id >> 12) & 0x3f;
 	cmd.atsc3_search.plp[3] = (id >> 18) & 0x3f;
 	ts_mode = id >> 24;
-	state->mci.input->con = ts_mode << 8;
+	cmd.output |= ts_mode << 5;
+	state->mci.input->con = (ts_mode ? 1 : 0);
 	return ddb_mci_cmd(&state->mci, &cmd, NULL);
 }
 
