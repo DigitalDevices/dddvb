@@ -3951,6 +3951,18 @@ static ssize_t devid_show(struct device *device,
 	return sprintf(buf, "%08x\n", dev->link[num].ids.devid);
 }
 
+static ssize_t name_show(struct device *device,
+			 struct device_attribute *attr, char *buf)
+{
+	int num = attr->attr.name[4] - 0x30;
+	struct ddb *dev = dev_get_drvdata(device);
+
+	if (dev->link[num].info)
+		return sprintf(buf, "%s\n", dev->link[num].info->name);
+	else
+		return sprintf(buf, "NONE\n");
+}
+
 static ssize_t fmode_store(struct device *device, struct device_attribute *attr,
 			   const char *buf, size_t count)
 {
@@ -3988,6 +4000,10 @@ static struct device_attribute ddb_attrs[] = {
 	__ATTR_MRO(devid1, devid_show),
 	__ATTR_MRO(devid2, devid_show),
 	__ATTR_MRO(devid3, devid_show),
+	__ATTR_MRO(name0, name_show),
+	__ATTR_MRO(name1, name_show),
+	__ATTR_MRO(name2, name_show),
+	__ATTR_MRO(name3, name_show),
 	__ATTR_RO(hwid),
 	__ATTR_RO(regmap),
 	__ATTR(redirect, 0664, redirect_show, redirect_store),
