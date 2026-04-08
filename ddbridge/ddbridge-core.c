@@ -3744,14 +3744,35 @@ static ssize_t snr_store(struct device *device, struct device_attribute *attr,
 	return count;
 }
 
+static int ddb_mci_get_serial(struct ddb_link *link, char *serial)
+{
+	struct ddb_mci_msg msg = { .cmd = { .command = MCI_CMD_GET_SERIALNUMBER }};
+
+	if (!link || !link->mci_ok)
+		return -1;
+	if (ddb_mci_cmd_link(link, &msg.cmd, &msg.res) < 0)
+		return -1;
+	memcpy(serial, msg.res.get_license.serial_number, 16);
+	return 0;
+}
+
 static ssize_t bsnr_show(struct device *device,
 			 struct device_attribute *attr, char *buf)
 {
 	struct ddb *dev = dev_get_drvdata(device);
+	struct ddb_port *port = &dev->port[0];
 	char snr[16];
 
-	ddbridge_flashread(dev, 0, snr, 0x10, 15);
-	snr[15] = 0; /* in case it is not terminated on EEPROM */
+	switch (port->type) {
+	case DDB_TUNER_MCI ... DDB_TUNER_MCI_M8E:
+		if (!ddb_mci_get_serial(&dev->link[0], snr))
+			break;
+		fallthrough;
+	default:
+		ddbridge_flashread(dev, 0, snr, 0x10, 15);
+		snr[15] = 0; /* in case it is not terminated on EEPROM */
+		break;
+	}
 	return sprintf(buf, "%s\n", snr);
 }
 
