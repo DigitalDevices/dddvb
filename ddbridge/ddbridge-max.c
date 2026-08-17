@@ -435,32 +435,54 @@ static int mxl_fw_read(void *priv, u8 *buf, u32 len)
 int ddb_lnb_init_fmode(struct ddb *dev, struct ddb_link *link, u32 fm)
 {
 	u32 l = link->nr;
+	int i, j;
 
-	if (link->lnb.fmode == fm)
-		return 0;
-	dev_info(dev->dev, "Set fmode link %u = %u\n", l, fm);
 	mutex_lock(&link->lnb.lock);
-	if (fm == 2 || fm == 1) {
-		if (fmode_sat >= 0) {
-			lnb_set_sat(dev, l, 0, fmode_sat, 0, 0);
-			if (old_quattro) {
-				lnb_set_sat(dev, l, 1, fmode_sat, 0, 1);
-				lnb_set_sat(dev, l, 2, fmode_sat, 1, 0);
-			} else {
-				lnb_set_sat(dev, l, 1, fmode_sat, 1, 0);
-				lnb_set_sat(dev, l, 2, fmode_sat, 0, 1);
+	if (link->lnb.fmode != fm) {
+		dev_info(dev->dev, "Set fmode link %u = %u\n", l, fm);
+		if (fm == 2 || fm == 1) {
+			if (fmode_sat >= 0) {
+				lnb_set_sat(dev, l, 0, fmode_sat, 0, 0);
+				if (old_quattro) {
+					lnb_set_sat(dev, l, 1, fmode_sat, 0, 1);
+					lnb_set_sat(dev, l, 2, fmode_sat, 1, 0);
+				} else {
+					lnb_set_sat(dev, l, 1, fmode_sat, 1, 0);
+					lnb_set_sat(dev, l, 2, fmode_sat, 0, 1);
+				}
+				lnb_set_sat(dev, l, 3, fmode_sat, 1, 1);
 			}
-			lnb_set_sat(dev, l, 3, fmode_sat, 1, 1);
+			lnb_set_tone(dev, l, 0, SEC_TONE_OFF);
+			if (old_quattro) {
+				lnb_set_tone(dev, l, 1, SEC_TONE_OFF);
+				lnb_set_tone(dev, l, 2, SEC_TONE_ON);
+			} else {
+				lnb_set_tone(dev, l, 1, SEC_TONE_ON);
+				lnb_set_tone(dev, l, 2, SEC_TONE_OFF);
+			}
+			lnb_set_tone(dev, l, 3, SEC_TONE_ON);
 		}
-		lnb_set_tone(dev, l, 0, SEC_TONE_OFF);
-		if (old_quattro) {
-			lnb_set_tone(dev, l, 1, SEC_TONE_OFF);
-			lnb_set_tone(dev, l, 2, SEC_TONE_ON);
-		} else {
-			lnb_set_tone(dev, l, 1, SEC_TONE_ON);
-			lnb_set_tone(dev, l, 2, SEC_TONE_OFF);
+	}
+	/* Re-pin every attached demod of this link to the mode's canonical 
+	 * map on every write.
+	 * 
+	 * Re-writing the current fmode normalizes a drifted card. 
+	 * Skip frontends whose sec_priv is not wired yet
+	 */
+	for (i = 0; i < dev->port_num; i++) {
+		struct ddb_port *port = &dev->port[i];
+
+		if (port->lnr != l || port->class != DDB_PORT_TUNER)
+			continue;
+		for (j = 0; j < 2; j++) {
+			struct ddb_input *in = port->input[j];
+			struct ddb_dvb *dvb = &port->dvb[j];
+
+			if (!in || !dvb->fe || !dvb->fe->sec_priv)
+				continue;
+			max_set_input_unlocked(dvb->fe,
+					       fm >= 3 ? 0 : (int)(in->nr & 3));
 		}
-		lnb_set_tone(dev, l, 3, SEC_TONE_ON);
 	}
 	link->lnb.fmode = fm;
 	mutex_unlock(&link->lnb.lock);
