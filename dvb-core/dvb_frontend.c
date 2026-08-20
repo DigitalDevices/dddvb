@@ -1555,13 +1555,22 @@ static int dtv_property_process_get(struct dvb_frontend *fe,
 		tvp->u.data = c->lna;
 		break;
 
-	case DTV_INPUT:
+	case DTV_INPUT: {
+		/* The cache is wiped to NO_INPUT by DTV_CLEAR while the
+		 * demod stays routed. 
+		 * Better use the live driver state. 
+		 */
+		unsigned int live;
+
 		tvp->u.buffer.data[0] = c->input;
+		if (fe->ops.get_input && !fe->ops.get_input(fe, &live))
+			tvp->u.buffer.data[0] = live;
 		tvp->u.buffer.data[1] = fe->ops.xbar[0];
 		tvp->u.buffer.data[2] = fe->ops.xbar[1];
 		tvp->u.buffer.data[3] = fe->ops.xbar[2];
 		tvp->u.buffer.len = 4;
 		break;
+	}
 
 	/* Fill quality measures */
 	case DTV_STAT_SIGNAL_STRENGTH:

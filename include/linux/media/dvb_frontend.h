@@ -494,6 +494,7 @@ struct dvb_frontend_ops {
 	int (*ts_bus_ctrl)(struct dvb_frontend* fe, int acquire);
 	int (*set_lna)(struct dvb_frontend *);
 	int (*set_input)(struct dvb_frontend *, int);
+	int (*get_input)(struct dvb_frontend *, unsigned int *input);
 
 	/*
 	 * These callbacks are for devices that implement their own

@@ -573,6 +573,16 @@ static int set_input(struct dvb_frontend *fe, int input)
 	return 0;
 }
 
+#ifndef KERNEL_DVB_CORE
+static int get_input(struct dvb_frontend *fe, unsigned int *input)
+{
+	struct sx8 *state = fe->demodulator_priv;
+
+	*input = state->mci.tuner;
+	return 0;
+}
+#endif
+
 static int sleep(struct dvb_frontend *fe)
 {
 	struct sx8 *state = fe->demodulator_priv;
@@ -616,6 +626,7 @@ static struct dvb_frontend_ops sx8_ops = {
 #ifndef KERNEL_DVB_CORE
 	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 	.set_input                      = set_input,
+	.get_input                      = get_input,
 #endif
 	.set_lna                        = set_lna,
 	.sleep                          = sleep,

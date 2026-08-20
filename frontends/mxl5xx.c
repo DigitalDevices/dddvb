@@ -836,6 +836,16 @@ static int set_input(struct dvb_frontend *fe, int input)
 	return 0;
 }
 
+#ifndef KERNEL_DVB_CORE
+static int get_input(struct dvb_frontend *fe, unsigned int *input)
+{
+	struct mxl *state = fe->demodulator_priv;
+
+	*input = state->tuner;
+	return 0;
+}
+#endif
+
 static struct dvb_frontend_ops mxl_ops = {
 	.delsys = { SYS_DVBS, SYS_DVBS2, SYS_DSS },
 	.info = {
@@ -864,6 +874,7 @@ static struct dvb_frontend_ops mxl_ops = {
 	.get_frontend                   = get_frontend,
 #ifndef KERNEL_DVB_CORE
 	.set_input                      = set_input,
+	.get_input                      = get_input,
 	.xbar   = { 4, 0, 8 }, /* tuner_max, demod id, demod_max */
 #endif
 	.diseqc_send_master_cmd		= send_master_cmd,
