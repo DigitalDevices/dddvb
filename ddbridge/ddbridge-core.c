@@ -3475,7 +3475,7 @@ static const struct file_operations ddb_fops = {
 #if (KERNEL_VERSION(3, 4, 0) > LINUX_VERSION_CODE)
 static char *ddb_devnode(struct device *device, mode_t *mode)
 #else
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
+#ifndef DDDVB_HAS_CONST_DEVICE_CB
 static char *ddb_devnode(struct device *device, umode_t *mode)
 #else
 static char *ddb_devnode(const struct device *device, umode_t *mode)
@@ -4099,7 +4099,7 @@ static struct device_attribute ddb_attrs_fanspeed[] = {
 
 static struct class ddb_class = {
 	.name		= "ddbridge",
-#if (KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE)
+#ifndef DDDVB_HAS_CLASS_CREATE_V2
 	.owner          = THIS_MODULE,
 #endif
 	.devnode        = ddb_devnode,

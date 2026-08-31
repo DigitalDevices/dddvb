@@ -1088,7 +1088,7 @@ EXPORT_SYMBOL_GPL(dvb_module_release);
 #endif
 #endif
 
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
+#ifndef DDDVB_HAS_CONST_DEVICE_CB
 static int dvb_uevent(struct device *dev, struct kobj_uevent_env *env)
 #else
 static int dvb_uevent(const struct device *dev, struct kobj_uevent_env *env)
@@ -1102,7 +1102,7 @@ static int dvb_uevent(const struct device *dev, struct kobj_uevent_env *env)
 	return 0;
 }
 
-#if (KERNEL_VERSION(6, 2, 0) > LINUX_VERSION_CODE)
+#ifndef DDDVB_HAS_CONST_DEVICE_CB
 static char *dvb_devnode(struct device *dev, umode_t *mode)
 #else
 static char *dvb_devnode(const struct device *dev, umode_t *mode)
@@ -1133,7 +1133,7 @@ static int __init init_dvbdev(void)
 		goto error;
 	}
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6,4,0))
+#ifndef DDDVB_HAS_CLASS_CREATE_V2
 	dvb_class = class_create(THIS_MODULE, "dvb");
 #else
 	dvb_class = class_create("dvb");

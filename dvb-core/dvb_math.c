@@ -116,7 +116,9 @@ unsigned int intlog2(u32 value)
 	/* now we return the result */
 	return ((msb << 24) + (logtable[logentry] << 8) + interpolation);
 }
+#ifndef DDDVB_INTLOG_IN_VMLINUX
 EXPORT_SYMBOL(intlog2);
+#endif
 
 unsigned int intlog10(u32 value)
 {
@@ -140,7 +142,9 @@ unsigned int intlog10(u32 value)
 
 	return (log * 646456993) >> 31;
 }
+#ifndef DDDVB_INTLOG_IN_VMLINUX
 EXPORT_SYMBOL(intlog10);
+#endif
 #else
 #include <linux/int_log.h>
 #endif

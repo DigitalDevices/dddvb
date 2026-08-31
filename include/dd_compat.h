@@ -69,3 +69,39 @@ static inline void *memdup_array_user(const void __user *src, size_t n, size_t s
 }
 #endif
 #endif
+
+/* compat: RHEL kernel 6.12.0-211 backported the upstream removal of from_timer();
+   alias it to the replacement timer_container_of() (identical signature). */
+#ifndef from_timer
+#define from_timer(var, callback_timer, timer_fieldname) \
+	timer_container_of(var, callback_timer, timer_fieldname)
+#endif
+
+/**
+ * compat: RHEL 9+ kernels backport 
+ * - the 6.2 const struct device * class callbacks
+ * - the 6.4 single-argument class_create()
+ * into their 5.14 base.
+ */
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
+#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0))
+#define DDDVB_HAS_CONST_DEVICE_CB 1
+#define DDDVB_HAS_CLASS_CREATE_V2 1
+#endif
+#endif
+#if !defined(DDDVB_HAS_CONST_DEVICE_CB) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
+#define DDDVB_HAS_CONST_DEVICE_CB 1
+#endif
+#if !defined(DDDVB_HAS_CLASS_CREATE_V2) && (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0))
+#define DDDVB_HAS_CLASS_CREATE_V2 1
+#endif
+
+/**
+ * compat: RHEL 9 kernels ship intlog2/intlog10 in vmlinux (6.6 backport).
+ * Do not export them again from dvb-core.
+ */
+#if defined(RHEL_RELEASE_CODE) && defined(RHEL_RELEASE_VERSION)
+#if (RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9, 0)) && (RHEL_RELEASE_CODE < RHEL_RELEASE_VERSION(10, 0))
+#define DDDVB_INTLOG_IN_VMLINUX 1
+#endif
+#endif
