@@ -435,6 +435,9 @@ struct ddb_link {
 	struct completion      mci_completion;
 	struct mutex           mci_lock;
 	int                    mci_ok;
+
+	struct device         *hwmon;
+	int                    hwmon_temps;
 };
 
 struct ddb {
