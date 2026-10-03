@@ -122,7 +122,8 @@ static int dvb_dvr_open(struct inode *inode, struct file *file)
 	struct dmxdev *dmxdev = dvbdev->priv;
 	struct dmx_frontend *front;
 	bool need_ringbuffer = false;
-
+	unsigned int may_do_mmap = 0;
+	
 	dprintk("%s\n", __func__);
 
 	if (mutex_lock_interruptible(&dmxdev->mutex))
@@ -132,8 +133,6 @@ static int dvb_dvr_open(struct inode *inode, struct file *file)
 		mutex_unlock(&dmxdev->mutex);
 		return -ENODEV;
 	}
-
-	dmxdev->may_do_mmap = 0;
 
 	/*
 	 * The logic here is a little tricky due to the ifdef.
@@ -150,7 +149,7 @@ static int dvb_dvr_open(struct inode *inode, struct file *file)
 	else if ((file->f_flags & O_ACCMODE) == O_RDWR) {
 		if (!(dmxdev->capabilities & DMXDEV_CAP_DUPLEX)) {
 #ifdef CONFIG_DVB_MMAP
-			dmxdev->may_do_mmap = 1;
+			may_do_mmap = 1;
 			need_ringbuffer = true;
 #else
 			mutex_unlock(&dmxdev->mutex);
@@ -171,6 +170,7 @@ static int dvb_dvr_open(struct inode *inode, struct file *file)
 			mutex_unlock(&dmxdev->mutex);
 			return -ENOMEM;
 		}
+		dmxdev->may_do_mmap = may_do_mmap;
 		dmxdev->dvr_buffer.data = mem;
 		dmxdev->dvr_buffer.size = DVR_BUFFER_SIZE;
 		dvb_ringbuffer_reset(&dmxdev->dvr_buffer);
