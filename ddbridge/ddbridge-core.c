@@ -26,6 +26,7 @@
 #include "ddbridge-io.h"
 #include "ddbridge-ioctl.h"
 #include <media/dvb_net.h>
+#include <linux/hwmon.h>
 
 static struct workqueue_struct *ddb_wq;
 
@@ -3556,33 +3557,26 @@ static ssize_t fanspeed_show(struct device *device,
 	return sprintf(buf, "%u\n", spd * 100);
 }
 
-static ssize_t temp_show(struct device *device,
-			 struct device_attribute *attr, char *buf)
+/*
+ * Read up to three temperatures of a link in millidegrees Celsius.
+ * Returns the number of values read, -ENODEV if the link has no
+ * sensor or -EIO on an I2C sensor read error.
+ */
+static int ddb_temp_read(struct ddb_link *link, s32 *temp)
 {
-	struct ddb *dev = dev_get_drvdata(device);
-	struct ddb_link *link;
+	struct ddb *dev = link->dev;
 	struct i2c_adapter *adap;
-	s32 temp, temp2, temp3;
-	int i;
+	int i, n;
 	u8 tmp[2];
-	int l = 0;
-
-	if (attr->attr.name[4] == 'l')
-		l = attr->attr.name[5] - 0x30;
-	link = &dev->link[l];
 
 	if (link->info->type == DDB_MOD) {
 		if (link->info->version >= 2) {
-			temp = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
-			temp = (temp * 1000) >> 8;
-
-			temp2 = 0xffff & ddbreadl(dev, TEMPMON2_FPGACORE);
-			temp2 = (temp2 * 1000) >> 8;
-
-			temp3 = 0xffff & ddbreadl(dev, TEMPMON2_QAMCORE);
-			temp3 = (temp3 * 1000) >> 8;
-
-			return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
+			temp[0] = 0xffff & ddbreadl(dev, TEMPMON2_BOARD);
+			temp[1] = 0xffff & ddbreadl(dev, TEMPMON2_FPGACORE);
+			temp[2] = 0xffff & ddbreadl(dev, TEMPMON2_QAMCORE);
+			for (i = 0; i < 3; i++)
+				temp[i] = (temp[i] * 1000) >> 8;
+			return 3;
 		}
 		ddbwritel(dev, 1, TEMPMON_CONTROL);
 		for (i = 0; i < 10; i++) {
@@ -3590,45 +3584,152 @@ static ssize_t temp_show(struct device *device,
 				break;
 			usleep_range(1000, 2000);
 		}
-		temp = ddbreadl(dev, TEMPMON_SENSOR1);
-		temp2 = ddbreadl(dev, TEMPMON_SENSOR2);
-		temp = (temp * 1000) >> 8;
-		temp2 = (temp2 * 1000) >> 8;
-		if (ddbreadl(dev, TEMPMON_CONTROL) & 0x8000) {
-			temp3 = ddbreadl(dev, TEMPMON_CORE);
-			temp3 = (temp3 * 1000) >> 8;
-			return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
-		}
-		return sprintf(buf, "%d %d\n", temp, temp2);
+		temp[0] = ddbreadl(dev, TEMPMON_SENSOR1);
+		temp[1] = ddbreadl(dev, TEMPMON_SENSOR2);
+		n = 2;
+		if (ddbreadl(dev, TEMPMON_CONTROL) & 0x8000)
+			temp[n++] = ddbreadl(dev, TEMPMON_CORE);
+		for (i = 0; i < n; i++)
+			temp[i] = (temp[i] * 1000) >> 8;
+		return n;
 	}
 	if (link->info->type == DDB_OCTOPUS_MCI) {
-		temp = 0xffff & ddblreadl(link, TEMPMON_SENSOR0);
-		temp = (temp * 1000) >> 8;
-
-		temp2 = 0xffff & ddblreadl(link, TEMPMON_SENSOR1);
-		temp2 = (temp2 * 1000) >> 8;
-
-		temp3 = 0xffff & ddblreadl(link, TEMPMON_SENSOR2);
-		temp3 = (temp3 * 1000) >> 8;
-
-		return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
+		temp[0] = 0xffff & ddblreadl(link, TEMPMON_SENSOR0);
+		temp[1] = 0xffff & ddblreadl(link, TEMPMON_SENSOR1);
+		temp[2] = 0xffff & ddblreadl(link, TEMPMON_SENSOR2);
+		for (i = 0; i < 3; i++)
+			temp[i] = (temp[i] * 1000) >> 8;
+		return 3;
 	}
 	if (!link->info->temp_num)
-		return sprintf(buf, "no sensor\n");
+		return -ENODEV;
 	adap = &dev->i2c[link->info->temp_bus].adap;
 	if (i2c_read_regs(adap, 0x48, 0, tmp, 2) < 0)
-		return sprintf(buf, "read_error\n");
-	temp = (tmp[0] << 3) | (tmp[1] >> 5);
-	temp *= 125;
+		return -EIO;
+	temp[0] = ((tmp[0] << 3) | (tmp[1] >> 5)) * 125;
 	if (link->info->temp_num == 2) {
 		if (i2c_read_regs(adap, 0x49, 0, tmp, 2) < 0)
-			return sprintf(buf, "read_error\n");
-		temp2 = (tmp[0] << 3) | (tmp[1] >> 5);
-		temp2 *= 125;
-		return sprintf(buf, "%d %d\n", temp, temp2);
+			return -EIO;
+		temp[1] = ((tmp[0] << 3) | (tmp[1] >> 5)) * 125;
+		return 2;
 	}
-	return sprintf(buf, "%d\n", temp);
+	return 1;
 }
+
+static ssize_t temp_show(struct device *device,
+			 struct device_attribute *attr, char *buf)
+{
+	struct ddb *dev = dev_get_drvdata(device);
+	s32 temp[3];
+	int i, n, len = 0;
+	int l = 0;
+
+	if (attr->attr.name[4] == 'l')
+		l = attr->attr.name[5] - 0x30;
+
+	n = ddb_temp_read(&dev->link[l], temp);
+	if (n == -ENODEV)
+		return sprintf(buf, "no sensor\n");
+	if (n < 0)
+		return sprintf(buf, "read_error\n");
+	for (i = 0; i < n; i++)
+		len += sprintf(buf + len, i ? " %d" : "%d", temp[i]);
+	return len + sprintf(buf + len, "\n");
+}
+
+#if (KERNEL_VERSION(5, 1, 0) <= LINUX_VERSION_CODE) && IS_REACHABLE(CONFIG_HWMON)
+static umode_t ddb_hwmon_is_visible(const void *data,
+				    enum hwmon_sensor_types type,
+				    u32 attr, int channel)
+{
+	const struct ddb_link *link = data;
+
+	return channel < link->hwmon_temps ? 0444 : 0;
+}
+
+static int ddb_hwmon_read(struct device *device, enum hwmon_sensor_types type,
+			  u32 attr, int channel, long *val)
+{
+	struct ddb_link *link = dev_get_drvdata(device);
+	s32 temp[3];
+	int n;
+
+	n = ddb_temp_read(link, temp);
+	if (n < 0)
+		return n;
+	if (channel >= n)
+		return -ENODATA;
+	*val = temp[channel];
+	return 0;
+}
+
+static const struct hwmon_ops ddb_hwmon_ops = {
+	.is_visible = ddb_hwmon_is_visible,
+	.read = ddb_hwmon_read,
+};
+
+#if (KERNEL_VERSION(6, 4, 0) > LINUX_VERSION_CODE)
+static const struct hwmon_channel_info *ddb_hwmon_info[] = {
+#else
+static const struct hwmon_channel_info * const ddb_hwmon_info[] = {
+#endif
+	HWMON_CHANNEL_INFO(temp, HWMON_T_INPUT, HWMON_T_INPUT, HWMON_T_INPUT),
+	NULL
+};
+
+static const struct hwmon_chip_info ddb_hwmon_chip_info = {
+	.ops = &ddb_hwmon_ops,
+	.info = ddb_hwmon_info,
+};
+
+/* Expose the same sensors as the "temp" attributes, one hwmon per link */
+static void ddb_hwmon_add(struct ddb *dev)
+{
+	struct ddb_link *link;
+	s32 temp[3];
+	int i, n;
+
+	/* ddb_device_destroy() only cleans up after a successful create */
+	if (IS_ERR(dev->ddb_dev))
+		return;
+	for (i = 0; i < 4; i++) {
+		link = &dev->link[i];
+		if (!link->info || !link->info->temp_num)
+			continue;
+		n = ddb_temp_read(link, temp);
+		/* Unpopulated sensors read 0, e.g. the third on a MAX M8E */
+		while (n > 0 && !temp[n - 1])
+			n--;
+		if (n <= 0)
+			continue;
+		link->hwmon_temps = n;
+		link->hwmon = hwmon_device_register_with_info(dev->dev,
+							      "ddbridge", link,
+							      &ddb_hwmon_chip_info,
+							      NULL);
+		if (IS_ERR(link->hwmon)) {
+			dev_warn(dev->dev, "link %d: hwmon registration failed (%ld)\n",
+				 i, PTR_ERR(link->hwmon));
+			link->hwmon = NULL;
+		}
+	}
+}
+
+static void ddb_hwmon_del(struct ddb *dev)
+{
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		if (dev->link[i].hwmon) {
+			hwmon_device_unregister(dev->link[i].hwmon);
+			dev->link[i].hwmon = NULL;
+		}
+	}
+}
+#else
+static void ddb_hwmon_add(struct ddb *dev) {}
+static void ddb_hwmon_del(struct ddb *dev) {}
+#endif
 
 static ssize_t ctemp_show(struct device *device,
 			  struct device_attribute *attr, char *buf)
@@ -4226,6 +4327,7 @@ void ddb_device_destroy(struct ddb *dev)
 {
 	if (IS_ERR(dev->ddb_dev))
 		return;
+	ddb_hwmon_del(dev);
 	ddb_device_attrs_del(dev);
 	device_destroy(&ddb_class, MKDEV(ddb_major, dev->nr));
 }
@@ -4569,6 +4671,7 @@ int ddb_init(struct ddb *dev)
 	ddb_nsd_attach(dev);
 
 	ddb_device_create(dev);
+	ddb_hwmon_add(dev);
 
 	if (dev->link[0].info->fan_num)	{
 		ddbwritel(dev, 1, GPIO_DIRECTION);
