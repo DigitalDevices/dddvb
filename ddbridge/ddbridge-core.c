@@ -3609,7 +3609,7 @@ static ssize_t temp_show(struct device *device,
 		temp2 = (temp2 * 1000) >> 8;
 
 		temp3 = 0xffff & ddblreadl(link, TEMPMON_SENSOR2);
-		temp3 = (temp2 * 1000) >> 8;
+		temp3 = (temp3 * 1000) >> 8;
 
 		return sprintf(buf, "%d %d %d\n", temp, temp2, temp3);
 	}
