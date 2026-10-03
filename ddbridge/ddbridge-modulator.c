@@ -1013,11 +1013,6 @@ static int mod_init_dac_input(struct ddb *dev)
 
 	Seek = 1;
 	for (Sample = 0; Sample < 32; Sample += 1) {
-		/* printk(" %2d: %d %2d %2d\n",
-		 * Sample, SeekTable[Sample], SetTable[Sample],
-		 * HldTable[Sample]);
-		 */
-
 		if (Sample1 == 0xFF && SeekTable[Sample] == 1 && Seek == 0)
 			Sample1 = Sample;
 		if (Sample1 != 0xFF && Sample2 == 0xFF &&
@@ -1607,7 +1602,6 @@ static int mod_set_ari(struct ddb_mod *mod, u32 rate)
 		.params8[0] = MOD_CLOCK_COR_LEGACY_SET,
 		.params[1] = rate,
 	};
-	printk("ari: %u %04x\n", stream, rate);
 	return ddb_mci_cmd_link(link, &cmd, NULL);
 }
 
