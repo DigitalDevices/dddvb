@@ -149,62 +149,6 @@ static const struct ddb_regset sdr_mci_buf = {
 };
 
 /****************************************************************************/
-
-static const struct ddb_regset octopro_input = {
-	.base = 0x400,
-	.num  = 0x14,
-	.size = 0x10,
-};
-
-static const struct ddb_regset octopro_output = {
-	.base = 0x600,
-	.num  = 0x0a,
-	.size = 0x10,
-};
-
-static const struct ddb_regset octopro_idma = {
-	.base = 0x800,
-	.num  = 0x40,
-	.size = 0x10,
-};
-
-static const struct ddb_regset octopro_idma_buf = {
-	.base = 0x4000,
-	.num  = 0x40,
-	.size = 0x100,
-};
-
-static const struct ddb_regset octopro_odma = {
-	.base = 0xc00,
-	.num  = 0x20,
-	.size = 0x10,
-};
-
-static const struct ddb_regset octopro_odma_buf = {
-	.base = 0x8000,
-	.num  = 0x20,
-	.size = 0x100,
-};
-
-static const struct ddb_regset octopro_i2c = {
-	.base = 0x200,
-	.num  = 0x0a,
-	.size = 0x20,
-};
-
-static const struct ddb_regset octopro_i2c_buf = {
-	.base = 0x2000,
-	.num  = 0x0a,
-	.size = 0x200,
-};
-
-static const struct ddb_regset octopro_gtl = {
-	.base = 0xe00,
-	.num  = 0x03,
-	.size = 0x40,
-};
-
-/****************************************************************************/
 /****************************************************************************/
 
 static const struct ddb_regset gtl_mini_input = {
@@ -266,38 +210,6 @@ static const struct ddb_regmap octopus_mci_map = {
 
 	.mci = &max_mci,
 	.mci_buf = &max_mci_buf,
-};
-
-static const struct ddb_regmap octopro_map = {
-	.irq_version = 2,
-	.irq_base_i2c = 32,
-	.irq_base_idma = 64,
-	.irq_base_odma = 128,
-	.irq_base_gtl = 8,
-	.i2c = &octopro_i2c,
-	.i2c_buf = &octopro_i2c_buf,
-	.idma = &octopro_idma,
-	.idma_buf = &octopro_idma_buf,
-	.odma = &octopro_odma,
-	.odma_buf = &octopro_odma_buf,
-	.input = &octopro_input,
-	.output = &octopro_output,
-	.gtl = &octopro_gtl,
-};
-
-static const struct ddb_regmap octopro_hdin_map = {
-	.irq_version = 2,
-	.irq_base_i2c = 32,
-	.irq_base_idma = 64,
-	.irq_base_odma = 128,
-	.i2c = &octopro_i2c,
-	.i2c_buf = &octopro_i2c_buf,
-	.idma = &octopro_idma,
-	.idma_buf = &octopro_idma_buf,
-	.odma = &octopro_odma,
-	.odma_buf = &octopro_odma_buf,
-	.input = &octopro_input,
-	.output = &octopro_output,
 };
 
 static const struct ddb_regmap octopus_mod_map = {
