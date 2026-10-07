@@ -382,6 +382,24 @@ static const struct ddb_info ddb_ci = {
 	.ci_mask  = 0x0c,
 };
 
+static const struct ddb_info ddb_ci_v5 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices Octopus CI V5",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.i2c_mask = 0x00,
+	.ci_mask  = 0x0c,
+};
+
+static const struct ddb_info ddb_ci_u2 = {
+	.type     = DDB_OCTOPUS_MCI,
+	.name     = "Digital Devices Octopus CI U2",
+	.regmap   = &octopus_mci_map,
+	.port_num = 4,
+	.i2c_mask = 0x00,
+	.ci_mask  = 0x0c,
+};
+
 static const struct ddb_info ddb_cis = {
 	.type     = DDB_OCTOPUS,
 	.name     = "Digital Devices Octopus CI single",
@@ -878,6 +896,8 @@ static const struct ddb_device_id ddb_device_ids[] = {
 	DDB_DEVID(0x0013, 0x0043, ddb_ci_s2_pro),
 	DDB_DEVID(0x0013, 0x0044, ddb_ci_s2_pro_a),
 	DDB_DEVID(0x0014, 0x0045, ddb_ci_m2),
+	DDB_DEVID(0x0015, 0x0046, ddb_ci_v5),
+	DDB_DEVID(0x0016, 0x0047, ddb_ci_u2),
 	DDB_DEVID(0x0020, 0x0012, ddb_gtl_mini),
 	DDB_DEVID(0x0021, 0x0051, ddb_m4_v2),
 	DDB_DEVID(0x0022, 0x0052, ddb_m8),
