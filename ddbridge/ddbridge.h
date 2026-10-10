@@ -49,7 +49,7 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/spi/spi.h>
-#include <linux/gpio.h>
+//#include <linux/gpio.h>
 #include <linux/completion.h>
 
 #include <linux/types.h>
@@ -95,6 +95,8 @@
 #define DDB_MAX_OUTPUT 32
 #define DDB_MAX_LINK    4
 #define DDB_LINK_SHIFT 28
+#define DDB_ADDR_MASK  0x0fffffff
+#define DDB_LINK_MASK  0xf0000000
 
 #define DDB_LINK_TAG(_x) ((_x) << DDB_LINK_SHIFT)
 
@@ -536,7 +538,7 @@ struct DDMOD_FLASH {
 
 int ddbridge_flashread(struct ddb *dev, u32 link, u8 *buf, u32 addr, u32 len);
 
-#define DDBRIDGE_VERSION "0.9.41"
+#define DDBRIDGE_VERSION "0.9.42"
 
 /* linked function prototypes */
 
