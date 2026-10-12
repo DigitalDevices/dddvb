@@ -3270,8 +3270,12 @@ static long ddb_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			return -EINVAL;
 		if (fio.write_len + fio.read_len > 1028)
 			return -EINVAL;
-		if (fio.link > 3)
-			return -EINVAL;
+		if (fio.link) {
+			if (!dev->link[0].info->regmap->gtl)
+				return -EINVAL;
+			if (fio.link > dev->link[0].info->regmap->gtl->num)
+				return -EINVAL;
+		}
 
 		wbuf = &dev->iobuf[0];
 		rbuf = wbuf + fio.write_len;
