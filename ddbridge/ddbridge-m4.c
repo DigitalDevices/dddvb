@@ -195,7 +195,7 @@ static int search_isdbs(struct dvb_frontend *fe)
 	cmd.command = MCI_CMD_SEARCH_ISDBS;
 	cmd.isdbs_search.retry = 0;
 	if (p->stream_id != NO_STREAM_ID_FILTER) {
-		cmd.isdbs_search.flags = (p->stream_id & 0xffff0000) ? 0 : 1;
+		cmd.isdbs_search.flags = 0;
 		cmd.isdbs_search.tsid = p->stream_id;
 	}
 	cmd.isdbs_search.frequency = p->frequency * 1000;
