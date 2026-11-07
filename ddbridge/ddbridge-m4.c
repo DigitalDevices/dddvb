@@ -40,7 +40,14 @@ struct m4 {
 	int         iq_constellation_point_max;
 	int         iq_constellation_tap;
 	int         first_time_lock;
+	u8          trace_state;
+	ktime_t     trace_start;
 };
+
+static int m4_trace;
+module_param(m4_trace, int, 0644);
+MODULE_PARM_DESC(m4_trace,
+		 "Log MCI demod state changes with timing (debug, default 0)");
 
 static int stop(struct dvb_frontend *fe)
 {
@@ -417,6 +424,13 @@ static int set_parameters(struct dvb_frontend *fe)
 	if (!res) {
 		state->started = 1;
 		state->first_time_lock = 1;
+		state->trace_start = ktime_get();
+		state->trace_state = 0xff;
+		if (m4_trace)
+			dev_info(state->mci.base->link->dev->dev,
+				 "demod %u: search start delsys %u freq %u sr %u\n",
+				 state->mci.demod, ds, p->frequency,
+				 p->symbol_rate);
 	} else
 		stop(fe);
 	return res;
@@ -434,6 +448,14 @@ static int read_status(struct dvb_frontend *fe, enum fe_status *status)
 	stat = ddb_mci_get_status(&state->mci, &res);
 	if (stat)
 		return stat;
+	if (m4_trace && res.status != state->trace_state) {
+		dev_info(state->mci.base->link->dev->dev,
+			 "demod %u: state %u mode %u fwtime %u (+%lld ms)\n",
+			 state->mci.demod, res.status, res.mode, res.time,
+			 (long long)ktime_to_ms(ktime_sub(ktime_get(),
+							  state->trace_start)));
+		state->trace_state = res.status;
+	}
 	stat = ddb_mci_get_info(&state->mci);
 	if (stat)
 		return stat;
